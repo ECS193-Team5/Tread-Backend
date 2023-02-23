@@ -1,8 +1,0 @@
-#ChallengeScroll{
-    overflow-y: scroll;
-    max-height: 74vh;
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
