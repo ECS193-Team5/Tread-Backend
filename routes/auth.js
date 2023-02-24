@@ -28,10 +28,6 @@ async function createUser(user_info) {
 async function createFriendList(username) {
   const blankFriendList = {
     username: username,
-    friends: [],
-    blocked: [],
-    sentRequests: [],
-    receivedRequests: [],
   }
   const newFriendList = new Friend_lists(blankFriendList)
   await newFriendList.save()

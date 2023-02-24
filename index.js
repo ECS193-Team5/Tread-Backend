@@ -51,7 +51,7 @@ app.use(session(sess))
 function isAuthenticated(req, res, next) {
   if (req.session.authenticationSource && req.session.authenticationID) next();
       // Needs to be changed to the prod login page.
-  else res.sendStatus(401).json("Not signed in");
+  else res.status(401).json("Not signed in");
 }
 
 function hasUsername(req, res, next) {
@@ -59,13 +59,15 @@ function hasUsername(req, res, next) {
   else res.status(401).json("No username set");
 }
 
+const authRouter = require("./routes/auth")
 const userRouter = require("./routes/user");
 const friendRouter = require("./routes/friend_list")
-const authRouter = require("./routes/auth")
+const challengeRouter= require("./routes/challenges")
 
 app.use("/auth", authRouter);
 app.use("/user", isAuthenticated, hasUsername, userRouter);
 app.use("/friend_list", isAuthenticated, hasUsername, friendRouter);
+app.use("/challenges", isAuthenticated, hasUsername, challengeRouter);
 
 
 app.listen(5000, () => {

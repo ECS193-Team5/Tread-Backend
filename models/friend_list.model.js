@@ -6,14 +6,23 @@ const Schema = mongoose.Schema;
     kept in the database
     friend_1_email should be alphabetically before friend_2_email
 */
+const defaultBlankStringArray = {
+  type: [String],
+  required: true,
+  default: []
+}
 const friendListSchema = new Schema(
   {
-    username: String,
-    friends: [String],
-    blocked: [String],
-    blockedBy: [String],
-    sentRequests: [String],
-    receivedRequests: [String]
+    username: {
+      type: String,
+      required: true,
+      unique: true
+    },
+    friends: defaultBlankStringArray,
+    blocked: defaultBlankStringArray,
+    blockedBy: defaultBlankStringArray,
+    sentRequests: defaultBlankStringArray,
+    receivedRequests: defaultBlankStringArray,
   },
   {
     collection: "friend_lists"
