@@ -33,7 +33,7 @@ const challengeSchema = new Schema(
         type: String,
         required: true
     },
-    recievedUser: {
+    receivedUser: {
         type: String,
         required: true
     },

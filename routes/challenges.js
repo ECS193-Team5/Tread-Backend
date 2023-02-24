@@ -46,12 +46,11 @@ router.route('/add_challenge').post(async (req, res) => {
     const newUser = new Challenge(challenge);
     try {
         challenge = await newUser.save()
-        console.log(challenge)
     } catch (err) {
         return res.status(500).json("Error: " + err);
     }
 
-    return res.status(200).send(challenge);
+    return res.status(200).send({challengeID: challenge.id});
 });
 
 router.route('/accepted_challenges').post(async (req, res) => {
@@ -89,18 +88,22 @@ router.route('/received_challenges').post(async (req, res) => {
 });
 
 
-router.route('/accept_friend_challenge').post(async (req, res) => {
-    const username = req.session.username;
-    const challengeID = req.body.challengeID;
-
-    challenge = await Challenge.findOneAndUpdate({
+async function updatePendingChallengeStatusByID(challengeID, username, newStatus) {
+    return Challenge.findOneAndUpdate({
         _id : ObjectId(challengeID),
         receivedUser: username,
         status: 'pending'
         },
         {
-        status: 'accepted'
+        status: newStatus
         });
+}
+
+router.route('/accept_friend_challenge').post(async (req, res) => {
+    const username = req.session.username;
+    const challengeID = req.body.challengeID;
+
+    challenge = await updatePendingChallengeStatusByID(challengeID, username, 'accepted')
 
     if (challenge === null) {
         return res.sendStatus(404);
@@ -113,11 +116,7 @@ router.route('/decline_friend_challenge').post(async (req, res) => {
     const username = req.session.username;
     const challengeID = req.body.challengeID;
 
-    challenge = await Challenge.findOneAndDelete({
-        _id : ObjectId(challengeID),
-        receivedUser: username,
-        status: 'pending'
-        });
+    challenge = await updatePendingChallengeStatusByID(challengeID, username, 'declined')
 
     if (challenge === null) {
         return res.sendStatus(404);
