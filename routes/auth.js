@@ -133,9 +133,6 @@ router.route('/login/google').post(async (req, res) => {
       given_name: payload.given_name,
       family_name: payload.family_name,
       email: payload.email,
-      picture: payload.picture,
-      username: null,
-      ifMetric: true,
     }
 
     try {

@@ -18,6 +18,7 @@ const userSchema = new Schema(
     username: {
       type: String,
       requried: true,
+      default: null,
       index: {
         unique: true,
         partialFilterExpression: {username: {$type: "string"}},
@@ -25,7 +26,11 @@ const userSchema = new Schema(
     },
     displayName: String,
     profilePhoto: String,
-    ifMetric: Boolean,
+    ifMetric: {
+      type: Boolean,
+      required: true,
+      default : true,
+    },
   },
   {
     collection: "user_info"
