@@ -67,9 +67,9 @@ app.use("/auth", authRouter);
 app.use("/user", isAuthenticated, hasUsername, userRouter);
 app.use("/friend_list", isAuthenticated, hasUsername, friendRouter);
 
-
-app.listen(5000, () => {
-  console.log(`Server Started at ${8080}`)
+const port = parseInt(process.env.PORT) || 8080;
+app.listen(port, () => {
+  console.log(`Server Started at ${port}`)
 });
 /*
 https.createServer({
