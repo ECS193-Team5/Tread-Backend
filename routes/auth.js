@@ -6,25 +6,6 @@ const {OAuth2Client} = require('google-auth-library');
 const CLIENT_ID = '1076047412250-apdkut808sf29i8ju8k0lt1jp4gh8n8s.apps.googleusercontent.com';
 const client = new OAuth2Client(CLIENT_ID);
 
-async function verify(token) {
-    const ticket = await client.verifyIdToken({
-        idToken: token,
-        audience: CLIENT_ID,  // Specify the CLIENT_ID of the app that accesses the backend
-        // Or, if multiple clients access the backend:
-        //[CLIENT_ID_1, CLIENT_ID_2, CLIENT_ID_3]
-    });
-    const payload = ticket.getPayload();
-    const userid = payload['sub'];
-    return payload;
-    // If request specified a G Suite domain:
-    // const domain = payload['hd'];
-}
-
-async function createUser(user_info) {
-  const newUser = new User(user_info);
-  await newUser.save()
-}
-
 async function createFriendList(username) {
   const blankFriendList = {
     username: username,
@@ -56,7 +37,7 @@ function formatDiscriminator(discriminator) {
 }
 
 router.route('/sign_up').post(async (req, res,) => {
-  if (req.session.username) {
+  if (req.session.username !== null) {
     return res.status(400).json("Error: already has username");
   }
   const chosenUsername = req.body.username;
@@ -66,37 +47,69 @@ router.route('/sign_up').post(async (req, res,) => {
   if (!isValidUsername(chosenUsername)) {
     return res.status(400).json("Error: invalid username")
   }
-
   let discriminator = getRandomIntInclusive(0, 9999);
   let end = discriminator;
   let completeUsername = chosenUsername + '#' + formatDiscriminator(discriminator);
-  if (await isExistingUser(completeUsername)) {
+
+  req.session.username = completeUsername;
+  try {
+    await User.findOneAndUpdate({
+      authenticationSource : req.session.authenticationSource,
+      authenticationID : req.session.authenticationID}, {
+      username : completeUsername,
+      profilePhoto: profilePhotoURL,
+      displayName: displayName
+    }, {runValidators: true});
+  } catch (err){ //try with different discriminator
+    notValidUsername = true;
+
     do {
       discriminator = (discriminator + 1) % 10000;
       completeUsername = chosenUsername + '#' + formatDiscriminator(discriminator);
-    } while (await isExistingUser(completeUsername) || discriminator == end);
+
+      await User.findOneAndUpdate({
+        authenticationSource : req.session.authenticationSource,
+        authenticationID : req.session.authenticationID}, {
+        username : completeUsername,
+        profilePhoto: profilePhotoURL,
+        displayName: displayName
+      }, {runValidators: true});
+      notValidUsername = false;
+    } while(notValidUsername && discriminator != end)
+
+    if (discriminator == end) {
+      return res.status(400).json("Username not available");
+    }
   }
-  console.log(completeUsername);
-
-  req.session.username = completeUsername;
-  await User.findOneAndUpdate({
-    authenticationSource : req.session.authenticationSource,
-    authenticationID : req.session.authenticationID}, {
-    username : completeUsername,
-    profilePhoto: profilePhotoURL,
-    displayName: displayName
-  });
-
 
   // Init necessary models
   try {
     await createFriendList(completeUsername);
   } catch {
-    return res.status(500);
+    return res.sendStatus(500);
   }
   return res.sendStatus(200);
 
 });
+
+async function verify(token) {
+  const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: CLIENT_ID,  // Specify the CLIENT_ID of the app that accesses the backend
+      // Or, if multiple clients access the backend:
+      //[CLIENT_ID_1, CLIENT_ID_2, CLIENT_ID_3]
+  });
+  const payload = ticket.getPayload();
+  const userid = payload['sub'];
+  return payload;
+  // If request specified a G Suite domain:
+  // const domain = payload['hd'];
+}
+
+async function createUser(user_info) {
+const newUser = new User(user_info);
+await newUser.save()
+}
 
 router.route('/login/google').post(async (req, res) => {
 
@@ -121,7 +134,7 @@ router.route('/login/google').post(async (req, res) => {
       family_name: payload.family_name,
       email: payload.email,
       picture: payload.picture,
-      username: '',
+      username: null,
       ifMetric: true,
     }
 
@@ -141,6 +154,8 @@ router.route('/login/google').post(async (req, res) => {
     req.session.authenticationID = payload.sub;
     if (!isNewUser) {
       req.session.username = usernameDoc.username;
+    } else {
+      req.session.username = null;
     }
 
     // save the session before redirection to ensure page

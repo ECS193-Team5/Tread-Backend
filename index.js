@@ -55,7 +55,7 @@ function isAuthenticated(req, res, next) {
 }
 
 function hasUsername(req, res, next) {
-  if (req.session.username && req.session.username != '') next();
+  if (req.session.username && req.session.username !== null) next();
   else res.status(401).json("No username set");
 }
 

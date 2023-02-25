@@ -18,6 +18,10 @@ const userSchema = new Schema(
     username: {
       type: String,
       requried: true,
+      index: {
+        unique: true,
+        partialFilterExpression: {username: {$type: "string"}},
+      },
     },
     displayName: String,
     profilePhoto: String,

@@ -10,10 +10,11 @@ const mapping = {
 // Unique can't won't be enforced by validate()
 // Use deleteMany() instead of dropDatabase() when clearing data.
 // validate should only work for save() and not update.
+// Might not need participant validator
 const challengeSchema = new Schema(
   {
     participants: {
-        type: Array,
+        type: [String],
         required: true,
         validate: {
             validator: function(participants) {
