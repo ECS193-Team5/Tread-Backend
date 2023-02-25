@@ -1,46 +1,97 @@
 const router = require("express").Router();
 var ObjectId = require('mongoose').Types.ObjectId;
 const Challenge = require("../models/challenge.model");
+const {isExistingUser} = require("./user.js");
 
-function setStatusFromChallengeType(challengeType) {
-    const mapping = {
-        "self" : "accepted",
-        "friend" : "pending",
-        "league" : "accepted",
-    }
-    return mapping[challengeType];
-}
 
-router.route('/add_challenge').post(async (req, res) => {
-    const participants = req.body.participants;
-    const progress = req.body.progress;
+router.route('/add_friend_challenge').post(async (req, res) => {
     const sentUser = req.session.username;
     const receivedUser = req.body.receivedUser;
-    const challengeType = req.body.challengeType;
+    const challengeType = "friend";
     // Issue date can be undefined
     const issueDate = req.body.issueDate;
     const dueDate = req.body.dueDate;
     const exerciseList = req.body.exerciseList;
-    const status = setStatusFromChallengeType(req.body.challengeType)
 
-    // add the sentUser to participants
-    participants.push(sentUser);
-    progress[sentUser] =  0
+    if (!(await isExistingUser(req.body.receivedUser))) {
+        return res.sendStatus(404);
+    }
 
     challenge = {
-        participants: participants,
-        progress: progress,
+        participants: [sentUser, receivedUser],
         sentUser: sentUser,
         receivedUser: receivedUser,
         challengeType: challengeType,
         issueDate: issueDate,
         dueDate: dueDate,
         exerciseList: exerciseList,
-        status: status,
     }
 
-    // verify participant and progress users exist
-    // verify sentUser and receivedUser exist.
+
+    const newUser = new Challenge(challenge);
+    try {
+        challenge = await newUser.save()
+    } catch (err) {
+        return res.status(500).json("Error: " + err);
+    }
+
+    return res.status(200).send({challengeID: challenge.id});
+});
+
+router.route('/add_self_challenge').post(async (req, res) => {
+    const sentUser = req.session.username;
+    const challengeType = "self";
+    // Issue date can be undefined
+    const issueDate = req.body.issueDate;
+    const dueDate = req.body.dueDate;
+    const exerciseList = req.body.exerciseList;
+
+    challenge = {
+        participants: [sentUser],
+        sentUser: sentUser,
+        receivedUser: sentUser,
+        challengeType: challengeType,
+        issueDate: issueDate,
+        dueDate: dueDate,
+        exerciseList: exerciseList,
+    }
+
+
+    const newUser = new Challenge(challenge);
+    try {
+        challenge = await newUser.save()
+    } catch (err) {
+        return res.status(500).json("Error: " + err);
+    }
+
+    return res.status(200).send({challengeID: challenge.id});
+});
+
+router.route('/add_league_challenge').post(async (req, res) => {
+    const sentUser = req.session.username;
+    const receivedUser = req.body.receivedUser;
+    // Issue date can be undefined
+    const issueDate = req.body.issueDate;
+    const dueDate = req.body.dueDate;
+    const exerciseList = req.body.exerciseList;
+    const challengeType = "league"
+
+    if (!(await isExistingUser(req.body.receivedUser))) {
+        return res.sendStatus(404);
+    }
+
+    //get participants from league.
+    const participants = [];
+
+    challenge = {
+        participants: participants,
+        sentUser: sentUser,
+        receivedUser: receivedUser,
+        challengeType: challengeType,
+        issueDate: issueDate,
+        dueDate: dueDate,
+        exerciseList: exerciseList,
+    }
 
 
     const newUser = new Challenge(challenge);

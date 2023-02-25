@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
+const mapping = {
+    "self" : "accepted",
+    "friend" : "pending",
+    "league" : "accepted",
+}
 
 // Unique can't won't be enforced by validate()
 // Use deleteMany() instead of dropDatabase() when clearing data.
@@ -22,12 +27,14 @@ const challengeSchema = new Schema(
         type: Map,
         of: Number,
         required: true,
-        validate: {
-            validator: function(progress) {
-                return (progress.size == this.participants.length);
-            },
-            message: () => 'Size must be same as number of participants.'
+        default: function() {
+            let progressMap = new Map();
+            this.participants.forEach(person => {
+                progressMap.set(person, 0);
+            });
+            return progressMap;
         }
+
     },
     sentUser: {
         type: String,
@@ -65,7 +72,10 @@ const challengeSchema = new Schema(
     status: {
         type: String,
         enum: ["pending", "declined", "accepted"],
-        required: true
+        required: true,
+        default: function () {
+            return mapping[this.challengeType];
+        }
     },
   },
   {

@@ -1,7 +1,6 @@
 const router = require("express").Router();
 let Friend_lists = require("../models/friend_list.model");
-
-
+const {isExistingUser} = require("./user.js");
 /*
 router.route("/").get((req, res) => {
     Friend_lists.find()
@@ -20,7 +19,7 @@ async function getPropertyOfFriendList(username, property) {
 }
 
 router.route('/pending_requests').post(async (req, res) => {
-    const username = req.body.username;
+    const username = req.session.username;
 
     const pendingRequests = await Friend_lists.findOne({username: username },
         'sentRequests receivedRequests');
@@ -76,14 +75,14 @@ router.route('/remove_friend').post(async (req, res) => {
     const username = req.session.username;
     const friendName = req.body.friendName;
 
+    if (!(await isExistingUser(friendName))) {
+        return res.sendStatus(404);
+    }
+
     removeFriend(username, friendName);
 
     return res.sendStatus(200);
 });
-
-async function isExistingUser(username) {
-    return (await Friend_lists.exists({username: username}).lean() !== null);
-}
 
 async function getUserFriendDocument(username) {
     return Friend_lists.findOne({username: username});
@@ -148,8 +147,7 @@ async function sendRequest(sender, receiver) {
 router.route('/send_friend_request').post(async (req, res) => {
     const username = req.session.username
     const friendName = req.body.friendName
-
-    if (!isExistingUser(friendName)) {
+    if (! (await isExistingUser(friendName))) {
         return res.sendStatus(404);
     }
 
@@ -185,6 +183,10 @@ router.route('/accept_received_request').post(async (req, res) => {
     const username = req.session.username
     const friendName = req.body.friendName
 
+    if (!(await isExistingUser(friendName))) {
+        return res.sendStatus(404);
+    }
+
     acceptFriendRequest(username, friendName);
 
     return res.sendStatus(200);
@@ -207,6 +209,10 @@ router.route('/remove_sent_request').post(async (req, res) => {
     const username= req.session.username;
     const receiver = req.body.receiver;
 
+    if (!(await isExistingUser(receiver))) {
+        return res.sendStatus(404);
+    }
+
     removeRequest(username, receiver);
 
     return res.sendStatus(200);
@@ -216,6 +222,10 @@ router.route('/remove_received_request').post(async (req, res) => {
     const username= req.session.username;
     const sender = req.body.sender;
 
+    if (!(await isExistingUser(sender))) {
+        return res.sendStatus(404);
+    }
+
     removeRequest(sender, username);
 
     return res.sendStatus(200);
@@ -224,6 +234,10 @@ router.route('/remove_received_request').post(async (req, res) => {
 router.route('/unblock_user').post(async (req, res) => {
     const username= req.session.username;
     const target = req.body.target;
+
+    if (!(await isExistingUser(target))) {
+        return res.sendStatus(404);
+    }
 
     unblock(username, target);
 
@@ -253,7 +267,7 @@ router.route('/block_user').post(async (req, res) => {
     const username = req.session.username;
     const target = req.body.target;
 
-    if (!isExistingUser(target)) {
+    if (!(await isExistingUser(target))) {
         return res.sendStatus(404);
     }
 
