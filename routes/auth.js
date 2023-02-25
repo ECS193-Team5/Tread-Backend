@@ -1,10 +1,10 @@
 const router = require("express").Router();
 let User = require("../models/user.model");
+const {isExistingUser} = require("./user.js");
 let Friend_lists = require("../models/friend_list.model");
 const {OAuth2Client} = require('google-auth-library');
 const CLIENT_ID = '1076047412250-apdkut808sf29i8ju8k0lt1jp4gh8n8s.apps.googleusercontent.com';
 const client = new OAuth2Client(CLIENT_ID);
-const crypto = require("crypto");
 
 async function verify(token) {
     const ticket = await client.verifyIdToken({
@@ -70,11 +70,11 @@ router.route('/sign_up').post(async (req, res,) => {
   let discriminator = getRandomIntInclusive(0, 9999);
   let end = discriminator;
   let completeUsername = chosenUsername + '#' + formatDiscriminator(discriminator);
-  if (await User.exists({username: completeUsername}).lean() !== null) {
+  if (await isExistingUser(completeUsername)) {
     do {
       discriminator = (discriminator + 1) % 10000;
       completeUsername = chosenUsername + '#' + formatDiscriminator(discriminator);
-    } while (await User.exists({username: completeUsername}).lean() !== null || discriminator == end);
+    } while (await isExistingUser(completeUsername) || discriminator == end);
   }
   console.log(completeUsername);
 

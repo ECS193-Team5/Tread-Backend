@@ -1,17 +1,6 @@
 const router = require("express").Router();
 let User = require("../models/user.model");
 
-/*
-router.route("/").get((req, res) => {
-  User.find()
-    .then(function (data) {
-      res.send({ data });
-    })
-    .catch(function (err) {
-      res.status(400).json("Error from the router" + err);
-    });
-});
-*/
 router.route("/create_user").post((req, res) => {
   const req_name = req.body.name;
   const req_email = req.body.email;
@@ -31,9 +20,13 @@ router.route("/create_user").post((req, res) => {
     .catch((err) => res.status(400).json("Error: " + err));
 });
 
-router.route('/check_username_exist').post(async (req, res) => {
-  return res.json(await User.exists({username: req.body.username}).lean() !== null);
+async function isExistingUser(username) {
+  return (await User.exists({username: username}).lean() !== null);
+}
 
+router.route('/check_username_exist').post(async (req, res) => {
+  return res.json(await isExistingUser(req.body.username));
 });
 
 module.exports = router;
+module.exports.isExistingUser = isExistingUser;
