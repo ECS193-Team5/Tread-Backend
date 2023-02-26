@@ -80,11 +80,7 @@ router.delete('/delete_account', async (req, res, next) => {
     return res.status(500).json("Could not finish deleting profile.");
   }
   next();
-}, logout,
-(err, req, res, next) => {
-  console.log(err);
-  return res.status(500).json("Could not finish deleting profile.");
-});
+}, logout);
 
 
 
