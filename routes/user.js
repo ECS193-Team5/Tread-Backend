@@ -67,6 +67,7 @@ async function deleteUserChallenges(username) {
   // remove historical challenges
 }
 
+// maybe add error handling middleware.
 router.delete('/delete_account', async (req, res, next) => {
   const username = req.session.username;
   try {
@@ -79,7 +80,11 @@ router.delete('/delete_account', async (req, res, next) => {
     return res.status(500).json("Could not finish deleting profile.");
   }
   next();
-}, logout);
+}, logout,
+(err, req, res, next) => {
+  console.log(err);
+  return res.status(500).json("Could not finish deleting profile.");
+});
 
 
 
