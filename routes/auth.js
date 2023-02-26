@@ -64,7 +64,7 @@ router.route('/sign_up').post(async (req, res,) => {
     return res.status(400).json("Error: already has username");
   }
   const chosenUsername = req.body.username;
-  const profilePhotoURL = req.body.photo;
+  const picture = req.body.photo;
   const displayName = req.body.displayName;
 
   if (!isValidUsername(chosenUsername)) {
@@ -77,7 +77,7 @@ router.route('/sign_up').post(async (req, res,) => {
   }
 
   let profileInfo = {
-    profilePhoto: profilePhotoURL,
+    picture: picture,
     displayName: displayName
   }
 

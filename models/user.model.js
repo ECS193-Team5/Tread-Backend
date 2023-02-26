@@ -13,7 +13,6 @@ const userSchema = new Schema(
     },
     givenName: String,
     familyName: String,
-    picture: String,
     email: String,
     username: {
       type: String,
@@ -24,8 +23,14 @@ const userSchema = new Schema(
         partialFilterExpression: {username: {$type: "string"}},
       },
     },
-    displayName: String,
-    profilePhoto: String,
+    displayName: {
+      type: String,
+      default: "",
+    },
+    picture: {
+      type: String,
+      required: true,
+    },
     ifMetric: {
       type: Boolean,
       required: true,
