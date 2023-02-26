@@ -37,6 +37,8 @@ const userSchema = new Schema(
   }
 );
 
+// need to index authSource and authID using multiIndex (schema.index())
+
 const User = mongoose.model("User", userSchema);
 
 module.exports = User;

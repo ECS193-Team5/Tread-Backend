@@ -36,6 +36,29 @@ function formatDiscriminator(discriminator) {
   return discriminator.toString().padStart(4 , '0')
 }
 
+async function updateProfile(userIdentifiers, profileInfo, chosenUsername) {
+  let discriminator = getRandomIntInclusive(0, 9999);
+  const end = discriminator;
+  profileInfo.username = chosenUsername + '#' + formatDiscriminator(discriminator);
+
+  let validUsername = false;
+  do{
+    try {
+      await User.findOneAndUpdate(userIdentifiers, profileInfo, {runValidators: true});
+      // gets here if update succeeds
+      validUsername = true;
+    } catch (err){ //try with different discriminator
+      discriminator = (discriminator + 1) % 10000;
+      profileInfo.username = chosenUsername + '#' + formatDiscriminator(discriminator);
+      if (discriminator == end) {
+        throw new Error("Username not available")
+      }
+    }
+  } while(!validUsername)
+
+  return profileInfo.username;
+}
+
 router.route('/sign_up').post(async (req, res,) => {
   if (req.session.username !== null) {
     return res.status(400).json("Error: already has username");
@@ -47,40 +70,25 @@ router.route('/sign_up').post(async (req, res,) => {
   if (!isValidUsername(chosenUsername)) {
     return res.status(400).json("Error: invalid username")
   }
-  let discriminator = getRandomIntInclusive(0, 9999);
-  let end = discriminator;
-  let completeUsername = chosenUsername + '#' + formatDiscriminator(discriminator);
+
+  const userIdentifiers = {
+    authenticationSource : req.session.authenticationSource,
+    authenticationID : req.session.authenticationID
+  }
+
+  let profileInfo = {
+    profilePhoto: profilePhotoURL,
+    displayName: displayName
+  }
+
+  let completeUsername = null;
+  try {
+    completeUsername = await updateProfile(userIdentifiers, profileInfo, chosenUsername)
+  } catch {
+    return res.status(500).json("Username not available");
+  }
 
   req.session.username = completeUsername;
-  try {
-    await User.findOneAndUpdate({
-      authenticationSource : req.session.authenticationSource,
-      authenticationID : req.session.authenticationID}, {
-      username : completeUsername,
-      profilePhoto: profilePhotoURL,
-      displayName: displayName
-    }, {runValidators: true});
-  } catch (err){ //try with different discriminator
-    notValidUsername = true;
-
-    do {
-      discriminator = (discriminator + 1) % 10000;
-      completeUsername = chosenUsername + '#' + formatDiscriminator(discriminator);
-
-      await User.findOneAndUpdate({
-        authenticationSource : req.session.authenticationSource,
-        authenticationID : req.session.authenticationID}, {
-        username : completeUsername,
-        profilePhoto: profilePhotoURL,
-        displayName: displayName
-      }, {runValidators: true});
-      notValidUsername = false;
-    } while(notValidUsername && discriminator != end)
-
-    if (discriminator == end) {
-      return res.status(400).json("Username not available");
-    }
-  }
 
   // Init necessary models
   try {
