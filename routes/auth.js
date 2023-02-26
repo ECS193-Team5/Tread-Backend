@@ -113,8 +113,8 @@ async function verify(token) {
   // const domain = payload['hd'];
 }
 
-async function createUser(user_info) {
-const newUser = new User(user_info);
+async function createUser(userInfo) {
+const newUser = new User(userInfo);
 await newUser.save()
 }
 
@@ -134,7 +134,7 @@ router.route('/login/google').post(async (req, res) => {
     'username');
   if (usernameDoc === null) {
     isNewUser = true;
-    user_info = {
+    userInfo = {
       authenticationSource: 'google',
       authenticationID: payload.sub,
       given_name: payload.given_name,
@@ -144,7 +144,7 @@ router.route('/login/google').post(async (req, res) => {
     }
 
     try {
-      await createUser(user_info);
+      await createUser(userInfo);
     } catch (err) {
       return res.status(500).json("Error: " + err);
     }
@@ -195,7 +195,7 @@ function logout(req, res) {
   })
 }
 
-router.route('/logout').get(logout);
+router.route('/logout').post(logout);
 
 module.exports = router;
 module.exports.logout = logout;

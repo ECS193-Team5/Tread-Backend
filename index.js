@@ -63,11 +63,13 @@ const authRouter = require("./routes/auth")
 const userRouter = require("./routes/user");
 const friendRouter = require("./routes/friend_list")
 const challengeRouter= require("./routes/challenges")
+const leagueRouter= require("./routes/league")
 
 app.use("/auth", authRouter);
 app.use("/user", isAuthenticated, hasUsername, userRouter);
 app.use("/friend_list", isAuthenticated, hasUsername, friendRouter);
 app.use("/challenges", isAuthenticated, hasUsername, challengeRouter);
+app.use("/league", isAuthenticated, hasUsername, leagueRouter);
 
 const port = parseInt(process.env.PORT) || 8080;
 app.listen(port, () => {

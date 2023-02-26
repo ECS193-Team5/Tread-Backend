@@ -4,25 +4,6 @@ let Friend_lists = require("../models/friend_list.model");
 const Challenge = require("../models/challenge.model");
 const { logout } = require("./auth.js");
 
-router.route("/create_user").post((req, res) => {
-  const req_name = req.body.name;
-  const req_email = req.body.email;
-  const req_username = req.body.username;
-
-  // console.log(req.body)
-
-  const newUser = new User({
-    name: req_name,
-    email: req_email,
-    username: req_username
-  });
-
-  newUser
-    .save()
-    .then(() => res.json("new User added"))
-    .catch((err) => res.status(400).json("Error: " + err));
-});
-
 async function isExistingUser(username) {
   return (await User.exists({username: username}).lean() !== null);
 }
@@ -81,9 +62,6 @@ router.delete('/delete_account', async (req, res, next) => {
   }
   next();
 }, logout);
-
-
-
 
 module.exports = router;
 module.exports.isExistingUser = isExistingUser;

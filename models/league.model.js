@@ -3,41 +3,44 @@ const Schema = mongoose.Schema;
 
 const LeagueSchema = new Schema(
   {
-    owner : {
+    owner: {
         type: String,
         required: true,
     },
-    admin : {
+    admin: {
         type: [String],
         required: true,
-        default : [this.owner]
+        default : function() { return [this.owner]}
     },
-    dateCreated : {
+    dateCreated: {
         type: Date,
         required: true,
         default: Date.now,
     },
-    leagueName : {
+    leagueName: {
         type: String,
         required: true,
-        unique: true,
     },
-    leagueType : {
+    leagueType: {
         type: String,
         required: true,
         enum: ["private", "open"],
     },
-    pendingRequests : {
+    pendingRequests: {
         type: [String],
-        default : []
+        default : [],
     },
-    bannedUsers : {
+    bannedUsers: {
         type: [String],
         default: [],
     },
+    members: {
+        type: [String],
+        default : function() { return [this.owner]}
+    }
   },
   {
-    collection: "Leagues"
+    collection: "leagues"
   }
 );
 
