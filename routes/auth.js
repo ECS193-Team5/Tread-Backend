@@ -1,6 +1,5 @@
 const router = require("express").Router();
 let User = require("../models/user.model");
-const {isExistingUser} = require("./user.js");
 let Friend_lists = require("../models/friend_list.model");
 const {OAuth2Client} = require('google-auth-library');
 const CLIENT_ID = '1076047412250-apdkut808sf29i8ju8k0lt1jp4gh8n8s.apps.googleusercontent.com';
@@ -174,25 +173,29 @@ router.route('/login/google').post(async (req, res) => {
 
 });
 
-router.route('/logout').post(async (req, res) => {
-    // logout logic
 
-    // clear the user from the session object and save.
-    // this will ensure that re-using the old session id
-    // does not have a logged in user
-    req.session.authenticationID = null;
-    req.session.authenticationSource = null;
-    req.session.username = null;
-    req.session.save(function (err) {
-      if (err) return res.sendStatus(500);
+function logout(req, res) {
+  // logout logic
 
-      // regenerate the session, which is good practice to help
-      // guard against forms of session fixation
-      req.session.regenerate(function (err) {
-        if (err) res.sendStatus(500);
-        return res.sendStatus(200);
-      })
+  // clear the user from the session object and save.
+  // this will ensure that re-using the old session id
+  // does not have a logged in user
+  req.session.authenticationID = null;
+  req.session.authenticationSource = null;
+  req.session.username = null;
+  req.session.save(function (err) {
+    if (err) return res.sendStatus(500);
+
+    // regenerate the session, which is good practice to help
+    // guard against forms of session fixation
+    req.session.regenerate(function (err) {
+      if (err) res.sendStatus(500);
+      return res.sendStatus(200);
     })
-});
+  })
+}
+
+router.route('/logout').get(logout);
 
 module.exports = router;
+module.exports.logout = logout;

@@ -2,6 +2,7 @@ const router = require("express").Router();
 let User = require("../models/user.model");
 let Friend_lists = require("../models/friend_list.model");
 const Challenge = require("../models/challenge.model");
+const { logout } = require("./auth.js");
 
 router.route("/create_user").post((req, res) => {
   const req_name = req.body.name;
@@ -66,7 +67,7 @@ async function deleteUserChallenges(username) {
   // remove historical challenges
 }
 
-router.route('/delete_account').post(async (req, res) => {
+router.delete('/delete_account', async (req, res, next) => {
   const username = req.session.username;
   try {
     await User.findOneAndDelete({username: username});
@@ -77,10 +78,8 @@ router.route('/delete_account').post(async (req, res) => {
     console.log(err);
     return res.status(500).json("Could not finish deleting profile.");
   }
-
-  req.session.username = null;
-  return res.status(200);
-});
+  next();
+}, logout);
 
 
 
