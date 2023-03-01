@@ -1,29 +1,9 @@
 const router = require("express").Router();
 let User = require("../models/user.model");
-const {isExistingUser} = require("./user.js");
 let Friend_lists = require("../models/friend_list.model");
 const {OAuth2Client} = require('google-auth-library');
 const CLIENT_ID = '1076047412250-apdkut808sf29i8ju8k0lt1jp4gh8n8s.apps.googleusercontent.com';
 const client = new OAuth2Client(CLIENT_ID);
-
-async function verify(token) {
-    const ticket = await client.verifyIdToken({
-        idToken: token,
-        audience: CLIENT_ID,  // Specify the CLIENT_ID of the app that accesses the backend
-        // Or, if multiple clients access the backend:
-        //[CLIENT_ID_1, CLIENT_ID_2, CLIENT_ID_3]
-    });
-    const payload = ticket.getPayload();
-    const userid = payload['sub'];
-    return payload;
-    // If request specified a G Suite domain:
-    // const domain = payload['hd'];
-}
-
-async function createUser(user_info) {
-  const newUser = new User(user_info);
-  await newUser.save()
-}
 
 async function createFriendList(username) {
   const blankFriendList = {
@@ -55,48 +35,88 @@ function formatDiscriminator(discriminator) {
   return discriminator.toString().padStart(4 , '0')
 }
 
+async function setUsernameAndUpdateProfile(userIdentifiers, profileInfo, chosenUsername) {
+  let discriminator = getRandomIntInclusive(0, 9999);
+  const end = discriminator;
+  profileInfo.username = chosenUsername + '#' + formatDiscriminator(discriminator);
+
+  let validUsername = false;
+  do{
+    try {
+      await User.findOneAndUpdate(userIdentifiers, profileInfo, {runValidators: true});
+      // gets here if update succeeds
+      validUsername = true;
+    } catch (err){ //try with different discriminator
+      discriminator = (discriminator + 1) % 10000;
+      profileInfo.username = chosenUsername + '#' + formatDiscriminator(discriminator);
+      if (discriminator == end) {
+        throw new Error("Username not available")
+      }
+    }
+  } while(!validUsername)
+
+  return profileInfo.username;
+}
+
 router.route('/sign_up').post(async (req, res,) => {
-  if (req.session.username) {
+  if (req.session.username !== null) {
     return res.status(400).json("Error: already has username");
   }
   const chosenUsername = req.body.username;
-  const profilePhotoURL = req.body.photo;
+  const picture = req.body.picture;
   const displayName = req.body.displayName;
 
   if (!isValidUsername(chosenUsername)) {
     return res.status(400).json("Error: invalid username")
   }
 
-  let discriminator = getRandomIntInclusive(0, 9999);
-  let end = discriminator;
-  let completeUsername = chosenUsername + '#' + formatDiscriminator(discriminator);
-  if (await isExistingUser(completeUsername)) {
-    do {
-      discriminator = (discriminator + 1) % 10000;
-      completeUsername = chosenUsername + '#' + formatDiscriminator(discriminator);
-    } while (await isExistingUser(completeUsername) || discriminator == end);
+  const userIdentifiers = {
+    authenticationSource : req.session.authenticationSource,
+    authenticationID : req.session.authenticationID
   }
-  console.log(completeUsername);
+
+  let profileInfo = {
+    picture: picture,
+    displayName: displayName
+  }
+
+  let completeUsername = null;
+  try {
+    completeUsername = await setUsernameAndUpdateProfile(userIdentifiers, profileInfo, chosenUsername)
+  } catch {
+    return res.status(500).json("Username not available");
+  }
 
   req.session.username = completeUsername;
-  await User.findOneAndUpdate({
-    authenticationSource : req.session.authenticationSource,
-    authenticationID : req.session.authenticationID}, {
-    username : completeUsername,
-    profilePhoto: profilePhotoURL,
-    displayName: displayName
-  });
-
 
   // Init necessary models
   try {
     await createFriendList(completeUsername);
   } catch {
-    return res.status(500);
+    return res.sendStatus(500);
   }
   return res.sendStatus(200);
 
 });
+
+async function verify(token) {
+  const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: CLIENT_ID,  // Specify the CLIENT_ID of the app that accesses the backend
+      // Or, if multiple clients access the backend:
+      //[CLIENT_ID_1, CLIENT_ID_2, CLIENT_ID_3]
+  });
+  const payload = ticket.getPayload();
+  const userid = payload['sub'];
+  return payload;
+  // If request specified a G Suite domain:
+  // const domain = payload['hd'];
+}
+
+async function createUser(userInfo) {
+const newUser = new User(userInfo);
+await newUser.save()
+}
 
 router.route('/login/google').post(async (req, res) => {
 
@@ -114,19 +134,17 @@ router.route('/login/google').post(async (req, res) => {
     'username');
   if (usernameDoc === null) {
     isNewUser = true;
-    user_info = {
+    userInfo = {
       authenticationSource: 'google',
       authenticationID: payload.sub,
       given_name: payload.given_name,
       family_name: payload.family_name,
       email: payload.email,
       picture: payload.picture,
-      username: '',
-      ifMetric: true,
     }
 
     try {
-      await createUser(user_info);
+      await createUser(userInfo);
     } catch (err) {
       return res.status(500).json("Error: " + err);
     }
@@ -141,6 +159,8 @@ router.route('/login/google').post(async (req, res) => {
     req.session.authenticationID = payload.sub;
     if (!isNewUser) {
       req.session.username = usernameDoc.username;
+    } else {
+      req.session.username = null;
     }
 
     // save the session before redirection to ensure page
@@ -153,25 +173,29 @@ router.route('/login/google').post(async (req, res) => {
 
 });
 
-router.route('/logout').post(async (req, res) => {
-    // logout logic
 
-    // clear the user from the session object and save.
-    // this will ensure that re-using the old session id
-    // does not have a logged in user
-    req.session.authenticationID = null;
-    req.session.authenticationSource = null;
-    req.session.username = null;
-    req.session.save(function (err) {
-      if (err) return res.sendStatus(500);
+function logout(req, res) {
+  // logout logic
 
-      // regenerate the session, which is good practice to help
-      // guard against forms of session fixation
-      req.session.regenerate(function (err) {
-        if (err) res.sendStatus(500);
-        return res.sendStatus(200);
-      })
+  // clear the user from the session object and save.
+  // this will ensure that re-using the old session id
+  // does not have a logged in user
+  req.session.authenticationID = null;
+  req.session.authenticationSource = null;
+  req.session.username = null;
+  req.session.save(function (err) {
+    if (err) return res.sendStatus(500);
+
+    // regenerate the session, which is good practice to help
+    // guard against forms of session fixation
+    req.session.regenerate(function (err) {
+      if (err) res.sendStatus(500);
+      return res.sendStatus(200);
     })
-});
+  })
+}
+
+router.route('/logout').post(logout);
 
 module.exports = router;
+module.exports.logout = logout;

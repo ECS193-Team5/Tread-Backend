@@ -60,6 +60,14 @@ router.route('/blocked_list').post(async (req, res) => {
     return res.json(blockedList);
 });
 
+
+async function verifyRecipientUserExists(req, res, next) {
+  if (await isExistingUser(req.body.recipient)) {
+    next()
+  }
+  res.status(400).json("Recipent does not exist")
+}
+
 async function removeFriend(username, friendName) {
     await Friend_lists.findOneAndUpdate(
         {username: username}, {$pull: {friends: friendName}
