@@ -37,6 +37,7 @@ const challengeSchema = new Schema(
         }
 
     },
+    // leagueID or username
     sentUser: {
         type: String,
         required: true
