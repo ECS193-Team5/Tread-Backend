@@ -1,6 +1,6 @@
 const router = require("express").Router();
-const { request } = require("express");
 const League = require("../models/league.model");
+const Challenge = require("../models/challenge.model");
 var ObjectId = require('mongoose').Types.ObjectId;
 const {isExistingUser} = require("./user.js");
 
@@ -16,9 +16,8 @@ router.route("/create_league").post(async (req, res) => {
         leagueType: req.body.leagueType,
     }
 
-    let league;
     try {
-        league = await createLeague(leagueInfo)
+        await createLeague(leagueInfo)
     } catch (err){
         console.log(err)
         return res.status(500).json("Server error or name invalid");
@@ -192,9 +191,26 @@ router.route("/get_admin_leagues").post(
         return res.status(200).json(leagues);
 });
 
+/// Test this
 router.route("/delete_league").post(
     checkLeagueID,
     async (req, res, next) => {
+        const leagueID = req.body.leagueID
+
+        const deletedInfo = await League.deleteOne({
+            _id : ObjectId(leagueID),
+            owner: req.session.username,
+        });
+
+        if (deletedInfo.deletedCount == 1) {
+            await Challenge.deleteMany({
+                receivedUser : leagueID,
+                dueDate : {$gte: Date.now()}
+            });
+        } else {
+            return res.sendStatus(400);
+        }
+        return res.sendStatus(200);
 
 });
 

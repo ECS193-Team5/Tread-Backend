@@ -1,12 +1,12 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
+const exercise = require("../models/exercise.schema");
 
-const mapping = {
+const challengeTypeToInitialStatusMapping = {
     "self" : "accepted",
     "friend" : "pending",
     "league" : "accepted",
 }
-
 // Unique can't won't be enforced by validate()
 // Use deleteMany() instead of dropDatabase() when clearing data.
 // validate should only work for save() and not update.
@@ -41,6 +41,7 @@ const challengeSchema = new Schema(
         type: String,
         required: true
     },
+    // leagueID or username
     receivedUser: {
         type: String,
         required: true
@@ -60,22 +61,16 @@ const challengeSchema = new Schema(
         required: true,
         min: Date.now
     },
-    exerciseList: {
-        type: Array,
+    exercise: {
+        type: exercise,
         required: true,
-        validate: {
-            validator: function(exerciseList) {
-                return (exerciseList.length > 0);
-            },
-            message: () => 'Size must be greater than zero.'
-        }
     },
     status: {
         type: String,
         enum: ["pending", "declined", "accepted"],
         required: true,
         default: function () {
-            return mapping[this.challengeType];
+            return challengeTypeToInitialStatusMapping[this.challengeType];
         }
     },
   },
