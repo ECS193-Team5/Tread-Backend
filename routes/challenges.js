@@ -1,6 +1,7 @@
 const router = require("express").Router();
 var ObjectId = require('mongoose').Types.ObjectId;
 const Challenge = require("../models/challenge.model");
+const League = require("../models/league.model");
 const {isExistingUser} = require("./user.js");
 
 
@@ -59,21 +60,24 @@ router.route('/add_self_challenge').post(async (req, res, next) => {
 
 router.route('/add_league_challenge').post(async (req, res, next) => {
     const sentUser = req.session.username;
-    const receivedUser = req.body.receivedUser;
+    const leagueID = req.body.receivedUser;
     // Issue date can be undefined
     const challengeType = "league"
 
-    if (!(await isExistingUser(req.body.receivedUser))) {
-        return res.sendStatus(404);
+    //get participants from league.
+    const participantsDocument = await League.findOne({
+        _id : ObjectId(leagueID),
+        admin: sentUser,
+    }, 'members');
+
+    if (participantsDocument == null) {
+        return res.status(400).json("Not your league");
     }
 
-    //get participants from league.
-    const participants = [];
-
     res.locals.challenge = {
-        participants: participants,
+        participants: participantsDocument.members,
         sentUser: sentUser,
-        receivedUser: receivedUser,
+        receivedUser: leagueID,
         challengeType: challengeType,
     }
     next();
@@ -122,7 +126,7 @@ async function updatePendingChallengeStatusByID(challengeID, username, newStatus
         },
         {
         status: newStatus
-        });
+        }).lean();
 }
 
 router.route('/accept_friend_challenge').post(async (req, res) => {
