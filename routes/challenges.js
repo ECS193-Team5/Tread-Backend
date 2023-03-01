@@ -4,76 +4,63 @@ const Challenge = require("../models/challenge.model");
 const {isExistingUser} = require("./user.js");
 
 
-router.route('/add_friend_challenge').post(async (req, res) => {
+function addInforSharedAcrossRequests (req, res, next) {
+    res.locals.challenge.issueDate = req.body.issueDate;
+    res.locals.challenge.dueDate = req.body.dueDate;
+    res.locals.challenge.unit = req.body.unit;
+    res.locals.challenge.amount = req.body.amount;
+    res.locals.challenge.exercise = req.body.exercise;
+    next();
+}
+
+async function addChallenge(req, res, next) {
+    const newUser = new Challenge(res.locals.challenge);
+    try {
+        challenge = await newUser.save()
+    } catch (err) {
+        return res.status(500).json("Error: " + err);
+    }
+
+    return res.sendStatus(200);
+}
+
+router.route('/add_friend_challenge').post(async (req, res, next) => {
     const sentUser = req.session.username;
     const receivedUser = req.body.receivedUser;
     const challengeType = "friend";
     // Issue date can be undefined
-    const issueDate = req.body.issueDate;
-    const dueDate = req.body.dueDate;
-    const exerciseList = req.body.exerciseList;
-
     if (!(await isExistingUser(req.body.receivedUser))) {
         return res.sendStatus(404);
     }
 
-    challenge = {
+    res.locals.challenge = {
         participants: [sentUser, receivedUser],
         sentUser: sentUser,
-        receivedUser: receivedUser,
+        receivedUser: req.body.receivedUser,
         challengeType: challengeType,
-        issueDate: issueDate,
-        dueDate: dueDate,
-        exerciseList: exerciseList,
     }
+    next();
+}, addInforSharedAcrossRequests, addChallenge);
 
-
-    const newUser = new Challenge(challenge);
-    try {
-        challenge = await newUser.save()
-    } catch (err) {
-        return res.status(500).json("Error: " + err);
-    }
-
-    return res.status(200).send({challengeID: challenge.id});
-});
-
-router.route('/add_self_challenge').post(async (req, res) => {
+router.route('/add_self_challenge').post(async (req, res, next) => {
     const sentUser = req.session.username;
     const challengeType = "self";
     // Issue date can be undefined
-    const issueDate = req.body.issueDate;
-    const dueDate = req.body.dueDate;
-    const exerciseList = req.body.exerciseList;
 
-    challenge = {
+    res.locals.challenge = {
         participants: [sentUser],
         sentUser: sentUser,
         receivedUser: sentUser,
         challengeType: challengeType,
-        issueDate: issueDate,
-        dueDate: dueDate,
-        exerciseList: exerciseList,
+
     }
+    next();
+}, addInforSharedAcrossRequests, addChallenge);
 
-
-    const newUser = new Challenge(challenge);
-    try {
-        challenge = await newUser.save()
-    } catch (err) {
-        return res.status(500).json("Error: " + err);
-    }
-
-    return res.status(200).send({challengeID: challenge.id});
-});
-
-router.route('/add_league_challenge').post(async (req, res) => {
+router.route('/add_league_challenge').post(async (req, res, next) => {
     const sentUser = req.session.username;
     const receivedUser = req.body.receivedUser;
     // Issue date can be undefined
-    const issueDate = req.body.issueDate;
-    const dueDate = req.body.dueDate;
-    const exerciseList = req.body.exerciseList;
     const challengeType = "league"
 
     if (!(await isExistingUser(req.body.receivedUser))) {
@@ -83,26 +70,14 @@ router.route('/add_league_challenge').post(async (req, res) => {
     //get participants from league.
     const participants = [];
 
-    challenge = {
+    res.locals.challenge = {
         participants: participants,
         sentUser: sentUser,
         receivedUser: receivedUser,
         challengeType: challengeType,
-        issueDate: issueDate,
-        dueDate: dueDate,
-        exerciseList: exerciseList,
     }
-
-
-    const newUser = new Challenge(challenge);
-    try {
-        challenge = await newUser.save()
-    } catch (err) {
-        return res.status(500).json("Error: " + err);
-    }
-
-    return res.status(200).send({challengeID: challenge.id});
-});
+    next();
+}, addInforSharedAcrossRequests, addChallenge);
 
 router.route('/accepted_challenges').post(async (req, res) => {
     const username = req.session.username;

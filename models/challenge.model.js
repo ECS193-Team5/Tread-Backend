@@ -1,10 +1,49 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-const mapping = {
+const challengeTypeToInitialStatusMapping = {
     "self" : "accepted",
     "friend" : "pending",
     "league" : "accepted",
+}
+
+const TIME_UNITS = ["sec", "min", "hr"];
+const DISTANCE_UNITS = ["ft", "yd", "mile", "m", "km"];
+const COUNT_UNITS = ["ct"];
+const ALLUNITS = TIME_UNITS.concat(DISTANCE_UNITS, COUNT_UNITS);
+
+function convertMeasurementDistance(distanceUnit, amount) {
+    if (distanceUnit === "ft"){
+        return amount * 0.3048;
+    }
+    if (distanceUnit === "yd"){
+        return amount * 0.9144;
+    }
+    if (distanceUnit === "mile"){
+        return amount * 1609.34;
+    }
+    if (distanceUnit === "m"){
+        return amount;
+    }
+    if (distanceUnit === "km"){
+        return amount * 1000;
+    }
+
+    return amount;
+}
+
+function convertMeasurementTime(distanceUnit, amount) {
+    if (distanceUnit === "s"){
+        return amount/60;
+    }
+    if (distanceUnit === "min"){
+        return amount;
+    }
+    if (distanceUnit === "hr"){
+        return amount * 60;
+    }
+
+    return amount;
 }
 
 // Unique can't won't be enforced by validate()
@@ -37,11 +76,11 @@ const challengeSchema = new Schema(
         }
 
     },
-    // leagueID or username
     sentUser: {
         type: String,
         required: true
     },
+    // leagueID or username
     receivedUser: {
         type: String,
         required: true
@@ -61,14 +100,46 @@ const challengeSchema = new Schema(
         required: true,
         min: Date.now
     },
-    exerciseList: {
-        type: Array,
+    exercise: {
+        type: String,
         required: true,
-        validate: {
-            validator: function(exerciseList) {
-                return (exerciseList.length > 0);
-            },
-            message: () => 'Size must be greater than zero.'
+    },
+    amount: {
+        type: Number,
+        reqired: true,
+    },
+    convertedAmount: {
+        type: Number,
+        required: true,
+        default: function() {
+            if (this.unitType === "time"){
+                return convertMeasurementTime(this.unitType, this.amount);
+            }
+            if (this.unitType === "distance"){
+                return convertMeasurementDistance(this.unitType, this.amount);
+            }
+
+            return this.amount;
+        }
+    },
+    unit: {
+        type: String,
+        required: true,
+        enum: ALLUNITS,
+    },
+    unitType: {
+        type: String,
+        required: true,
+        default: function() {
+            if (TIME_UNITS.includes(this.unit)) {
+                return "time";
+            }
+            if (DISTANCE_UNITS.includes(this.unit)) {
+                return "distance";
+            }
+            if (COUNT_UNITS.includes(this.unit)) {
+                return "count";
+            }
         }
     },
     status: {
@@ -76,7 +147,7 @@ const challengeSchema = new Schema(
         enum: ["pending", "declined", "accepted"],
         required: true,
         default: function () {
-            return mapping[this.challengeType];
+            return challengeTypeToInitialStatusMapping[this.challengeType];
         }
     },
   },

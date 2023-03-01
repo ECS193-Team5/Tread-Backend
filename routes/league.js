@@ -191,6 +191,7 @@ router.route("/get_admin_leagues").post(
         return res.status(200).json(leagues);
 });
 
+/// Test this
 router.route("/delete_league").post(
     checkLeagueID,
     async (req, res, next) => {
@@ -203,7 +204,8 @@ router.route("/delete_league").post(
 
         if (deletedInfo.deletedCount == 1) {
             await Challenge.deleteMany({
-                sentUser : leagueID,
+                receivedUser : leagueID,
+                dueDate : {$gte: Date.now()}
             });
         } else {
             return res.sendStatus(400);
