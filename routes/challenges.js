@@ -8,9 +8,13 @@ const {isExistingUser} = require("./user.js");
 function addInforSharedAcrossRequests (req, res, next) {
     res.locals.challenge.issueDate = req.body.issueDate;
     res.locals.challenge.dueDate = req.body.dueDate;
-    res.locals.challenge.unit = req.body.unit;
-    res.locals.challenge.amount = req.body.amount;
-    res.locals.challenge.exercise = req.body.exercise;
+    // To access theses fields in query: " 'exercise.unit': 5 "
+    exercise = {
+        unit : req.body.unit,
+        amount : req.body.amount,
+        exerciseName : req.body.exerciseName
+    }
+    res.locals.challenge.exercise = exercise;
     next();
 }
 
