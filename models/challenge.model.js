@@ -12,38 +12,20 @@ const DISTANCE_UNITS = ["ft", "yd", "mile", "m", "km"];
 const COUNT_UNITS = ["ct"];
 const ALLUNITS = TIME_UNITS.concat(DISTANCE_UNITS, COUNT_UNITS);
 
-function convertMeasurementDistance(distanceUnit, amount) {
-    if (distanceUnit === "ft"){
-        return amount * 0.3048;
-    }
-    if (distanceUnit === "yd"){
-        return amount * 0.9144;
-    }
-    if (distanceUnit === "mile"){
-        return amount * 1609.34;
-    }
-    if (distanceUnit === "m"){
-        return amount;
-    }
-    if (distanceUnit === "km"){
-        return amount * 1000;
-    }
+const UNIT_CONVERSIONS = {
+    "ft" : 0.3048,
+    "yd" : 0.9144,
+    "mile" : 1609.34,
+    "m" : 1,
+    "km" : 1000,
+    "s" : 1/60,
+    "min" : 1,
+    "hr" : 60,
 
-    return amount;
 }
 
-function convertMeasurementTime(distanceUnit, amount) {
-    if (distanceUnit === "s"){
-        return amount/60;
-    }
-    if (distanceUnit === "min"){
-        return amount;
-    }
-    if (distanceUnit === "hr"){
-        return amount * 60;
-    }
-
-    return amount;
+function convertAmount(distanceUnit, amount) {
+    return amount * UNIT_CONVERSIONS[distanceUnit];
 }
 
 // Unique can't won't be enforced by validate()
@@ -104,24 +86,6 @@ const challengeSchema = new Schema(
         type: String,
         required: true,
     },
-    amount: {
-        type: Number,
-        reqired: true,
-    },
-    convertedAmount: {
-        type: Number,
-        required: true,
-        default: function() {
-            if (this.unitType === "time"){
-                return convertMeasurementTime(this.unitType, this.amount);
-            }
-            if (this.unitType === "distance"){
-                return convertMeasurementDistance(this.unitType, this.amount);
-            }
-
-            return this.amount;
-        }
-    },
     unit: {
         type: String,
         required: true,
@@ -140,6 +104,21 @@ const challengeSchema = new Schema(
             if (COUNT_UNITS.includes(this.unit)) {
                 return "count";
             }
+        }
+    },
+    amount: {
+        type: Number,
+        reqired: true,
+    },
+    convertedAmount: {
+        type: Number,
+        required: true,
+        default: function() {
+            if (this.unitType === "time" || this.unitType == "distance"){
+                return convertAmount(this.unit, this.amount);
+            }
+
+            return this.amount;
         }
     },
     status: {
