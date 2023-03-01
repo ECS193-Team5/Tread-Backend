@@ -2,7 +2,7 @@ const router = require("express").Router();
 let User = require("../models/user.model");
 let Friend_lists = require("../models/friend_list.model");
 const {OAuth2Client} = require('google-auth-library');
-const CLIENT_ID = '1076047412250-apdkut808sf29i8ju8k0lt1jp4gh8n8s.apps.googleusercontent.com';
+const CLIENT_ID = process.env.CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
 
 async function createFriendList(username) {
