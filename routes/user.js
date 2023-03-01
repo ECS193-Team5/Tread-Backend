@@ -2,6 +2,7 @@ const router = require("express").Router();
 let User = require("../models/user.model");
 let Friend_lists = require("../models/friend_list.model");
 const Challenge = require("../models/challenge.model");
+const League = require("../models/league.model");
 const { logout } = require("./auth.js");
 
 async function isExistingUser(username) {
@@ -70,6 +71,8 @@ router.delete('/delete_account', async (req, res, next) => {
     await deleteUserFriendList(username);
     await deleteUserChallenges(username);
     // Remove from league
+
+    // Delete/edit exercises.
   } catch (err) {
     console.log(err);
     return res.status(500).json("Could not finish deleting profile.");
