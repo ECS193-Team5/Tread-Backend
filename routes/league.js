@@ -24,11 +24,9 @@ router.route("/create_league").post(async (req, res) => {
         return res.status(500).json("Server error or name invalid");
     }
 
-    return res.status(200).json({leagueID : league.id});
+    return res.sendStatus(200);
 });
 
-
-// This might let malicious code through
 async function updateLeague(req, res, next) {
     try {
         if (await League.findOneAndUpdate(res.locals.filter, res.locals.updates).lean() === null) {
@@ -180,16 +178,22 @@ router.route("/ban_user").post(
     next();
 }, updateLeague);
 
+router.route("/get_leagues").post(
+    async (req, res, next) => {
+        const leagues = await League.find({members: req.session.username});
+
+        return res.status(200).json(leagues);
+});
+
+router.route("/get_admin_leagues").post(
+    async (req, res, next) => {
+        const leagues = await League.find({admin: req.session.username});
+
+        return res.status(200).json(leagues);
+});
 
 router.route("/delete_league").post(
     checkLeagueID,
-    async (req, res, next) => {
-
-});
-
-
-
-router.route("/get_leagues").post(
     async (req, res, next) => {
 
 });

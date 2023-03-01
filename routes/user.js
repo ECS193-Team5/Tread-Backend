@@ -25,7 +25,21 @@ router.route('/get_profile_photo').post(async (req, res) => {
   return res.json(await getPropertyOfUser(req.session.username, 'picture'));
 });
 
+router.route('/get_username').post(async (req, res) => {
+  return res.json(req.session.username);
+});
+
 router.route('/update_profile_info').post(async (req, res) => {
+  const picture = req.body.picture;
+  const displayName = req.body.displayName;
+  const username = req.session.username;
+
+  await User.findOneAndUpdate(
+    {username: username},
+    {
+      picture: picture,
+      displayName: displayName
+    });
 });
 
 async function removeUserFromFriendField(field){

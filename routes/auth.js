@@ -35,7 +35,7 @@ function formatDiscriminator(discriminator) {
   return discriminator.toString().padStart(4 , '0')
 }
 
-async function updateProfile(userIdentifiers, profileInfo, chosenUsername) {
+async function setUsernameAndUpdateProfile(userIdentifiers, profileInfo, chosenUsername) {
   let discriminator = getRandomIntInclusive(0, 9999);
   const end = discriminator;
   profileInfo.username = chosenUsername + '#' + formatDiscriminator(discriminator);
@@ -63,7 +63,7 @@ router.route('/sign_up').post(async (req, res,) => {
     return res.status(400).json("Error: already has username");
   }
   const chosenUsername = req.body.username;
-  const picture = req.body.photo;
+  const picture = req.body.picture;
   const displayName = req.body.displayName;
 
   if (!isValidUsername(chosenUsername)) {
@@ -82,7 +82,7 @@ router.route('/sign_up').post(async (req, res,) => {
 
   let completeUsername = null;
   try {
-    completeUsername = await updateProfile(userIdentifiers, profileInfo, chosenUsername)
+    completeUsername = await setUsernameAndUpdateProfile(userIdentifiers, profileInfo, chosenUsername)
   } catch {
     return res.status(500).json("Username not available");
   }
