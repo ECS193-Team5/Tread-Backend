@@ -50,7 +50,8 @@ const exercise = new mongoose.Schema(
     },
     amount: {
         type: Number,
-        reqired: true
+        reqired: true,
+        min: 0
     },
     convertedAmount: {
         type: Number,
