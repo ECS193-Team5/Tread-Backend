@@ -59,11 +59,11 @@ function hasUsername(req, res, next) {
   else res.status(401).json("No username set");
 }
 
-const authRouter = require("./routes/auth")
+const authRouter = require("./routes/auth");
 const userRouter = require("./routes/user");
-const friendRouter = require("./routes/friend_list")
-const challengeRouter= require("./routes/challenges")
-const leagueRouter= require("./routes/league")
+const friendRouter = require("./routes/friend_list");
+const challengeRouter= require("./routes/challenges");
+const leagueRouter= require("./routes/league");
 
 app.use("/auth", authRouter);
 app.use("/user", isAuthenticated, hasUsername, userRouter);
