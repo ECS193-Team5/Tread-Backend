@@ -5,13 +5,25 @@ const {OAuth2Client} = require('google-auth-library');
 const CLIENT_ID = process.env.CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
 
+function verifyLoggedIn(req, res, next) {
+  if (!req.session.authenticationID || !req.session.authenticationSource) {
+    return res.status(400).json("haven't logged in yet")
+  }
+  next();
+}
 
 
-router.route('/get_profile_photo').post(async (req, res) => {
-  return res.json((await User.findOne({
-    authenticationID: req.session.authenticationID,
-    authenticationSource: req.session.authenticationSource,
-  }, 'picture')).picture);
+router.route('/get_profile_photo').post(
+  verifyLoggedIn,
+  async (req, res) => {
+  const authenticationID = req.session.authenticationID;
+  const authenticationSource = req.session.authenticationSource;
+
+  const photoDoc = await User.findOne({
+    authenticationID: authenticationID,
+    authenticationSource: authenticationSource,
+  });
+  return res.status(200).json(photoDoc.picture);
 });
 
 async function createFriendList(username) {
@@ -141,8 +153,12 @@ router.route('/login/google').post(async (req, res) => {
   let usernameDoc = await User.findOne(
     {authenticationSource: 'google', authenticationID: payload.sub},
     'username');
-  if (usernameDoc === null) {
+
+  if (usernameDoc === null || usernameDoc.username === null) {
     isNewUser = true;
+  }
+
+  if (isNewUser) {
     userInfo = {
       authenticationSource: 'google',
       authenticationID: payload.sub,

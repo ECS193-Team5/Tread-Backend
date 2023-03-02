@@ -19,9 +19,9 @@ function addInforSharedAcrossRequests (req, res, next) {
 }
 
 async function addChallenge(req, res, next) {
-    const newUser = new Challenge(res.locals.challenge);
+    const newChallenge = new Challenge(res.locals.challenge);
     try {
-        challenge = await newUser.save()
+        await newChallenge.save();
     } catch (err) {
         return res.status(500).json("Error: " + err);
     }

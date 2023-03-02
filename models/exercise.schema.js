@@ -24,16 +24,6 @@ function convertAmount(distanceUnit, amount) {
 
 const exercise = new mongoose.Schema(
 {
-    postedDate: {
-        type: Date,
-        reqired: true,
-        default: Date.now
-    },
-    loggedDate: {
-        type: Date,
-        required: true,
-        default: function() { return [this.postedDate]}
-    },
     exerciseName: {
         type: String,
         required: true,
