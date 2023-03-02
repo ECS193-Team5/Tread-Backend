@@ -5,6 +5,15 @@ const {OAuth2Client} = require('google-auth-library');
 const CLIENT_ID = process.env.CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
 
+
+
+router.route('/get_profile_photo').post(async (req, res) => {
+  return res.json(await getPropertyOfUser({
+    authenticationID: req.session.authenticationID,
+    authenticationSource: req.session.authenticationSource,
+  }, 'picture'));
+});
+
 async function createFriendList(username) {
   const blankFriendList = {
     username: username,
