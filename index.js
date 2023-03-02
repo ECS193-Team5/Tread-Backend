@@ -12,7 +12,19 @@ require('dotenv').config();
 const app = express();
 
 // We should make a explicit whitelist for cors request
-app.use(cors());
+// change origin for frontend
+
+app.use(cors({
+  credentials: true,
+  ///origin: ["http://localhost:3000"],
+  //methods: ['POST'],
+  origin: "http://localhost:3000", ///for dev only
+  //allowedHeaders: ['Content-Type', 'Authorization', 'Connection']
+}));
+
+
+//app.use(cors())
+
 app.use(express.json());
 
 const uri = process.env.ATLAS_URI
@@ -47,7 +59,10 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.use(session(sess))
-
+function log(req, res, next) {
+  console.log(req.session.authenticationSource, req.session.authenticationID);
+  next()
+}
 function isAuthenticated(req, res, next) {
   if (req.session.authenticationSource && req.session.authenticationID) next();
       // Needs to be changed to the prod login page.
@@ -64,12 +79,14 @@ const userRouter = require("./routes/user");
 const friendRouter = require("./routes/friend_list");
 const challengeRouter= require("./routes/challenges");
 const leagueRouter= require("./routes/league");
+const exerciseLogRouter= require("./routes/exercise_log");
 
-app.use("/auth", authRouter);
+app.use("/auth", log, authRouter);
 app.use("/user", isAuthenticated, hasUsername, userRouter);
 app.use("/friend_list", isAuthenticated, hasUsername, friendRouter);
 app.use("/challenges", isAuthenticated, hasUsername, challengeRouter);
 app.use("/league", isAuthenticated, hasUsername, leagueRouter);
+app.use("/exercise_log", isAuthenticated, hasUsername, exerciseLogRouter )
 
 const port = parseInt(process.env.PORT) || 8080;
 app.listen(port, () => {

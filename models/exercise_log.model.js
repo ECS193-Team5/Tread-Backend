@@ -17,6 +17,7 @@ const exerciseLogSchema = new Schema(
     loggedDate: {
         type: Date,
         required: true,
+        max: Date.now, // Logged date is set after posted date
         default: function() { return [this.postedDate]}
     },
     exercise: {
