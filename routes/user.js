@@ -15,7 +15,7 @@ router.route('/check_username_exist').post(async (req, res) => {
 
 
 async function getPropertyOfUser(username, property) {
-  return Friend_lists.findOne({username: username }, property);
+  return User.findOne({username: username }, property);
 }
 // not tested functions
 router.route('/get_display_name').post(async (req, res) => {
