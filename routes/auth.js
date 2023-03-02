@@ -8,10 +8,10 @@ const client = new OAuth2Client(CLIENT_ID);
 
 
 router.route('/get_profile_photo').post(async (req, res) => {
-  return res.json(await getPropertyOfUser({
+  return res.json((await User.findOne({
     authenticationID: req.session.authenticationID,
     authenticationSource: req.session.authenticationSource,
-  }, 'picture'));
+  }, 'picture')).picture);
 });
 
 async function createFriendList(username) {
