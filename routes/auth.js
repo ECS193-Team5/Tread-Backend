@@ -34,18 +34,6 @@ async function createFriendList(username) {
   await newFriendList.save()
 }
 
-function isValidUsername(username) {
-  if (username.length == 0 || username.len > 32) {
-    return false;
-  }
-
-  if (!(/^[a-z0-9]+$/i.test(username))) {
-    return false;
-  }
-  return true;
-
-}
-
 function getRandomIntInclusive(min, max) {
   min = Math.ceil(min);
   max = Math.floor(max);
@@ -87,7 +75,7 @@ router.route('/sign_up').post(async (req, res,) => {
   const picture = req.body.picture;
   const displayName = req.body.displayName;
 
-  if (!isValidUsername(chosenUsername)) {
+  if (!User.isValidUsername(chosenUsername)) {
     return res.status(400).json("Error: invalid username")
   }
 
@@ -183,8 +171,9 @@ function generateLoggedInSession(req, res, next) {
     // store user information in session, typically a user id
     req.session.authenticationSource = 'google';
     req.session.authenticationID = userInfoFromAuth.sub;
+
     if (hasUsername) {
-      req.session.username = usernameDoc.username;
+      req.session.username = res.locals.usernameDoc.username;
     } else {
       req.session.username = null;
     }

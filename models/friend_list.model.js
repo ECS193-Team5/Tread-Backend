@@ -16,7 +16,8 @@ const friendListSchema = new Schema(
     username: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
+      index: true,
     },
     friends: defaultBlankStringArray,
     blocked: defaultBlankStringArray,

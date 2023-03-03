@@ -34,13 +34,18 @@ router.route('/update_profile_info').post(async (req, res) => {
   const picture = req.body.picture;
   const displayName = req.body.displayName;
   const username = req.session.username;
+  try {
+    await User.findOneAndUpdate(
+      {username: username},
+      {
+        picture: picture,
+        displayName: displayName
+      }, {runValidators: true});
+  } catch {
+    return res.status(400).json("displayName not valid");
+  }
 
-  await User.findOneAndUpdate(
-    {username: username},
-    {
-      picture: picture,
-      displayName: displayName
-    });
+  return res.sendStatus(200);
 });
 
 async function removeUserFromFriendField(field){
