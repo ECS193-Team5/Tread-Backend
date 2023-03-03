@@ -153,8 +153,13 @@ router.route('/login/google').post(async (req, res) => {
   let usernameDoc = await User.findOne(
     {authenticationSource: 'google', authenticationID: payload.sub},
     'username');
-
+  
+  let hasUsername = true;
   if (usernameDoc === null || usernameDoc.username === null) {
+    hasUsername = false;
+  }
+
+  if (usernameDoc == null) {
     isNewUser = true;
   }
 
@@ -182,7 +187,7 @@ router.route('/login/google').post(async (req, res) => {
     // store user information in session, typically a user id
     req.session.authenticationSource = 'google';
     req.session.authenticationID = payload.sub;
-    if (!isNewUser) {
+    if (hasUsername) {
       req.session.username = usernameDoc.username;
     } else {
       req.session.username = null;
