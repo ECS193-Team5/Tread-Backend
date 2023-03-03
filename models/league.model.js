@@ -10,6 +10,7 @@ const LeagueSchema = new Schema(
     admin: {
         type: [String],
         required: true,
+        index: true,
         default : function() { return [this.owner]}
     },
     dateCreated: {
@@ -36,7 +37,8 @@ const LeagueSchema = new Schema(
     },
     members: {
         type: [String],
-        default : function() { return [this.owner]}
+        index: true,
+        default : function() { return [this.owner]},
     }
   },
   {
