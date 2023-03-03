@@ -155,7 +155,7 @@ router.route("/decline_request").post(
 }, updateLeague);
 
 
-router.route("/ban_member").post(
+router.route("/ban_user").post(
     checkLeagueID, verifyRecipientUserExists,
     async (req, res, next) => {
     const recipient = req.body.recipient;
@@ -178,7 +178,7 @@ router.route("/ban_member").post(
 }, updateLeague);
 
 
-router.route("/unban_member").post(
+router.route("/unban_user").post(
     checkLeagueID, verifyRecipientUserExists,
     async (req, res, next) => {
     const recipient = req.body.recipient;
