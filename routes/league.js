@@ -177,6 +177,25 @@ router.route("/ban_member").post(
     next();
 }, updateLeague);
 
+
+router.route("/unban_member").post(
+    checkLeagueID, verifyRecipientUserExists,
+    async (req, res, next) => {
+    const recipient = req.body.recipient;
+
+    res.locals.filter = {
+        _id : ObjectId(req.body.leagueID),
+        admin : req.session.username,
+    }
+
+    res.locals.updates = {
+        $pull: {
+            bannedUsers: recipient
+        },
+    }
+    next();
+}, updateLeague);
+
 router.route("/get_leagues").post(
     async (req, res, next) => {
         const leagues = await League.find({members: req.session.username});
