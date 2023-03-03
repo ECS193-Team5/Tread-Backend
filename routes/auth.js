@@ -22,7 +22,7 @@ router.route('/get_profile_photo').post(
   const photoDoc = await User.findOne({
     authenticationID: authenticationID,
     authenticationSource: authenticationSource,
-  });
+  }).lean();
   return res.status(200).json(photoDoc.picture);
 });
 
@@ -52,7 +52,7 @@ async function setUsernameAndUpdateProfile(userIdentifiers, profileInfo, chosenU
   let validUsername = false;
   do{
     try {
-      await User.findOneAndUpdate(userIdentifiers, profileInfo, {runValidators: true});
+      await User.updateOne(userIdentifiers, profileInfo, {runValidators: true});
       // gets here if update succeeds
       validUsername = true;
     } catch (err){ //try with different discriminator
@@ -147,6 +147,7 @@ async function createNewUserIfNecessary(req, res, next) {
     userInfo = {
       authenticationSource: 'google',
       authenticationID: userInfoFromAuth.sub,
+      displayName: userInfoFromAuth.given_name,
       given_name: userInfoFromAuth.given_name,
       family_name: userInfoFromAuth.family_name,
       email: userInfoFromAuth.email,
@@ -199,7 +200,7 @@ router.route('/login/google').post(async (req, res, next) => {
 
   let usernameDoc = await User.findOne(
     {authenticationSource: 'google', authenticationID: userInfoFromAuth.sub},
-    'username');
+    'username').lean();
 
   res.locals.usernameDoc = usernameDoc;
   res.locals.userInfoFromAuth = userInfoFromAuth;

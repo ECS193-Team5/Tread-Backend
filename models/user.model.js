@@ -52,6 +52,7 @@ const userSchema = new Schema(
       type: String,
       default: "",
       index: true,
+      required: true,
       validate: {
         validator: isValidDisplayName,
         message: () => 'Size must be greater than zero.'

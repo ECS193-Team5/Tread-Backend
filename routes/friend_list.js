@@ -15,7 +15,7 @@ router.route("/").get((req, res) => {
 */
 
 async function getPropertyOfFriendList(username, property) {
-    return Friend_lists.findOne({username: username }, property);
+    return Friend_lists.findOne({username: username }, property).lean();
 }
 
 router.route('/pending_requests').post(async (req, res) => {
@@ -202,11 +202,11 @@ router.route('/accept_received_request').post(async (req, res) => {
 
 
 async function removeRequest(sender, receiver) {
-    await Friend_lists.findOneAndUpdate(
+    await Friend_lists.updateOne(
         {username : receiver}, {$pull: {receivedRequests : sender}}
     );
 
-    await Friend_lists.findOneAndUpdate(
+    await Friend_lists.updateOne(
         {username : sender}, {$pull: {sentRequests : receiver}}
     );
 }
