@@ -127,11 +127,25 @@ async function verify(token) {
       // Or, if multiple clients access the backend:
       //[CLIENT_ID_1, CLIENT_ID_2, CLIENT_ID_3]
   });
-  const payload = ticket.getPayload();
-  const userid = payload['sub'];
-  return payload;
+  const userInfoFromAuth = ticket.getPayload();
+  const userid = userInfoFromAuth['sub'];
+  return userInfoFromAuth;
   // If request specified a G Suite domain:
-  // const domain = payload['hd'];
+  // const domain = userInfoFromAuth['hd'];
+}
+
+function hasUsernameFromDoc(usernameDoc) {
+  if (usernameDoc === null || usernameDoc.username === null) {
+    return false;
+  }
+  return true;
+}
+
+function isNewUser(usernameDoc) {
+  if (usernameDoc == null) {
+    return true;
+  }
+  return false;
 }
 
 async function createUser(userInfo) {
@@ -139,38 +153,16 @@ const newUser = new User(userInfo);
 await newUser.save()
 }
 
-router.route('/login/google').post(async (req, res) => {
-
-  // need to add csrf preventions
-  let payload;
-  try {
-    payload = await verify(req.headers.authorization);
-  } catch (err) {
-    return res.status(401).json("Error: " + err);
-  }
-
-  let isNewUser = false;
-  let usernameDoc = await User.findOne(
-    {authenticationSource: 'google', authenticationID: payload.sub},
-    'username');
-  
-  let hasUsername = true;
-  if (usernameDoc === null || usernameDoc.username === null) {
-    hasUsername = false;
-  }
-
-  if (usernameDoc == null) {
-    isNewUser = true;
-  }
-
-  if (isNewUser) {
+async function createNewUserIfNecessary(req, res, next) {
+  const userInfoFromAuth = res.locals.userInfoFromAuth;
+  if (isNewUser(res.locals.usernameDoc)) {
     userInfo = {
       authenticationSource: 'google',
-      authenticationID: payload.sub,
-      given_name: payload.given_name,
-      family_name: payload.family_name,
-      email: payload.email,
-      picture: payload.picture,
+      authenticationID: userInfoFromAuth.sub,
+      given_name: userInfoFromAuth.given_name,
+      family_name: userInfoFromAuth.family_name,
+      email: userInfoFromAuth.email,
+      picture: userInfoFromAuth.picture,
     }
 
     try {
@@ -180,13 +172,17 @@ router.route('/login/google').post(async (req, res) => {
     }
 
   }
+  next();
+}
 
+function generateLoggedInSession(req, res, next) {
+  const hasUsername = hasUsernameFromDoc(res.locals.usernameDoc);
+  const userInfoFromAuth = res.locals.userInfoFromAuth;
   req.session.regenerate(function (err) {
-    if (err) return res.sendStatus(500);
-
+    if (err) return res.status(500).json(err);
     // store user information in session, typically a user id
     req.session.authenticationSource = 'google';
-    req.session.authenticationID = payload.sub;
+    req.session.authenticationID = userInfoFromAuth.sub;
     if (hasUsername) {
       req.session.username = usernameDoc.username;
     } else {
@@ -196,12 +192,32 @@ router.route('/login/google').post(async (req, res) => {
     // save the session before redirection to ensure page
     // load does not happen before session is saved
     req.session.save(function (err) {
-    if (err) return res.sendStatus(500);
-    return res.status(200).send({isNewUser: isNewUser});
+    if (err) return res.status(500).json(err);
+    console.log("hi");
+    return res.status(200).json({hasUsername: hasUsername});
     })
   })
+}
 
-});
+router.route('/login/google').post(async (req, res, next) => {
+
+  // need to add csrf preventions
+  let userInfoFromAuth;
+  try {
+    userInfoFromAuth = await verify(req.headers.authorization);
+  } catch (err) {
+    return res.status(401).json("Error: " + err);
+  }
+
+  let usernameDoc = await User.findOne(
+    {authenticationSource: 'google', authenticationID: userInfoFromAuth.sub},
+    'username');
+
+  res.locals.usernameDoc = usernameDoc;
+  res.locals.userInfoFromAuth = userInfoFromAuth;
+  next();
+
+}, createNewUserIfNecessary, generateLoggedInSession);
 
 
 function logout(req, res) {
