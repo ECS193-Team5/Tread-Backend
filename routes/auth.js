@@ -193,7 +193,6 @@ function generateLoggedInSession(req, res, next) {
     // load does not happen before session is saved
     req.session.save(function (err) {
     if (err) return res.status(500).json(err);
-    console.log("hi");
     return res.status(200).json({hasUsername: hasUsername});
     })
   })
