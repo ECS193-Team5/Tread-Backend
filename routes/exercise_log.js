@@ -43,7 +43,7 @@ async function updateChallenges(req, res, next) {
             $lte: Date.now(),
             $lte: loggedDate,
         },
-        issuedDate: {
+        dueDate: {
             $gte: Date.now(),
             $gte: loggedDate,
         },
