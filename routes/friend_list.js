@@ -15,14 +15,14 @@ router.route("/").get((req, res) => {
 */
 
 async function getPropertyOfFriendList(username, property) {
-    return Friend_lists.findOne({username: username }, property);
+    return Friend_lists.findOne({username: username }, property).lean();
 }
 
 router.route('/pending_requests').post(async (req, res) => {
     const username = req.session.username;
 
     const pendingRequests = await Friend_lists.findOne({username: username },
-        'sentRequests receivedRequests');
+        'sentRequests receivedRequests').lean();
 
     return res.json(pendingRequests);
 });
@@ -60,22 +60,16 @@ router.route('/blocked_list').post(async (req, res) => {
     return res.json(blockedList);
 });
 
-
-async function verifyRecipientUserExists(req, res, next) {
-  if (await isExistingUser(req.body.recipient)) {
-    next()
-  }
-  res.status(400).json("Recipent does not exist")
-}
-
 async function removeFriend(username, friendName) {
-    await Friend_lists.findOneAndUpdate(
-        {username: username}, {$pull: {friends: friendName}
-    });
+    await Promise.all([
+        Friend_lists.updateOne(
+            {username: username}, {$pull: {friends: friendName}
+        }),
 
-    await Friend_lists.findOneAndUpdate(
-        {username: friendName}, {$pull: {friends: username}
-    });
+        Friend_lists.updateOne(
+            {username: friendName}, {$pull: {friends: username}
+        })
+    ]);
 
 }
 
@@ -93,7 +87,7 @@ router.route('/remove_friend').post(async (req, res) => {
 });
 
 async function getUserFriendDocument(username) {
-    return Friend_lists.findOne({username: username});
+    return Friend_lists.findOne({username: username}).lean();
 }
 
 function isRequestSentAlready(userFriendDocument, friendName) {
@@ -105,10 +99,12 @@ function isBlocking(userFriendDocument, friendName) {
 }
 
 async function unblock(blocker, blocked) {
-    await Friend_lists.findOneAndUpdate(
-        {username : blocker}, {$pull: {blocked: blocked}});
-    await Friend_lists.findOneAndUpdate(
-        {username : blocked}, {$pull: {blockedBy: blocker}});
+    await Promise.all([
+        Friend_lists.updateOne(
+        {username : blocker}, {$pull: {blocked: blocked}}).lean(),
+        Friend_lists.updateOne(
+        {username : blocked}, {$pull: {blockedBy: blocker}}).lean()
+    ]);
 }
 
 
@@ -125,31 +121,35 @@ function isRequestReceived(userFriendDocument, friendName) {
 }
 
 async function acceptFriendRequest(username, friendName) {
-    await Friend_lists.findOneAndUpdate(
-        {username : username, receivedRequests : friendName},
-        {
-            $addToSet: { friends : friendName},
-            $pull: {receivedRequests : friendName}
-        }
-    );
-    await Friend_lists.findOneAndUpdate(
-        {username : friendName, sentRequests : username},
-        {
-            $addToSet: { friends : username},
-            $pull: {sentRequests : username}
-        }
-    );
+    await Promise.all([
+        Friend_lists.updateOne(
+            {username : username, receivedRequests : friendName},
+            {
+                $addToSet: { friends : friendName},
+                $pull: {receivedRequests : friendName}
+            }
+        ).lean(),
+        Friend_lists.updateOne(
+            {username : friendName, sentRequests : username},
+            {
+                $addToSet: { friends : username},
+                $pull: {sentRequests : username}
+            }
+        ).lean()
+    ]);
 }
 
 async function sendRequest(sender, receiver) {
-    await Friend_lists.findOneAndUpdate(
-        {username : sender},
-        {$addToSet: {sentRequests : receiver}}
-    );
-    await Friend_lists.findOneAndUpdate(
-        {username : receiver},
-        {$addToSet: { receivedRequests : sender}}
-    );
+    await Promise.all([
+        Friend_lists.updateOne(
+            {username : sender},
+            {$addToSet: {sentRequests : receiver}}
+        ).lean(),
+        Friend_lists.updateOne(
+            {username : receiver},
+            {$addToSet: { receivedRequests : sender}}
+        ).lean()
+    ]);
 }
 
 router.route('/send_friend_request').post(async (req, res) => {
@@ -202,11 +202,11 @@ router.route('/accept_received_request').post(async (req, res) => {
 
 
 async function removeRequest(sender, receiver) {
-    await Friend_lists.findOneAndUpdate(
+    await Friend_lists.updateOne(
         {username : receiver}, {$pull: {receivedRequests : sender}}
     );
 
-    await Friend_lists.findOneAndUpdate(
+    await Friend_lists.updateOne(
         {username : sender}, {$pull: {sentRequests : receiver}}
     );
 }
@@ -253,22 +253,24 @@ router.route('/unblock_user').post(async (req, res) => {
 });
 
 async function blockUser(username, target) {
-    await Friend_lists.findOneAndUpdate(
-        {username : username},
-        {$pull:
-            {receivedRequests : target,
-                sentRequests : target,
-            friends : target},
-            $addToSet: {blocked: target}}
-    );
-    await Friend_lists.findOneAndUpdate(
-        {username : target},
-        {$pull:
-            {sentRequests : username,
-            receivedRequests : username,
-        friends: username},
-        $addToSet: {blockedBy: username}}
-    );
+    await Promise.all([
+        Friend_lists.updateOne(
+            {username : username},
+            {$pull:
+                {receivedRequests : target,
+                    sentRequests : target,
+                friends : target},
+                $addToSet: {blocked: target}}
+        ).lean(),
+        Friend_lists.updateOne(
+            {username : target},
+            {$pull:
+                {sentRequests : username,
+                receivedRequests : username,
+            friends: username},
+            $addToSet: {blockedBy: username}}
+        ).lean()
+    ]);
 }
 
 router.route('/block_user').post(async (req, res) => {

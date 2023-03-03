@@ -22,7 +22,7 @@ router.route('/get_profile_photo').post(
   const photoDoc = await User.findOne({
     authenticationID: authenticationID,
     authenticationSource: authenticationSource,
-  });
+  }).lean();
   return res.status(200).json(photoDoc.picture);
 });
 
@@ -32,18 +32,6 @@ async function createFriendList(username) {
   }
   const newFriendList = new Friend_lists(blankFriendList)
   await newFriendList.save()
-}
-
-function isValidUsername(username) {
-  if (username.length == 0 || username.len > 32) {
-    return false;
-  }
-
-  if (!(/^[a-z0-9]+$/i.test(username))) {
-    return false;
-  }
-  return true;
-
 }
 
 function getRandomIntInclusive(min, max) {
@@ -64,7 +52,7 @@ async function setUsernameAndUpdateProfile(userIdentifiers, profileInfo, chosenU
   let validUsername = false;
   do{
     try {
-      await User.findOneAndUpdate(userIdentifiers, profileInfo, {runValidators: true});
+      await User.updateOne(userIdentifiers, profileInfo, {runValidators: true});
       // gets here if update succeeds
       validUsername = true;
     } catch (err){ //try with different discriminator
@@ -87,7 +75,7 @@ router.route('/sign_up').post(async (req, res,) => {
   const picture = req.body.picture;
   const displayName = req.body.displayName;
 
-  if (!isValidUsername(chosenUsername)) {
+  if (!User.isValidUsername(chosenUsername)) {
     return res.status(400).json("Error: invalid username")
   }
 
@@ -159,6 +147,7 @@ async function createNewUserIfNecessary(req, res, next) {
     userInfo = {
       authenticationSource: 'google',
       authenticationID: userInfoFromAuth.sub,
+      displayName: userInfoFromAuth.given_name,
       given_name: userInfoFromAuth.given_name,
       family_name: userInfoFromAuth.family_name,
       email: userInfoFromAuth.email,
@@ -183,8 +172,9 @@ function generateLoggedInSession(req, res, next) {
     // store user information in session, typically a user id
     req.session.authenticationSource = 'google';
     req.session.authenticationID = userInfoFromAuth.sub;
+
     if (hasUsername) {
-      req.session.username = usernameDoc.username;
+      req.session.username = res.locals.usernameDoc.username;
     } else {
       req.session.username = null;
     }
@@ -193,7 +183,6 @@ function generateLoggedInSession(req, res, next) {
     // load does not happen before session is saved
     req.session.save(function (err) {
     if (err) return res.status(500).json(err);
-    console.log("hi");
     return res.status(200).json({hasUsername: hasUsername});
     })
   })
@@ -211,7 +200,7 @@ router.route('/login/google').post(async (req, res, next) => {
 
   let usernameDoc = await User.findOne(
     {authenticationSource: 'google', authenticationID: userInfoFromAuth.sub},
-    'username');
+    'username').lean();
 
   res.locals.usernameDoc = usernameDoc;
   res.locals.userInfoFromAuth = userInfoFromAuth;

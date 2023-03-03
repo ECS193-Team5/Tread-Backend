@@ -13,12 +13,10 @@ const app = express();
 
 // We should make a explicit whitelist for cors request
 // change origin for frontend
-
 app.use(cors({
   credentials: true,
-  ///origin: ["http://localhost:3000"],
   //methods: ['POST'],
-  origin: "http://localhost:3000", ///for dev only
+  origin: process.env.FRONTEND_DOMAIN ///for dev only
   //allowedHeaders: ['Content-Type', 'Authorization', 'Connection']
 }));
 

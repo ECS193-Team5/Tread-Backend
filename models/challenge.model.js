@@ -79,6 +79,16 @@ const challengeSchema = new Schema(
   }
 );
 
+
+challengeSchema.index({participants: 1, status: 1});
+challengeSchema.index({sentUser: 1, status: 1});
+// remove if index is slowing things down
+challengeSchema.index({
+    'exercise.exerciseName' : 1, 'exercise.unitType' : 1,
+    status : 1, issueDate : 1,
+});
+
+
 const Challenge = mongoose.model("Challenges", challengeSchema);
 
 module.exports = Challenge;

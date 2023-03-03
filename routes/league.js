@@ -19,7 +19,6 @@ router.route("/create_league").post(async (req, res) => {
     try {
         await createLeague(leagueInfo)
     } catch (err){
-        console.log(err)
         return res.status(500).json("Server error or name invalid");
     }
 
@@ -28,7 +27,8 @@ router.route("/create_league").post(async (req, res) => {
 
 async function updateLeague(req, res, next) {
     try {
-        if (await League.findOneAndUpdate(res.locals.filter, res.locals.updates).lean() === null) {
+        const updateReport = await League.updateOne(res.locals.filter, res.locals.updates).lean()
+        if (updateReport.matchedCount == 0) {
             return res.sendStatus(404);
         }
     } catch (err) {
@@ -38,11 +38,11 @@ async function updateLeague(req, res, next) {
     return res.sendStatus(200);
 }
 
-async function checkLeagueID(req, res, next) {
+function checkLeagueID(req, res, next) {
     if (!req.body.leagueID){
         return res.sendStatus(400);
     }
-    next()
+    next();
 }
 
 router.route("/add_admin").post(
@@ -53,7 +53,7 @@ router.route("/add_admin").post(
     res.locals.filter = {
         _id : ObjectId(req.body.leagueID),
         admin : req.session.username,
-        member : recipient,
+        members : recipient,
     }
     res.locals.updates = {
         $addToSet: { admin : recipient},
@@ -69,7 +69,6 @@ router.route("/remove_admin").post(
     res.locals.filter = {
         _id : ObjectId(req.body.leagueID),
         admin : req.session.username,
-        admin : recipient,
         owner : {$ne: recipient}
     }
 
@@ -79,13 +78,18 @@ router.route("/remove_admin").post(
     next();
 }, updateLeague);
 
-router.post("/add_member", checkLeagueID,
-    async (req, res, next) => {
-    if(await isExistingUser(req.body.recipient)) {
-        next()
+
+async function verifyRecipientUserExists(req, res, next) {
+    if (await isExistingUser(req.body.recipient)) {
+      next();
+    } else {
+        return res.status(400).json("Recipent does not exist");
     }
-    return res.sendStatus(404);
-}, async (req, res) => {
+}
+
+router.post("/add_member",
+    checkLeagueID, verifyRecipientUserExists,
+    async (req, res, next) => {
     const recipient = req.body.recipient;
 
     res.locals.filter = {
@@ -94,23 +98,24 @@ router.post("/add_member", checkLeagueID,
     }
 
     res.locals.updates = {
-        $addToSet: { member : recipient},
+        $addToSet: { members : recipient},
     }
     next();
 }, updateLeague);
 
 router.post("/kick_member", checkLeagueID,
-    async (req, res) => {
+    async (req, res, next) => {
     const recipient = req.body.recipient;
 
     res.locals.filter = {
         _id : ObjectId(req.body.leagueID),
         admin : req.session.username,
+        member: recipient,
         owner : {$ne: recipient}
     }
 
     res.locals.updates = {
-        $pull: { member : recipient},
+        $pull: { members : recipient},
     }
     next();
 }, updateLeague);
@@ -126,7 +131,7 @@ router.route("/accept_request").post(
     }
 
     res.locals.updates = {
-        $addToSet: { member : recipient},
+        $addToSet: { members : recipient},
         $pull: { pendingRequests : recipient},
     }
     next();
@@ -150,14 +155,8 @@ router.route("/decline_request").post(
 }, updateLeague);
 
 
-router.route("/ban_user").post(
-    async (req, res, next) => {
-        if(await isExistingUser(req.body.recipient)) {
-            next()
-        }
-        return res.sendStatus(404);
-},
-    checkLeagueID,
+router.route("/ban_member").post(
+    checkLeagueID, verifyRecipientUserExists,
     async (req, res, next) => {
     const recipient = req.body.recipient;
 
@@ -170,8 +169,9 @@ router.route("/ban_user").post(
     res.locals.updates = {
         $addToSet: { bannedUsers : recipient},
         $pull: {
+            admin: recipient,
             pendingRequests : recipient,
-            member : recipient
+            members : recipient
         },
     }
     next();
