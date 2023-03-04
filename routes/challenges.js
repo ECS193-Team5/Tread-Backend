@@ -123,7 +123,7 @@ router.route('/received_challenges').post(async (req, res) => {
 
 
 async function updatePendingChallengeStatusByID(challengeID, username, newStatus) {
-    return Challenge.findOneAndUpdate({
+    return Challenge.updateOne({
         _id : ObjectId(challengeID),
         receivedUser: username,
         status: 'pending'
@@ -137,9 +137,10 @@ router.route('/accept_friend_challenge').post(async (req, res) => {
     const username = req.session.username;
     const challengeID = req.body.challengeID;
 
-    challenge = await updatePendingChallengeStatusByID(challengeID, username, 'accepted')
+    const updateReport = await updatePendingChallengeStatusByID(
+        challengeID, username, 'accepted')
 
-    if (challenge === null) {
+    if (updateReport.matchedCount == 0) {
         return res.sendStatus(404);
     }
 
@@ -150,9 +151,10 @@ router.route('/decline_friend_challenge').post(async (req, res) => {
     const username = req.session.username;
     const challengeID = req.body.challengeID;
 
-    challenge = await updatePendingChallengeStatusByID(challengeID, username, 'declined')
+    const updateReport = await updatePendingChallengeStatusByID(
+        challengeID, username, 'declined')
 
-    if (challenge === null) {
+    if (updateReport.matchedCount == 0) {
         return res.sendStatus(404);
     }
 
