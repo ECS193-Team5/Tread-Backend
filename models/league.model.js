@@ -18,6 +18,12 @@ const LeagueSchema = new Schema(
         required: true,
         default: Date.now,
     },
+    leagueDescription: {
+        type: String,
+        required: true,
+        default: ''
+
+    },
     leagueName: {
         type: String,
         required: true,
