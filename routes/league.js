@@ -29,7 +29,7 @@ router.route("/create_league").post(async (req, res) => {
 
 async function updateLeague(req, res, next) {
     try {
-        const updateReport = await League.updateOne(res.locals.filter, res.locals.updates).lean()
+        const updateReport = await League.updateOne(res.locals.filter, res.locals.updates).lean();
         if (updateReport.matchedCount == 0) {
             return res.sendStatus(404);
         }
@@ -89,22 +89,6 @@ async function verifyRecipientUserExists(req, res, next) {
     }
 }
 
-router.post("/add_member",
-    checkLeagueID, verifyRecipientUserExists,
-    async (req, res, next) => {
-    const recipient = req.body.recipient;
-
-    res.locals.filter = {
-        _id : ObjectId(req.body.leagueID),
-        admin : req.session.username,
-    }
-
-    res.locals.updates = {
-        $addToSet: { members : recipient},
-    }
-    next();
-}, updateLeague);
-
 router.post("/kick_member", checkLeagueID,
     async (req, res, next) => {
     const recipient = req.body.recipient;
@@ -112,7 +96,7 @@ router.post("/kick_member", checkLeagueID,
     res.locals.filter = {
         _id : ObjectId(req.body.leagueID),
         admin : req.session.username,
-        member: recipient,
+        members: recipient,
         owner : {$ne: recipient}
     }
 
@@ -129,16 +113,121 @@ router.post("/leave_league", checkLeagueID,
 
     res.locals.filter = {
         _id : ObjectId(req.body.leagueID),
-        member: username,
+        members: username,
+        owner: {$ne: username}
     }
 
     res.locals.updates = {
         $pull: { members : username},
+        $pull: { admin : username},
     }
     next();
 }, updateLeague);
 
-router.route("/accept_request").post(
+router.route("/invite_to_join").post(
+    checkLeagueID, verifyRecipientUserExists,
+    async (req, res, next) => {
+        const username = req.session.username;
+        const recipient = req.body.recipient;
+        const leagueID = req.body.leagueID;
+
+
+        const updateLog = await League.updateOne(
+            {
+                _id : ObjectId(leagueID),
+                admin: username,
+                pendingRequests: recipient
+            },
+            {
+                $addToSet: { members : recipient},
+                $pull: { pendingRequests : recipient},
+            }
+        )
+
+        if (updateLog.matchedCount == 1) {
+            return res.sendStatus(200);
+        }
+
+        res.locals.filter = {
+            _id : ObjectId(leagueID),
+            admin: username,
+            members: {$ne: recipient}
+        },
+        res.locals.updates ={
+            $addToSet: { sentRequests : recipient},
+        }
+
+        next();
+}, updateLeague);
+
+router.route("/user_request_to_join").post(
+    checkLeagueID,
+    async (req, res, next) => {
+        const username = req.session.username;
+
+
+        const updateLog = await League.updateOne(
+            {
+                _id : ObjectId(leagueID),
+                sentRequests: username
+            },
+            {
+                $addToSet: { members : username},
+                $pull: { sentRequests : username},
+            }
+        )
+
+        if (updateLog.matchedCount == 1) {
+            return res.sendStatus(200);
+        }
+
+        res.locals.filter = {
+            _id : ObjectId(leagueID),
+            members: {$ne: username}
+        },
+        res.locals.updates ={
+            $addToSet: { pendingRequests : username},
+        }
+        next();
+}, updateLeague);
+
+router.route("/user_accept_invite").post(
+    checkLeagueID,
+    async (req, res, next) => {
+    const recipient = req.body.recipient;
+
+    res.locals.filter = {
+        _id : ObjectId(req.body.leagueID),
+        sentRequests: recipient
+    }
+
+    res.locals.updates = {
+        $addToSet: { members : recipient},
+        $pull: { sentRequests : recipient},
+    }
+    next();
+}, updateLeague);
+
+
+router.route("/user_decline_invite").post(
+    checkLeagueID,
+    async (req, res, next) => {
+    const username = req.session.username
+
+    res.locals.filter = {
+        _id : ObjectId(req.body.leagueID),
+        sentRequests: username
+    }
+
+    res.locals.updates = {
+        $pull: { sentRequests : username},
+    }
+    next();
+}, updateLeague);
+
+
+
+router.route("/accept_join_request").post(
     checkLeagueID,
     async (req, res, next) => {
     const recipient = req.body.recipient;
@@ -146,6 +235,7 @@ router.route("/accept_request").post(
     res.locals.filter = {
         _id : ObjectId(req.body.leagueID),
         admin : req.session.username,
+        pendingRequests: recipient
     }
 
     res.locals.updates = {
@@ -164,6 +254,7 @@ router.route("/decline_request").post(
     res.locals.filter = {
         _id : ObjectId(req.body.leagueID),
         admin : req.session.username,
+        pendingRequests: recipient
     }
 
     res.locals.updates = {

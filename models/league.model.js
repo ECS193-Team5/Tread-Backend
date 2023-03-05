@@ -41,6 +41,10 @@ const LeagueSchema = new Schema(
         type: [String],
         default : [],
     },
+    sentRequests: {
+        type: [String],
+        default: [],
+    },
     bannedUsers: {
         type: [String],
         default: [],
