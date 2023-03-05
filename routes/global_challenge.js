@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const Global_challenge_progress = require("../models/global_challenge_progress.model");
 const Global_challenge = require("../models/global_challenge.model");
+const User = require("../models/user.model");
 
 
 router.route('/add_challenge').post(async (req, res) => {
@@ -26,6 +27,7 @@ router.route('/add_challenge').post(async (req, res) => {
 });
 
 
+// incomplete
 async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
     const currentGlobalChallenges = await Global_challenge.find({
         issuedDate: {
@@ -39,7 +41,7 @@ async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
     const userGlobalChallengeProgress = await Global_challenge_progress.find({
         globalChallengeID: {$in : currentGlobalChallenges},
         username: req.session.username,
-    }).distinct('globalChallengeID'); // this might not be what i think it is
+    }).distinct('globalChallengeID');
 
     let newlyInsertedChallenges = [];
     if (currentGlobalChallenges.length != userGlobalChallengeProgress.length) {
@@ -57,14 +59,24 @@ async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
         await Global_challenge_progress.insertMany(newlyInsertedChallenges);
     }
 
-    return res.status(200).json(await Global_challenge_progress.find({
+    const allCurrentUserGlobalChallenge = await Global_challenge_progress.find({
         globalChallengeID: {$in : currentGlobalChallenges},
         username: req.session.username,
-    }))
+    },'_id globalChallengeID progress')
+
+    console.log(allCurrentUserGlobalChallenge, currentGlobalChallenges)
+
+    return res.status(200).json()
 }
 
 
 router.route('/get_challenges').post(getGlobalChallengesAndInsertIfDoesntExist);
+
+
+async function getLeaderboard(req, res, next) {
+    const globalChallengeID = req.body.challengeID;
+    const topFiveUsers = await Global_challenge_progress.find()
+}
 
 
 
