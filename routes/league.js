@@ -309,12 +309,61 @@ async function findFromLeague(filter) {
     return League.find(filter).lean();
 }
 
+async function getActiveChallengeCount(filter) {
+    return Challenge.countDocuments(filter);
+}
+
+async function getAllLeaguesWithChallengeCount(req, res, next) {
+    const filter = res.locals.filter;
+
+
+    // Not sure if order is guaranteed
+    const [leaguesInfo, leaguesIDArray] = await Promise.all([
+        League.find(
+            filter, "_id leagueName members").lean(),
+        League.find(filter).distinct('_id')
+    ])
+
+    let challengeCount = [];
+    leaguesIDArray.forEach((ID) => {
+        challengeCount.push(
+            getActiveChallengeCount({receivedUser: ID})
+        )
+    })
+
+    challengeCount = await Promise.all(challengeCount);
+
+
+    const zippedCountAndInfo = leaguesInfo.map((league, index) => ({...league, activeChallenges: challengeCount[index]}));
+
+
+    return res.status(200).json(zippedCountAndInfo);
+
+}
+
 router.route("/get_leagues").post(
     async (req, res, next) => {
-        const leagues = await findFromLeague({members: req.session.username});
+        res.locals.filter = {members: req.session.username}
+        next()
+}, getAllLeaguesWithChallengeCount);
 
-        return res.status(200).json(leagues);
-});
+router.route("/get_admin_leagues_with_challenge_count").post(
+    async (req, res, next) => {
+        res.locals.filter = {admin: req.session.username}
+        next()
+}, getAllLeaguesWithChallengeCount);
+
+router.route("/get_requested_leagues").post(
+    async (req, res, next) => {
+        res.locals.filter = {pendingRequests: req.session.username}
+        next()
+}, getAllLeaguesWithChallengeCount);
+
+router.route("/get_owned_leagues").post(
+    async (req, res, next) => {
+        res.locals.filter = {owner: req.session.username}
+        next()
+}, getAllLeaguesWithChallengeCount);
 
 router.route("/get_admin_leagues").post(
     async (req, res, next) => {
