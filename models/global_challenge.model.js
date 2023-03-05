@@ -17,7 +17,6 @@ const globalChallengeSchema = new Schema(
     exercise: {
         type: exercise,
         required: true,
-        /// try to validate by exercise and issue date overlap
     },
   },
   {
