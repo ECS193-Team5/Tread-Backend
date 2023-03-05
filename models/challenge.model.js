@@ -85,7 +85,7 @@ challengeSchema.index({sentUser: 1, status: 1});
 // remove if index is slowing things down
 challengeSchema.index({
     'exercise.exerciseName' : 1, 'exercise.unitType' : 1,
-    status : 1, issueDate : 1,
+    status : 1, issueDate : 1, dueDate : 1,
 });
 
 

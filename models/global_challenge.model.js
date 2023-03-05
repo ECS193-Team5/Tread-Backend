@@ -17,6 +17,7 @@ const globalChallengeSchema = new Schema(
     exercise: {
         type: exercise,
         required: true,
+        /// try to validate by exercise and issue date overlap
     },
   },
   {
@@ -27,6 +28,11 @@ const globalChallengeSchema = new Schema(
 //look at this when they update excercise and then check global progress
 
 //add indexes
+
+globalChallengeSchema.index({
+  'exercise.exerciseName' : 1, 'exercise.unitType' : 1,
+  issueDate : 1, dueDate : 1,
+});
 
 const Global_challenge = mongoose.model("Global_challenges", globalChallengeSchema);
 
