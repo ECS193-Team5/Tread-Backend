@@ -2,7 +2,7 @@ const router = require("express").Router();
 const League = require("../models/league.model");
 const Challenge = require("../models/challenge.model");
 var ObjectId = require('mongoose').Types.ObjectId;
-const {isExistingUser} = require("./user.js");
+const {isExistingUser, route} = require("./user.js");
 
 async function createLeague(leagueInfo) {
     const newUser = new League(leagueInfo);
@@ -14,11 +14,13 @@ router.route("/create_league").post(async (req, res) => {
         owner: req.session.username,
         leagueName: req.body.leagueName,
         leagueType: req.body.leagueType,
+        leagueDescription: req.body.leagueDescription
     }
 
     try {
         await createLeague(leagueInfo)
     } catch (err){
+        console.log(err)
         return res.status(500).json("Server error or name invalid");
     }
 
@@ -120,6 +122,22 @@ router.post("/kick_member", checkLeagueID,
     next();
 }, updateLeague);
 
+
+router.post("/leave_league", checkLeagueID,
+    async (req, res, next) => {
+    const username = req.session.username;
+
+    res.locals.filter = {
+        _id : ObjectId(req.body.leagueID),
+        member: username,
+    }
+
+    res.locals.updates = {
+        $pull: { members : username},
+    }
+    next();
+}, updateLeague);
+
 router.route("/accept_request").post(
     checkLeagueID,
     async (req, res, next) => {
@@ -196,16 +214,36 @@ router.route("/unban_user").post(
     next();
 }, updateLeague);
 
+async function findFromLeague(filter) {
+    return League.find(filter).lean();
+}
+
 router.route("/get_leagues").post(
     async (req, res, next) => {
-        const leagues = await League.find({members: req.session.username});
+        const leagues = await findFromLeague({members: req.session.username});
 
         return res.status(200).json(leagues);
 });
 
 router.route("/get_admin_leagues").post(
     async (req, res, next) => {
-        const leagues = await League.find({admin: req.session.username});
+        const leagues = await findFromLeague(
+            {admin: req.session.username},
+            '_id leagueName');
+
+        return res.status(200).json(leagues);
+});
+
+router.route("/get_admin_league_info").post(
+    async (req, res, next) => {
+        const leagues = await findFromLeague({admin: req.session.username});
+
+        return res.status(200).json(leagues);
+});
+
+router.route("/get_owned_leagues").post(
+    async (req, res, next) => {
+        const leagues = await findFromLeague({owner: req.session.username});
 
         return res.status(200).json(leagues);
 });

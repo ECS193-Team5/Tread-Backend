@@ -20,9 +20,13 @@ const LeagueSchema = new Schema(
     },
     leagueDescription: {
         type: String,
-        required: true,
-        default: ''
-
+        default: '',
+        validate: {
+            validator: function(description) {
+                return (description.length < 140);
+            },
+            message: () => 'Size must be less than 140'
+        }
     },
     leagueName: {
         type: String,
