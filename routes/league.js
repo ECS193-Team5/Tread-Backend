@@ -316,29 +316,20 @@ async function getActiveChallengeCount(filter) {
 async function getAllLeaguesWithChallengeCount(req, res, next) {
     const filter = res.locals.filter;
 
-
     // Not sure if order is guaranteed
-    const [leaguesInfo, leaguesIDArray] = await Promise.all([
-        League.find(
-            filter, "_id leagueName members").lean(),
-        League.find(filter).distinct('_id')
-    ])
+    const leaguesInfo = await League.find(filter, "_id leagueName members").lean();
 
     let challengeCount = [];
-    leaguesIDArray.forEach((ID) => {
+    leaguesInfo.forEach((league) => {
         challengeCount.push(
-            getActiveChallengeCount({receivedUser: ID})
+            getActiveChallengeCount({receivedUser: league._id})
         )
     })
 
     challengeCount = await Promise.all(challengeCount);
-
-
     const zippedCountAndInfo = leaguesInfo.map((league, index) => ({...league, activeChallenges: challengeCount[index]}));
 
-
     return res.status(200).json(zippedCountAndInfo);
-
 }
 
 router.route("/get_leagues").post(
