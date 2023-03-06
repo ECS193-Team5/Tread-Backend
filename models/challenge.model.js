@@ -59,7 +59,13 @@ const challengeSchema = new Schema(
     dueDate: {
         type: Date,
         required: true,
-        min: Date.now
+        min: Date.now,
+        validate: {
+            validator: function(dueDate) {
+                return (dueDate > this.issueDate);
+            },
+            message: () => 'dueDate must be before issueDate'
+        }
     },
     exercise: {
         type: exercise,
@@ -85,7 +91,7 @@ challengeSchema.index({sentUser: 1, status: 1});
 // remove if index is slowing things down
 challengeSchema.index({
     'exercise.exerciseName' : 1, 'exercise.unitType' : 1,
-    status : 1, issueDate : 1,
+    status : 1, issueDate : 1, dueDate : 1,
 });
 
 

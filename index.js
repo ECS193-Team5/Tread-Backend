@@ -75,13 +75,17 @@ const friendRouter = require("./routes/friend_list");
 const challengeRouter= require("./routes/challenges");
 const leagueRouter= require("./routes/league");
 const exerciseLogRouter= require("./routes/exercise_log");
+const globalChallengeRouter = require("./routes/global_challenge");
 
 app.use("/auth", authRouter);
 app.use("/user", isAuthenticated, hasUsername, userRouter);
 app.use("/friend_list", isAuthenticated, hasUsername, friendRouter);
 app.use("/challenges", isAuthenticated, hasUsername, challengeRouter);
 app.use("/league", isAuthenticated, hasUsername, leagueRouter);
-app.use("/exercise_log", isAuthenticated, hasUsername, exerciseLogRouter )
+app.use("/exercise_log", isAuthenticated, hasUsername, exerciseLogRouter);
+
+// Should be in some kind of protected route
+app.use("/global_challenge", isAuthenticated, hasUsername, globalChallengeRouter);
 
 const port = parseInt(process.env.PORT) || 8080;
 app.listen(port, () => {

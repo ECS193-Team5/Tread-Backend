@@ -28,6 +28,11 @@ const globalChallengeSchema = new Schema(
 
 //add indexes
 
+globalChallengeSchema.index({
+  'exercise.exerciseName' : 1, 'exercise.unitType' : 1,
+  issueDate : 1, dueDate : 1,
+});
+
 const Global_challenge = mongoose.model("Global_challenges", globalChallengeSchema);
 
 module.exports = Global_challenge;

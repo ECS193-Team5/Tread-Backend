@@ -1,9 +1,8 @@
 const router = require("express").Router();
-const { add } = require("../models/exercise.schema");
-const exercise = require("../models/exercise.schema");
 const Exercise_log = require("../models/exercise_log.model");
 const Challenge = require("../models/challenge.model");
-
+const Global_challenge = require("../models/global_challenge.model");
+const Global_challenge_progress = require("../models/global_challenge_progress.model");
 
 async function addExerciseToLog(req, res, next) {
     const exercise = {
@@ -27,11 +26,12 @@ async function addExerciseToLog(req, res, next) {
     res.locals.exerciseLog = newExerciseLog;
     next();
 }
+
 // Need to test
 async function updateChallenges(req, res, next) {
     const loggedDate = req.body.loggedDate;
     const username = req.session.username
-    const fieldToIncrement = 'progress.' + req.session.username;
+    const fieldToIncrement = 'progress.' + username;
     const incrementObj = {
         [fieldToIncrement] : res.locals.exerciseLog.exercise.convertedAmount
     }
@@ -40,21 +40,49 @@ async function updateChallenges(req, res, next) {
         'exercise.unitType' : res.locals.exerciseLog.exercise.unitType,
         status: "accepted",
         issuedDate: {
-            $lte: Date.now(),
-            $lte: loggedDate,
+            $lte: Math.min(Date.now(), loggedDate)
         },
         dueDate: {
-            $gte: Date.now(),
-            $gte: loggedDate,
+            $gte: Math.max(Date.now(), loggedDate)
         },
-        participants: req.session.username,
+        participants: username,
     },
     {$inc: incrementObj});
+
+    next();
+}
+
+
+async function updateGlobalChallenges(req, res, next) {
+    const loggedDate = req.body.loggedDate;
+    const incrementObj = {
+        progress : res.locals.exerciseLog.exercise.convertedAmount
+    }
+    const needUpdatingGlobalChallenge = await Global_challenge.findOne({
+        'exercise.exerciseName' : req.body.exerciseName,
+        'exercise.unitType' : res.locals.exerciseLog.exercise.unitType,
+        issuedDate: {
+            $lte: Math.min(Date.now(), loggedDate)
+        },
+        dueDate: {
+            $gte: Math.max(Date.now(), loggedDate)
+        },
+    }, '_id').lean();
+
+    if (needUpdatingGlobalChallenge == null) {
+        return res.sendStatus(200);
+    }
+
+    await Global_challenge_progress.updateOne({
+        globalChallengeID: needUpdatingGlobalChallenge._id,
+        username: req.session.username,
+    },
+    {$inc: incrementObj}, {upsert: true});
 
     return res.sendStatus(200);
 }
 
-router.route('/add').post(addExerciseToLog, updateChallenges);
+router.route('/add').post(addExerciseToLog, updateChallenges, updateGlobalChallenges);
 
 
 

@@ -18,6 +18,16 @@ const LeagueSchema = new Schema(
         required: true,
         default: Date.now,
     },
+    leagueDescription: {
+        type: String,
+        default: '',
+        validate: {
+            validator: function(description) {
+                return (description.length < 140);
+            },
+            message: () => 'Size must be less than 140'
+        }
+    },
     leagueName: {
         type: String,
         required: true,
@@ -30,6 +40,10 @@ const LeagueSchema = new Schema(
     pendingRequests: {
         type: [String],
         default : [],
+    },
+    sentRequests: {
+        type: [String],
+        default: [],
     },
     bannedUsers: {
         type: [String],
