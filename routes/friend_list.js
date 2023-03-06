@@ -1,4 +1,5 @@
 const router = require("express").Router();
+let User = require("../models/user.model");
 const User_inbox = require("../models/user_inbox.model");
 const Friend_connection = require("../models/friend_connection.model");
 const {isExistingUser} = require("./user.js");
@@ -28,27 +29,52 @@ router.route('/pending_requests').post(async (req, res) => {
     return res.json(pendingRequests);
 });
 
+async function getfriendList(username) {
+    return Friend_connection.find({username: username}).distinct('friendName');
+}
+
 
 router.route('/friend_list').post(async (req, res) => {
     const username = req.session.username;
 
-    const friendList = await Friend_connection.find({username: username}).distinct('friendName');
+    const friendList = await getfriendList(username);
 
     return res.json(friendList);
 });
 
+async function getUsernameDisplayNamePicture(usernameArray){
+    return User.find({username: {$in: usernameArray}}, 'username displayName picture');
+}
+
+router.route('/get_all_friends_info').post(async (req, res) => {
+    const username = req.session.username;
+
+    const friendList = await getfriendList(username);
+
+    const friendInfo = await getUsernameDisplayNamePicture(friendList);
+
+    return res.json(friendInfo);
+});
+
+async function getUsernameDislayNamePictureFromInboxNames(username, inboxField) {
+    const usernameList = await getPropertyOfFriendList(username, inboxField);
+
+    return await getUsernameDisplayNamePicture(usernameList[inboxField]);
+
+}
+
 router.route('/sent_request_list').post(async (req, res) => {
     const username = req.session.username;
 
-    const sentRequestList = await getPropertyOfFriendList(username, 'sentRequests');
+    const requestInfoArray = await getUsernameDislayNamePictureFromInboxNames(username, 'sentRequests');
 
-    return res.json(sentRequestList);
+    return res.json(requestInfoArray);
 });
 
 router.route('/received_request_list').post(async (req, res) => {
     const username = req.session.username;
 
-    const requestList = await getPropertyOfFriendList(username, 'receivedRequests');
+    const requestList = await getUsernameDislayNamePictureFromInboxNames(username, 'receivedRequests');
 
     return res.json(requestList);
 });
@@ -56,7 +82,7 @@ router.route('/received_request_list').post(async (req, res) => {
 router.route('/blocked_list').post(async (req, res) => {
     const username = req.session.username;
 
-    const blockedList = await getPropertyOfFriendList(username, 'blocked');
+    const blockedList = await getUsernameDislayNamePictureFromInboxNames(username, 'blocked');
 
     return res.json(blockedList);
 });

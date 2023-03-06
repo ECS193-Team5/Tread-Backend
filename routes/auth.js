@@ -26,12 +26,12 @@ router.route('/get_profile_photo').post(
   return res.status(200).json(photoDoc.picture);
 });
 
-async function createFriendList(username) {
-  const blankFriendList = {
+async function createUserInbox(username) {
+  const blankUserInbox = {
     username: username,
   }
-  const newFriendList = new User_inbox(blankFriendList)
-  await newFriendList.save()
+  const newUserInbox = new User_inbox(blankUserInbox)
+  await newUserInbox.save()
 }
 
 function getRandomIntInclusive(min, max) {
@@ -100,7 +100,7 @@ router.route('/sign_up').post(async (req, res,) => {
 
   // Init necessary models
   try {
-    await createFriendList(completeUsername);
+    await createUserInbox(completeUsername);
   } catch {
     return res.sendStatus(500);
   }
