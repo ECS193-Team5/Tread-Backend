@@ -51,7 +51,6 @@ const userSchema = new Schema(
     displayName: {
       type: String,
       default: "",
-      index: true,
       required: true,
       validate: {
         validator: isValidDisplayName,
@@ -73,7 +72,7 @@ const userSchema = new Schema(
   }
 );
 
-userSchema.index({authenticationID: 1, authenticationSource: 1});
+userSchema.index({authenticationID: 1, authenticationSource: 1}, {unique: true});
 
 const User = mongoose.model("User", userSchema);
 

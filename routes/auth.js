@@ -1,6 +1,6 @@
 const router = require("express").Router();
 let User = require("../models/user.model");
-let Friend_lists = require("../models/friend_list.model");
+let User_inbox = require("../models/user_inbox.model");
 const {OAuth2Client} = require('google-auth-library');
 const CLIENT_ID = process.env.CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
@@ -30,7 +30,7 @@ async function createFriendList(username) {
   const blankFriendList = {
     username: username,
   }
-  const newFriendList = new Friend_lists(blankFriendList)
+  const newFriendList = new User_inbox(blankFriendList)
   await newFriendList.save()
 }
 

@@ -1,6 +1,7 @@
 const router = require("express").Router();
 let User = require("../models/user.model");
-let Friend_lists = require("../models/friend_list.model");
+let User_inbox = require("../models/user_inbox.model");
+const Friend_connection = require("../models/friend_connection.model");
 const Challenge = require("../models/challenge.model");
 const League = require("../models/league.model");
 const { logout } = require("./auth.js");
@@ -48,20 +49,46 @@ router.route('/update_profile_info').post(async (req, res) => {
   return res.sendStatus(200);
 });
 
-async function removeUserFromFriendField(field){
-  await Friend_lists.updateMany(field, {$pull: field});
+async function createQueryToPullFieldFromMany(filter) {
+  return {
+    updateMany: {
+      filter: filter,
+      update: {$pull: filter}
+    }
+  }
+}
+
+async function createQueryToDeleteMany(filter) {
+  return {
+    deleteMany: {
+      filter: filter,
+    }
+  }
+}
+
+async function removeUserFromFriendFilter(filter){
+  await User_inbox.updateMany(filter, {$pull: filter});
 }
 
 async function deleteUserFriendList(username) {
-  await Friend_lists.findOneAndDelete({username: username});
-  await removeUserFromFriendField({friends: username});
-  await removeUserFromFriendField({blocked: username});
-  await removeUserFromFriendField({blockedBy: username});
-  await removeUserFromFriendField({sentRequests: username});
-  await removeUserFromFriendField({recievedRequests: username});
+  let userInboxQueries = [];
+  let friendConnectionQueries = [];
+  userInboxQueries.append(createQueryToPullFieldFromMany({blocked: username}));
+  userInboxQueries.append(createQueryToPullFieldFromMany({blockedBy: username}));
+  userInboxQueries.append(createQueryToPullFieldFromMany({sentRequests: username}));
+  userInboxQueries.append(createQueryToPullFieldFromMany({recievedRequests: username}));
+  friendConnectionQueries.append(createQueryToDeleteMany({username: username}));
+  friendConnectionQueries.append(createQueryToDeleteMany({friendName: username}));
+  Promise.all([
+    User_inbox.bulkWrite(userInboxQueries),
+    Friend_connection.bulkWrite(friendConnectionQueries),
+    User_inbox.findOneAndDelete({username: username}),
+  ]);
 }
 
+// Need to bulk write this
 async function deleteUserChallenges(username) {
+  let challengeQueries = [];
   await Challenge.deleteMany({sentUser: username, challengeType: "self"});
   await Challenge.deleteMany({sentUser: username, status: "pending"});
   await Challenge.deleteMany({recievedUser: username, status: "pending"});
