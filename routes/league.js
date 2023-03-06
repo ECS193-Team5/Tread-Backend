@@ -309,7 +309,7 @@ async function findFromLeague(filter) {
     return League.find(filter).lean();
 }
 
-async function getActiveChallengeCount(filter) {
+async function getChallengeCount(filter) {
     return Challenge.countDocuments(filter);
 }
 
@@ -322,7 +322,15 @@ async function getAllLeaguesWithChallengeCount(req, res, next) {
     let challengeCount = [];
     leaguesInfo.forEach((league) => {
         challengeCount.push(
-            getActiveChallengeCount({receivedUser: league._id})
+            getChallengeCount({
+                receivedUser: league._id,
+                issuedDate: {
+                    $lte: Date.now(),
+                },
+                dueDate: {
+                    $gte: Date.now(),
+                }
+            })
         )
     })
 
