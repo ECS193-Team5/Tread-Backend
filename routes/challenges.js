@@ -127,18 +127,24 @@ router.route('/add_league_challenge').post(async (req, res, next) => {
     next();
 }, addInfoSharedAcrossRequests, addChallenge, addChallengeProgress);
 
-router.route('/delete_challenge').post(async (req, res) => {
+router.route('/delete_friend_challenge').post(async (req, res) => {
     const username = req.session.username;
     const challengeID = req.body.challengeID;
 
-    deleteReport = await Challenge.deleteOne({
-        challengeID: challengeID,
-        sentUser: username,
-        status: 'pending'
-        }).lean();
+    await Promise.all([
+        Challenge.deleteOne({
+            _id: challengeID,
+            sentUser: username,
+            status: 'pending'
+        }).lean(),
+
+        Challenge_progress.deleteMany({
+            challengeID: challengeID
+        }).lean()
+    ]);
 
 
-    return res.status(200);
+    return res.sendStatus(200);
 });
 
 
@@ -159,6 +165,9 @@ router.route('/sent_challenges').post(async (req, res) => {
     challenges = await Challenge.find({
         sentUser: username,
         status: 'pending',
+        dueDate: {
+            $gte: Date.now()
+        },
         }).lean();
 
     return res.status(200).send(challenges);
