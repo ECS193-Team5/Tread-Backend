@@ -14,7 +14,8 @@ router.route("/create_league").post(async (req, res) => {
         owner: req.session.username,
         leagueName: req.body.leagueName,
         leagueType: req.body.leagueType,
-        leagueDescription: req.body.leagueDescription
+        leagueDescription: req.body.leagueDescription,
+        leaguePicture: req.body.league.Picture
     }
 
     try {
