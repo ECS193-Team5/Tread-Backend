@@ -66,10 +66,6 @@ async function createQueryToDeleteMany(filter) {
   }
 }
 
-async function removeUserFromFriendFilter(filter){
-  await User_inbox.updateMany(filter, {$pull: filter});
-}
-
 async function deleteUserFriendList(username) {
   let userInboxQueries = [];
   let friendConnectionQueries = [];
