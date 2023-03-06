@@ -59,7 +59,13 @@ const challengeSchema = new Schema(
     dueDate: {
         type: Date,
         required: true,
-        min: Date.now
+        min: Date.now,
+        validate: {
+            validator: function(dueDate) {
+                return (dueDate > this.issueDate);
+            },
+            message: () => 'dueDate must be before issueDate'
+        }
     },
     exercise: {
         type: exercise,
