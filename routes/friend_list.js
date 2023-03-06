@@ -1,9 +1,11 @@
 const router = require("express").Router();
-let Friend_lists = require("../models/friend_list.model");
+let User = require("../models/user.model");
+const User_inbox = require("../models/user_inbox.model");
+const Friend_connection = require("../models/friend_connection.model");
 const {isExistingUser} = require("./user.js");
 /*
 router.route("/").get((req, res) => {
-    Friend_lists.find()
+    User_inbox.find()
       .then(function (data) {
         res.send({ data });
       })
@@ -15,39 +17,64 @@ router.route("/").get((req, res) => {
 */
 
 async function getPropertyOfFriendList(username, property) {
-    return Friend_lists.findOne({username: username }, property).lean();
+    return User_inbox.findOne({username: username }, property).lean();
 }
 
 router.route('/pending_requests').post(async (req, res) => {
     const username = req.session.username;
 
-    const pendingRequests = await Friend_lists.findOne({username: username },
+    const pendingRequests = await User_inbox.findOne({username: username },
         'sentRequests receivedRequests').lean();
 
     return res.json(pendingRequests);
 });
 
+async function getfriendList(username) {
+    return Friend_connection.find({username: username}).distinct('friendName');
+}
+
 
 router.route('/friend_list').post(async (req, res) => {
     const username = req.session.username;
 
-    const friendList = await getPropertyOfFriendList(username, 'friends');
+    const friendList = await getfriendList(username);
 
     return res.json(friendList);
 });
 
+async function getUsernameDisplayNamePicture(usernameArray){
+    return User.find({username: {$in: usernameArray}}, 'username displayName picture');
+}
+
+router.route('/get_all_friends_info').post(async (req, res) => {
+    const username = req.session.username;
+
+    const friendList = await getfriendList(username);
+
+    const friendInfo = await getUsernameDisplayNamePicture(friendList);
+
+    return res.json(friendInfo);
+});
+
+async function getUsernameDislayNamePictureFromInboxNames(username, inboxField) {
+    const usernameList = await getPropertyOfFriendList(username, inboxField);
+
+    return await getUsernameDisplayNamePicture(usernameList[inboxField]);
+
+}
+
 router.route('/sent_request_list').post(async (req, res) => {
     const username = req.session.username;
 
-    const sentRequestList = await getPropertyOfFriendList(username, 'sentRequests');
+    const requestInfoArray = await getUsernameDislayNamePictureFromInboxNames(username, 'sentRequests');
 
-    return res.json(sentRequestList);
+    return res.json(requestInfoArray);
 });
 
 router.route('/received_request_list').post(async (req, res) => {
     const username = req.session.username;
 
-    const requestList = await getPropertyOfFriendList(username, 'receivedRequests');
+    const requestList = await getUsernameDislayNamePictureFromInboxNames(username, 'receivedRequests');
 
     return res.json(requestList);
 });
@@ -55,31 +82,32 @@ router.route('/received_request_list').post(async (req, res) => {
 router.route('/blocked_list').post(async (req, res) => {
     const username = req.session.username;
 
-    const blockedList = await getPropertyOfFriendList(username, 'blocked');
+    const blockedList = await getUsernameDislayNamePictureFromInboxNames(username, 'blocked');
 
     return res.json(blockedList);
 });
 
 async function removeFriend(username, friendName) {
-    await Promise.all([
-        Friend_lists.updateOne(
-            {username: username}, {$pull: {friends: friendName}
-        }),
-
-        Friend_lists.updateOne(
-            {username: friendName}, {$pull: {friends: username}
-        })
+    await Friend_connection.bulkWrite([
+        {
+            deleteOne:{
+                filter: {username: username}
+            }
+        },
+        {
+            deleteOne:{
+                filter: {username: friendName}
+            }
+        }
     ]);
 
 }
 
-router.route('/remove_friend').post(async (req, res) => {
+router.route('/remove_friend').post(
+    verifyFriendExists,
+    async (req, res) => {
     const username = req.session.username;
     const friendName = req.body.friendName;
-
-    if (!(await isExistingUser(friendName))) {
-        return res.sendStatus(404);
-    }
 
     removeFriend(username, friendName);
 
@@ -87,7 +115,7 @@ router.route('/remove_friend').post(async (req, res) => {
 });
 
 async function getUserFriendDocument(username) {
-    return Friend_lists.findOne({username: username}).lean();
+    return User_inbox.findOne({username: username}).lean();
 }
 
 function isRequestSentAlready(userFriendDocument, friendName) {
@@ -100,9 +128,9 @@ function isBlocking(userFriendDocument, friendName) {
 
 async function unblock(blocker, blocked) {
     await Promise.all([
-        Friend_lists.updateOne(
+        User_inbox.updateOne(
         {username : blocker}, {$pull: {blocked: blocked}}).lean(),
-        Friend_lists.updateOne(
+        User_inbox.updateOne(
         {username : blocked}, {$pull: {blockedBy: blocker}}).lean()
     ]);
 }
@@ -112,52 +140,77 @@ function isBlockedBy(userFriendDocument, friendName) {
     return userFriendDocument["blockedBy"].includes(friendName);
 }
 
-function isFriend(userFriendDocument, friendName) {
-    return userFriendDocument["friends"].includes(friendName);
+async function isFriend(username, friendName) {
+    return (await Friend_connection.exists({username: username, friendName: friendName}).lean() !== null)
 }
 
 function isRequestReceived(userFriendDocument, friendName) {
     return userFriendDocument["receivedRequests"].includes(friendName);
 }
 
+
+async function createFriendConnection(username, friendName) {
+    await Friend_connection.bulkWrite([
+        {
+            insertOne:{
+                document: {
+                    username: username,
+                    friendName: friendName
+                }
+            }
+        },
+        {
+            insertOne:{
+                document: {
+                    username: friendName,
+                    friendName: username
+                }
+            }
+        },
+    ]);
+}
+
 async function acceptFriendRequest(username, friendName) {
-    await Promise.all([
-        Friend_lists.updateOne(
-            {username : username, receivedRequests : friendName},
-            {
-                $addToSet: { friends : friendName},
-                $pull: {receivedRequests : friendName}
-            }
-        ).lean(),
-        Friend_lists.updateOne(
-            {username : friendName, sentRequests : username},
-            {
-                $addToSet: { friends : username},
-                $pull: {sentRequests : username}
-            }
-        ).lean()
+    Promise.all([
+        removeReceivedRequest(username, friendName),
+        createFriendConnection(username, friendName)
     ]);
 }
 
 async function sendRequest(sender, receiver) {
     await Promise.all([
-        Friend_lists.updateOne(
+        User_inbox.updateOne(
             {username : sender},
             {$addToSet: {sentRequests : receiver}}
         ).lean(),
-        Friend_lists.updateOne(
+        User_inbox.updateOne(
             {username : receiver},
             {$addToSet: { receivedRequests : sender}}
         ).lean()
     ]);
 }
 
-router.route('/send_friend_request').post(async (req, res) => {
-    const username = req.session.username
-    const friendName = req.body.friendName
-    if (! (await isExistingUser(friendName))) {
+function verifyFriendNameNotUsername(req, res, next) {
+    if (req.session.username === req.body.friendName) {
         return res.sendStatus(404);
     }
+
+    next()
+}
+
+async function verifyFriendExists(req, res, next) {
+    if (! (await isExistingUser(req.body.friendName))) {
+        return res.sendStatus(404);
+    }
+    next()
+}
+
+router.route('/send_friend_request').post(
+    verifyFriendNameNotUsername,
+    verifyFriendExists,
+    async (req, res) => {
+    const username = req.session.username
+    const friendName = req.body.friendName
 
     userFriendDocument = await getUserFriendDocument(username);
 
@@ -173,12 +226,12 @@ router.route('/send_friend_request').post(async (req, res) => {
         return res.json("You are blocked");
     }
 
-    if (isFriend(userFriendDocument, friendName)) {
+    if (await isFriend(username, friendName)) {
         return res.json("You are already a friend")
     }
 
     if (isRequestReceived(userFriendDocument, friendName)) {
-        acceptFriendRequest(username, friendName);
+        await acceptFriendRequest(username, friendName);
         return res.sendStatus(200);
     }
 
@@ -187,13 +240,11 @@ router.route('/send_friend_request').post(async (req, res) => {
     return res.sendStatus(200);
 });
 
-router.route('/accept_received_request').post(async (req, res) => {
+router.route('/accept_received_request').post(
+    verifyFriendExists,
+    async (req, res) => {
     const username = req.session.username
     const friendName = req.body.friendName
-
-    if (!(await isExistingUser(friendName))) {
-        return res.sendStatus(404);
-    }
 
     acceptFriendRequest(username, friendName);
 
@@ -202,86 +253,107 @@ router.route('/accept_received_request').post(async (req, res) => {
 
 
 async function removeRequest(sender, receiver) {
-    await Friend_lists.updateOne(
-        {username : receiver}, {$pull: {receivedRequests : sender}}
-    );
-
-    await Friend_lists.updateOne(
-        {username : sender}, {$pull: {sentRequests : receiver}}
-    );
+    User_inbox.bulkWrite([
+        {
+            updateOne:{
+                filter: {username : receiver, receivedRequests : sender},
+                update: {
+                    $pull: {receivedRequests : sender}
+                }
+            }
+        },
+        {
+            updateOne:{
+                filter: {username : sender, sentRequests : receiver},
+                update: {
+                    $pull: {sentRequests : receiver}
+                }
+            }
+        },
+    ])
 }
 
-
-
-router.route('/remove_sent_request').post(async (req, res) => {
-    const username= req.session.username;
-    const receiver = req.body.receiver;
-
-    if (!(await isExistingUser(receiver))) {
-        return res.sendStatus(404);
-    }
-
+async function removeSentRequest(username, receiver) {
     removeRequest(username, receiver);
+}
 
-    return res.sendStatus(200);
-});
-
-router.route('/remove_received_request').post(async (req, res) => {
-    const username= req.session.username;
-    const sender = req.body.sender;
-
-    if (!(await isExistingUser(sender))) {
-        return res.sendStatus(404);
-    }
-
+async function removeReceivedRequest(username, sender) {
     removeRequest(sender, username);
+}
+
+router.route('/remove_sent_request').post(
+    verifyFriendExists,
+    async (req, res) => {
+    const username= req.session.username;
+    const friendName = req.body.friendName;
+
+    removeSentRequest(username, friendName);
 
     return res.sendStatus(200);
 });
 
-router.route('/unblock_user').post(async (req, res) => {
+router.route('/remove_received_request').post(
+    verifyFriendExists,
+    async (req, res) => {
     const username= req.session.username;
-    const target = req.body.target;
+    const friendName = req.body.friendName;
 
-    if (!(await isExistingUser(target))) {
-        return res.sendStatus(404);
-    }
+    removeReceivedRequest(username, friendName);
 
-    unblock(username, target);
+    return res.sendStatus(200);
+});
+
+router.route('/unblock_user').post(
+    verifyFriendExists,
+    async (req, res) => {
+    const username= req.session.username;
+    const friendName = req.body.friendName;
+
+    unblock(username, friendName);
 
     return res.sendStatus(200);
 });
 
 async function blockUser(username, target) {
-    await Promise.all([
-        Friend_lists.updateOne(
-            {username : username},
-            {$pull:
-                {receivedRequests : target,
-                    sentRequests : target,
-                friends : target},
-                $addToSet: {blocked: target}}
-        ).lean(),
-        Friend_lists.updateOne(
-            {username : target},
-            {$pull:
-                {sentRequests : username,
-                receivedRequests : username,
-            friends: username},
-            $addToSet: {blockedBy: username}}
-        ).lean()
+    Promise.all([
+        User_inbox.bulkWrite([
+            {
+                updateOne:{
+                    filter: {username : username},
+                    update: {
+                        $pull:
+                            {receivedRequests : target,
+                                sentRequests : target},
+                            $addToSet: {blocked: target}
+                    }
+                }
+            },
+            {
+                updateOne:{
+                    filter: {username : target},
+                    update: {
+                        $pull:
+                            {sentRequests : username,
+                            receivedRequests : username},
+                            $addToSet: {blockedBy: username}
+                    }
+                }
+            },
+        ]),
+
+        await removeFriend(username, target)
     ]);
 }
 
-router.route('/block_user').post(async (req, res) => {
+router.route('/block_user').post(
+    verifyFriendNameNotUsername,
+    verifyFriendExists,
+    async (req, res) => {
     const username = req.session.username;
-    const target = req.body.target;
+    const friendName = req.body.friendName;
 
-    if (!(await isExistingUser(target))) {
-        return res.sendStatus(404);
-    }
 
-    blockUser(username, target);
+    blockUser(username, friendName);
 
 
 

@@ -1,34 +1,8 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
-var ObjectId = require('mongoose').Types.ObjectId;
-
-const globalChallengeProgressSchema = new Schema(
-  {
-    globalChallengeID: {
-        type: ObjectId,
-        required: true
-    },
-    username: {
-        type: String,
-        required: true
-    },
-    progress: {
-        type: Number,
-        required: true,
-        index: true,
-        default: 0,
-    },
-  },
-  {
-    collection: "global_challenge_progress"
-  }
-);
-
-globalChallengeProgressSchema.index({
-  username: 1, globalChallengeID : 1
-}, {unique: true});
+const challengeProgress = require("../models/challenge_progress.schema");
 
 const Global_challenge_progress = mongoose.model(
-    "Global_challenge_progress", globalChallengeProgressSchema);
+    "Global_challenge_progress", challengeProgress, 'global_challenge_progress');
 
 module.exports = Global_challenge_progress;

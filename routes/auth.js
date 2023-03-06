@@ -1,6 +1,6 @@
 const router = require("express").Router();
 let User = require("../models/user.model");
-let Friend_lists = require("../models/friend_list.model");
+let User_inbox = require("../models/user_inbox.model");
 const {OAuth2Client} = require('google-auth-library');
 const CLIENT_ID = process.env.CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
@@ -26,12 +26,12 @@ router.route('/get_profile_photo').post(
   return res.status(200).json(photoDoc.picture);
 });
 
-async function createFriendList(username) {
-  const blankFriendList = {
+async function createUserInbox(username) {
+  const blankUserInbox = {
     username: username,
   }
-  const newFriendList = new Friend_lists(blankFriendList)
-  await newFriendList.save()
+  const newUserInbox = new User_inbox(blankUserInbox)
+  await newUserInbox.save()
 }
 
 function getRandomIntInclusive(min, max) {
@@ -100,7 +100,7 @@ router.route('/sign_up').post(async (req, res,) => {
 
   // Init necessary models
   try {
-    await createFriendList(completeUsername);
+    await createUserInbox(completeUsername);
   } catch {
     return res.sendStatus(500);
   }
