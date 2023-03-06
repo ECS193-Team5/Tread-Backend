@@ -35,9 +35,18 @@ const challengeProgress = new Schema(
     completed: {
       type: Boolean,
       required: true,
+      default: false,
       validate: {
-        validator: function(status) {
-            return (status && this.progress > this.exercise.convertedAmount4);
+        validator: function(completed) {
+          if (this.progress < this.exercise.convertedAmount && !completed) {
+            return true
+          }
+
+          if (this.progress > this.exercise.convertedAmount && completed) {
+            return true
+          }
+
+          return false;
         },
         message: () => 'Wrong Status'
     }

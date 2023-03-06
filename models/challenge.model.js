@@ -24,19 +24,6 @@ const challengeSchema = new Schema(
         }
 
     },
-    progress: {
-        type: Map,
-        of: Number,
-        required: true,
-        default: function() {
-            let progressMap = new Map();
-            this.participants.forEach(person => {
-                progressMap.set(person, 0);
-            });
-            return progressMap;
-        }
-
-    },
     sentUser: {
         type: String,
         required: true
@@ -64,7 +51,7 @@ const challengeSchema = new Schema(
             validator: function(dueDate) {
                 return (dueDate > this.issueDate);
             },
-            message: () => 'dueDate must be before issueDate'
+            message: () => 'dueDate must be after issueDate'
         }
     },
     exercise: {

@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const League = require("../models/league.model");
 const Challenge = require("../models/challenge.model");
+const Challenge_progress = require("../models/challenge_progress.model");
 var ObjectId = require('mongoose').Types.ObjectId;
 const {isExistingUser, route} = require("./user.js");
 
@@ -14,7 +15,8 @@ router.route("/create_league").post(async (req, res) => {
         owner: req.session.username,
         leagueName: req.body.leagueName,
         leagueType: req.body.leagueType,
-        leagueDescription: req.body.leagueDescription
+        leagueDescription: req.body.leagueDescription,
+        leaguePicture: req.body.league.Picture
     }
 
     try {
@@ -305,7 +307,7 @@ router.route("/unban_user").post(
     next();
 }, updateLeague);
 
-async function findFromLeague(filter) {
+async function findLeaguesWhere(filter) {
     return League.find(filter).lean();
 }
 
@@ -366,25 +368,54 @@ router.route("/get_owned_leagues").post(
 
 router.route("/get_admin_leagues").post(
     async (req, res, next) => {
-        const leagues = await findFromLeague(
+        const leagues = await findLeaguesWhere(
             {admin: req.session.username},
-            '_id leagueName');
+            '_id leagueName'
+        );
 
         return res.status(200).json(leagues);
 });
 
 router.route("/get_admin_league_info").post(
     async (req, res, next) => {
-        const leagues = await findFromLeague({admin: req.session.username});
+        const leagues = await findLeaguesWhere({admin: req.session.username});
 
         return res.status(200).json(leagues);
 });
 
 router.route("/get_owned_leagues").post(
     async (req, res, next) => {
-        const leagues = await findFromLeague({owner: req.session.username});
+        const leagues = await findLeaguesWhere({owner: req.session.username});
 
         return res.status(200).json(leagues);
+});
+
+async function getPropertyOfLeague(leagueID, property) {
+    return User_inbox.findOne({_id: leagueID }, property).lean();
+}
+
+router.route("/get_league_name").post(
+    async (req, res, next) => {
+        const leagueID = req.body.leagueID;
+        const leagueName = await getPropertyOfLeague(leagueID, "leagueName");
+
+        return res.status(200).json(leagueName);
+});
+
+router.route("/get_league_description").post(
+    async (req, res, next) => {
+        const leagueID = req.body.leagueID;
+        const leagueDescription = await getPropertyOfLeague(leagueID, "leagueDescription");
+
+        return res.status(200).json(leagueDescription);
+});
+
+router.route("/get_league_picture").post(
+    async (req, res, next) => {
+        const leagueID = req.body.leagueID;
+        const leaguePicture = await getPropertyOfLeague(leagueID, "leaguePicture");
+
+        return res.status(200).json(leaguePicture);
 });
 
 /// Test this
@@ -399,10 +430,19 @@ router.route("/delete_league").post(
         });
 
         if (deletedInfo.deletedCount == 1) {
-            await Challenge.deleteMany({
+            const activeChallenges = await Challenge.find({
                 receivedUser : leagueID,
                 dueDate : {$gte: Date.now()}
-            });
+            }).distinct("_id");
+            await Promise.all([
+                Challenge.deleteMany({
+                    receivedUser : leagueID,
+                    dueDate : {$gte: Date.now()}
+                }).lean(),
+                Challenge_progress.deleteMany({
+                    challengeID: {$in: activeChallenges}
+                }).lean()
+            ]);
         } else {
             return res.sendStatus(400);
         }
