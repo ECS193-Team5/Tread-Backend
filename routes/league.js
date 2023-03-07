@@ -16,7 +16,7 @@ router.route("/create_league").post(async (req, res) => {
         leagueName: req.body.leagueName,
         leagueType: req.body.leagueType,
         leagueDescription: req.body.leagueDescription,
-        leaguePicture: req.body.league.Picture
+        leaguePicture: req.body.leaguePicture
     }
 
     try {
