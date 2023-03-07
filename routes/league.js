@@ -417,6 +417,10 @@ router.route("/get_league_picture").post(
         return res.status(200).json(leaguePicture);
 });
 
+router.route("/getNumberChallenge").post(async (req, res, next) => {
+
+});
+
 /// Test this
 router.route("/delete_league").post(
     checkLeagueID,

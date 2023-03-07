@@ -27,6 +27,15 @@ router.route('/add_challenge').post(async (req, res) => {
 });
 
 
+function getListOfIDsFromChallenges(challenges) {
+    let challengeIDs = [];
+    challenges.forEach((challenge) => {
+        challengeIDs.push(challenge._id);
+    })
+
+    return challengeIDs;
+}
+
 // incomplete
 async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
     const currentGlobalChallenges = await Global_challenge.find({
@@ -36,22 +45,27 @@ async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
         dueDate: {
             $gte: Date.now(),
         }
-    }).distinct('_id');
+    });
+
+    const globalChallengeIDs = getListOfIDsFromChallenges(currentGlobalChallenges)
 
     const userGlobalChallengeProgress = await Global_challenge_progress.find({
-        globalChallengeID: {$in : currentGlobalChallenges},
+        globalChallengeID: {$in : globalChallengeIDs},
         username: req.session.username,
-    }).distinct('globalChallengeID');
+    }).distinct("challengeID");
 
     let newlyInsertedChallenges = [];
     if (currentGlobalChallenges.length != userGlobalChallengeProgress.length) {
-        let missingChallenges = currentGlobalChallenges.filter(
-            (objectID1) => !userGlobalChallengeProgress.some((objectID2) => objectID1.equals(objectID2)));
+        const missingChallenges = currentGlobalChallenges.filter(
+            (objectID1) => !userGlobalChallengeProgress.some((objectID2) => objectID1["_id"].equals(objectID2)));
 
         missingChallenges.forEach((missingChallenge) => {
             newGlobalChallenge = {
-                globalChallengeID: missingChallenge,
-                username: req.session.username
+                challengeID: missingChallenge._id,
+                username: req.session.username,
+                exercise: missingChallenge.exercise,
+                dueDate: missingChallenge.dueDate,
+                issuedate: missingChallenge.issueDate
             }
 
             newlyInsertedChallenges.push(newGlobalChallenge);
@@ -60,13 +74,12 @@ async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
     }
 
     const allCurrentUserGlobalChallenge = await Global_challenge_progress.find({
-        globalChallengeID: {$in : currentGlobalChallenges},
+        globalChallengeID: {$in : globalChallengeIDs},
         username: req.session.username,
-    },'_id globalChallengeID progress')
+    }).lean();
 
-    console.log(allCurrentUserGlobalChallenge, currentGlobalChallenges)
 
-    return res.status(200).json()
+    return res.status(200).json(allCurrentUserGlobalChallenge)
 }
 
 
