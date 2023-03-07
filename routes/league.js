@@ -445,6 +445,18 @@ router.route("/delete_league").post(
 
 });
 
+async function getLeagueActiveChallengeCount(req, res, next) {
+    const username = req.session.username;
+    const leagueID = req.body.leagueID;
+
+    const challengeCount = await getChallengeCount({
+        receivedUser: leagueID,
+        participants: username
+    });
+    return res.status(200).json(challengeCount)
+}
+
+router.route('/get_league_active_challenges').post(getLeagueActiveChallengeCount)
 
 
 
