@@ -390,7 +390,7 @@ router.route("/get_owned_leagues").post(
 });
 
 async function getPropertyOfLeague(leagueID, property) {
-    return User_inbox.findOne({_id: leagueID }, property).lean();
+    return League.findOne({_id: leagueID }, property).lean();
 }
 
 router.route("/get_league_name").post(
