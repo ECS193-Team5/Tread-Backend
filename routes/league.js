@@ -318,7 +318,7 @@ async function getAllLeaguesWithChallengeCount(req, res, next) {
     const filter = res.locals.filter;
 
     // Not sure if order is guaranteed
-    const leaguesInfo = await League.find(filter, "_id leagueName members").lean();
+    const leaguesInfo = await League.find(filter, "_id leagueName leaguePicture members").lean();
 
     let challengeCount = [];
     leaguesInfo.forEach((league) => {
