@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 function isValidUsername(username) {
-  if (username.length == 0 || username.length > 32) {
+  if (username.length === 0 || username.length > 32) {
     return false;
   }
 
@@ -14,7 +14,7 @@ function isValidUsername(username) {
 }
 
 function isValidDisplayName(displayName) {
-  if (displayName.length == 0 || displayName.lenght > 32) {
+  if (displayName.length === 0 || displayName.length > 32) {
     return false;
   }
 
