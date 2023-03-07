@@ -12,7 +12,7 @@ const UNIT_CONVERSIONS = {
     "mile" : 1609.34,
     "m" : 1,
     "km" : 1000,
-    "s" : 1/60,
+    "sec" : 1/60,
     "min" : 1,
     "hr" : 60,
 
