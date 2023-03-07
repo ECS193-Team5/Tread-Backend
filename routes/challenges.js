@@ -3,6 +3,7 @@ var ObjectId = require('mongoose').Types.ObjectId;
 const Challenge = require("../models/challenge.model");
 const Challenge_progress = require("../models/challenge_progress.model");
 const League = require("../models/league.model");
+const User = require("../models/user.model");
 const {isExistingUser} = require("./user.js");
 
 
@@ -148,44 +149,124 @@ router.route('/delete_friend_challenge').post(async (req, res) => {
 });
 
 
+async function getPicturesOfPeople(people) {
+    return User.find({
+        username: {$in: people}
+    }, {_id: 0, picture: 1}).lean();
+}
+
+async function getProgressOfChallenge(challenge, username) {
+    return Challenge_progress.findOne({
+        challengeID: challenge._id,
+        username: username
+    }).lean();
+}
+
+
+async function getPicturesForListOfChallenges(challenges) {
+    let profilePicturesForEachChallenge = [];
+    challenges.forEach((challenge) => {
+        profilePicturesForEachChallenge.push(getPicturesOfPeople(challenge.participants));
+    });
+
+    return  Promise.all(profilePicturesForEachChallenge);
+}
+
+async function getProgressForListOfChallenges(challenges, username) {
+    let progressOfChallenges = [];
+    challenges.forEach((challenge) => {
+        progressOfChallenges.push(getProgressOfChallenge(challenge, username));
+    });
+
+    return Promise.all(progressOfChallenges);
+}
+
+async function getChallengesZippedWithPictures(challenges) {
+    const pictures = await getPicturesForListOfChallenges(challenges);
+    const zippedChallenges = challenges.map((challenge, index) => ({
+        ...challenge,
+        pictures: pictures[index],
+    }));
+
+    return zippedChallenges;
+}
+
+async function getCompleteChallengeToProgressInfo(challenges, username) {
+    const [progress, pictures] = await Promise.all([
+        getProgressForListOfChallenges(challenges, username),
+        getPicturesForListOfChallenges(challenges)
+    ]);
+
+    const zippedCompleteChallengeInfo = challenges.map((challenge, index) => ({
+        ...challenge,
+        pictures: pictures[index],
+        progress: progress[index]
+    }));
+
+    return zippedCompleteChallengeInfo;
+}
+
+
+
 router.route('/accepted_challenges').post(async (req, res) => {
     const username = req.session.username;
 
-    challenges = await Challenge.find({
+    const challenges = await Challenge.find({
         participants: username,
         status: 'accepted'
         }).lean();
 
-    return res.status(200).send(challenges);
+    const completeInformation = await getCompleteChallengeToProgressInfo(challenges, username);
+    return res.status(200).send(completeInformation);
 });
 
 router.route('/sent_challenges').post(async (req, res) => {
     const username = req.session.username;
 
-    challenges = await Challenge.find({
+    const challenges = await Challenge.find({
         sentUser: username,
         status: 'pending',
         dueDate: {
             $gte: Date.now()
         },
-        }).lean();
+    }).lean();
 
-    return res.status(200).send(challenges);
+    const completeInformation = await getChallengesZippedWithPictures(challenges);
+    return res.status(200).send(completeInformation);
+});
+
+router.route('/league_challenges').post(async (req, res) => {
+    const username = req.session.username;
+    const leagueID = req.body.leagueID;
+
+    const challenges = await Challenge.find({
+        receivedUser: leagueID,
+        participants: username,
+        challengeType: "league",
+        status: 'accepted',
+        dueDate: {
+            $gte: Date.now()
+        },
+    }).lean();
+
+    const completeInformation = await getCompleteChallengeToProgressInfo(challenges, username);
+    return res.status(200).send(completeInformation);
 });
 
 router.route('/received_challenges').post(async (req, res) => {
     const username = req.session.username;
 
-    challenges = await Challenge.find({
+    const challenges = await Challenge.find({
         participants: username,
         status: 'pending',
         sentUser: {$ne: username},
         dueDate: {
             $gte: Date.now()
         },
-        }).lean();
+    }).lean();
 
-    return res.status(200).send(challenges);
+    const completeInformation = await getChallengesZippedWithPictures(challenges);
+    return res.status(200).send(completeInformation);
 });
 
 
@@ -227,5 +308,19 @@ router.route('/decline_friend_challenge').post(async (req, res) => {
 
     return res.sendStatus(200);
 });
+
+router.route('/get_challenge_leaderboard').post(async (req, res) => {
+    const username = req.session.username;
+    const challengeID = req.body.challengeID;
+
+    const participantProgress = await Challenge_progress.find(
+        
+    )
+
+
+    const completeInformation = await getCompleteChallengeToProgressInfo(challenges, username);
+    return res.status(200).send(completeInformation);
+});
+
 
 module.exports = router;

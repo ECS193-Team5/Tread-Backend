@@ -103,7 +103,7 @@ router.post("/kick_member", checkLeagueID,
     }
 
     res.locals.updates = {
-        $pull: { members : recipient},
+        $pull: { members : recipient, admin: recipient},
     }
     next();
 }, updateLeague);
@@ -120,8 +120,7 @@ router.post("/leave_league", checkLeagueID,
     }
 
     res.locals.updates = {
-        $pull: { members : username},
-        $pull: { admin : username},
+        $pull: { members : username, admin : username},
     }
     next();
 }, updateLeague);
