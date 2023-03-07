@@ -35,13 +35,14 @@ router.route('/update_profile_info').post(async (req, res) => {
   const picture = req.body.picture;
   const displayName = req.body.displayName;
   const username = req.session.username;
+
+  let update = {};
+  if (displayName) update.displayName = displayName;
+  if (picture) update.picture = picture;
   try {
     await User.findOneAndUpdate(
       {username: username},
-      {
-        picture: picture,
-        displayName: displayName
-      }, {runValidators: true});
+      update, {runValidators: true});
   } catch {
     return res.status(400).json("displayName not valid");
   }

@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 function isValidUsername(username) {
-  if (username.length == 0 || username.length > 32) {
+  if (username.length === 0 || username.length > 32) {
     return false;
   }
 
@@ -14,7 +14,7 @@ function isValidUsername(username) {
 }
 
 function isValidDisplayName(displayName) {
-  if (displayName.length == 0 || displayName.lenght > 32) {
+  if (displayName.length === 0 || displayName.length > 32) {
     return false;
   }
 
@@ -48,13 +48,15 @@ const userSchema = new Schema(
         partialFilterExpression: {username: {$type: "string"}},
       },
     },
+
+    // might fail if google name too long
     displayName: {
       type: String,
       default: "",
       required: true,
       validate: {
         validator: isValidDisplayName,
-        message: () => 'Size must be greater than zero.'
+        message: () => 'must be valid display name'
       }
     },
     picture: {
