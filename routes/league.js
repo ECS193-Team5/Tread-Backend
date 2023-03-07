@@ -359,6 +359,12 @@ router.route("/get_requested_leagues").post(
         next()
 }, getAllLeaguesWithChallengeCount);
 
+router.route("/get_invited_leagues").post(
+    async (req, res, next) => {
+        res.locals.filter = {sentRequests: req.session.username}
+        next()
+}, getAllLeaguesWithChallengeCount);
+
 router.route("/get_owned_leagues").post(
     async (req, res, next) => {
         res.locals.filter = {owner: req.session.username}
@@ -371,20 +377,6 @@ router.route("/get_admin_leagues").post(
             {admin: req.session.username},
             '_id leagueName'
         );
-
-        return res.status(200).json(leagues);
-});
-
-router.route("/get_admin_league_info").post(
-    async (req, res, next) => {
-        const leagues = await findLeaguesWhere({admin: req.session.username});
-
-        return res.status(200).json(leagues);
-});
-
-router.route("/get_owned_leagues").post(
-    async (req, res, next) => {
-        const leagues = await findLeaguesWhere({owner: req.session.username});
 
         return res.status(200).json(leagues);
 });
