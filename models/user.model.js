@@ -48,13 +48,15 @@ const userSchema = new Schema(
         partialFilterExpression: {username: {$type: "string"}},
       },
     },
+
+    // might fail if google name too long
     displayName: {
       type: String,
       default: "",
       required: true,
       validate: {
         validator: isValidDisplayName,
-        message: () => 'Size must be greater than zero.'
+        message: () => 'must be valid display name'
       }
     },
     picture: {

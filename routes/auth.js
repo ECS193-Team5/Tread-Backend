@@ -84,15 +84,14 @@ router.route('/sign_up').post(async (req, res,) => {
     authenticationID : req.session.authenticationID
   }
 
-  let profileInfo = {
-    picture: picture,
-    displayName: displayName
-  }
+  let profileInfo = {};
+  if (picture) profileInfo.picture = picture;
+  if (displayName) profileInfo.displayName = displayName
 
   let completeUsername = null;
   try {
     completeUsername = await setUsernameAndUpdateProfile(userIdentifiers, profileInfo, chosenUsername)
-  } catch {
+  } catch (e){
     return res.status(500).json("Username not available");
   }
 
