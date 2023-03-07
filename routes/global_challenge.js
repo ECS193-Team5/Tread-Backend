@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const Global_challenge_progress = require("../models/global_challenge_progress.model");
 const Global_challenge = require("../models/global_challenge.model");
+const { getProgressWithPicturesAndDisplayName } = require("../routes/challenges.js");
 const User = require("../models/user.model");
 
 
@@ -87,10 +88,28 @@ router.route('/get_challenges').post(getGlobalChallengesAndInsertIfDoesntExist);
 
 
 async function getLeaderboard(req, res, next) {
+    const username = req.body.username;
     const globalChallengeID = req.body.challengeID;
-    const topFiveUsers = await Global_challenge_progress.find()
+    const [topFiveUsers, userRank] = await Promise.all([
+        Global_challenge_progress.find({
+            challengeID: globalChallengeID
+        },{
+            username: 1, displayName: 1, progress:1
+        }).sort({progress: -1}).limit(5).lean(),
+
+        Global_challenge_progress.findOne({
+            challengeID: globalChallengeID,
+            username: username
+        },{
+            username: 1, displayName: 1, progress:1
+        }).lean()
+    ]);
+
+    return res.status(200).json(await getProgressWithPicturesAndDisplayName(topFiveUsers))
+
 }
 
+router.route('/get_leaderboard').post(getLeaderboard);
 
 
 

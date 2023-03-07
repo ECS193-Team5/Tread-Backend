@@ -314,7 +314,7 @@ async function getPicturesForListOfProgress(participantProgress){
     let profilePicturesForEachProgress = [];
     participantProgress.forEach((progressObj) => {
         profilePicturesForEachProgress.push(
-            getPropertyOfUser(progressObj.username, {displayName: 1, username: 1}));
+            getPropertyOfUser(progressObj.username, {displayName: 1, picture: 1}));
     });
 
     return Promise.all(profilePicturesForEachProgress);
@@ -346,3 +346,4 @@ router.route('/get_challenge_leaderboard').post(async (req, res) => {
 
 
 module.exports = router;
+module.exports.getProgressWithPicturesAndDisplayName = getProgressWithPicturesAndDisplayName;
