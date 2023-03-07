@@ -313,9 +313,10 @@ router.route('/get_challenge_leaderboard').post(async (req, res) => {
     const username = req.session.username;
     const challengeID = req.body.challengeID;
 
-    const participantProgress = await Challenge_progress.find(
-        
-    )
+    const participantProgress = await Challenge_progress.find({
+        challengeID: challengeID,
+
+    })
 
 
     const completeInformation = await getCompleteChallengeToProgressInfo(challenges, username);
