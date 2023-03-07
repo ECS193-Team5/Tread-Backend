@@ -2,8 +2,10 @@ const router = require("express").Router();
 const League = require("../models/league.model");
 const Challenge = require("../models/challenge.model");
 const Challenge_progress = require("../models/challenge_progress.model");
+const User = require("../models/user.model");
 var ObjectId = require('mongoose').Types.ObjectId;
-const {isExistingUser, route} = require("./user.js");
+const {isExistingUserr} = require("./user.js");
+const { find } = require("../models/user.model");
 
 async function createLeague(leagueInfo) {
     const newUser = new League(leagueInfo);
@@ -409,10 +411,6 @@ router.route("/get_league_picture").post(
         return res.status(200).json(leaguePicture);
 });
 
-router.route("/getNumberChallenge").post(async (req, res, next) => {
-
-});
-
 /// Test this
 router.route("/delete_league").post(
     checkLeagueID,
@@ -458,8 +456,21 @@ async function getLeagueActiveChallengeCount(req, res, next) {
 
 router.route('/get_league_active_challenges').post(getLeagueActiveChallengeCount);
 
+// League object must have members, admin, and owner.
+function getRole(username, league) {
+    if (league.owner === username) {
+        return "owner";
+    }
+    if (league["admin"].includes(username)) {
+        return "admin";
+    }
+    if (league["members"].includes(username)) {
+        return "participant";
+    }
+}
 
-async function getRole(req, res, next) {
+
+async function getMyRole(req, res, next) {
     const username = req.session.username;
     const leagueID = req.body.leagueID;
 
@@ -471,19 +482,37 @@ async function getRole(req, res, next) {
     if (leagueInfo === null) {
         return res.sendStatus(404);
     }
-    if (leagueInfo.owner == username) {
-        return res.status(200).json("owner");
-    }
-    if (leagueInfo["admin"].includes(username)) {
-        return res.status(200).json("admin");
-    }
-    if (leagueInfo["members"].includes(username)) {
-        return res.status(200).json("participant");
-    }
+    return res.status(200).json(getRole(username, leagueInfo))
 }
 
-router.route('/get_role').post(getRole);
+router.route('/get_role').post(getMyRole);
+
+async function getMemberList(req, res, next) {
+    const username = req.session.username;
+    const leagueID = req.body.leagueID;
+
+    const league = await League.findOne({
+        _id: leagueID,
+        members: username
+    }, {members: 1, _id: 0, admin: 1, owner: 1}).lean();
 
 
+    if (league === null) {
+        return res.sendStatus(404);
+    }
+    const leagueMembers = league.members;
+    const memberInfo = await User.find({
+        username: {$in: leagueMembers}
+    }, {picture: 1, displayName: 1, username: 1, _id: 0}).lean();
+
+
+    const membersWithRole = memberInfo.map((member) =>({
+        ...member, role: getRole(member.username, league)
+    }));
+
+    return res.status(200).json(membersWithRole)
+}
+
+router.route('/get_member_list').post(getMemberList);
 
 module.exports = router;

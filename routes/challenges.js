@@ -309,7 +309,7 @@ router.route('/decline_friend_challenge').post(async (req, res) => {
 });
 
 async function getPicturesForListOfProgress(participantProgress){
-
+    // Might have a better way to query this
     let profilePicturesForEachProgress = [];
     participantProgress.forEach((progressObj) => {
         profilePicturesForEachProgress.push(
