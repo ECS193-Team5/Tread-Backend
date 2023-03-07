@@ -16,7 +16,7 @@ router.route("/create_league").post(async (req, res) => {
         leagueName: req.body.leagueName,
         leagueType: req.body.leagueType,
         leagueDescription: req.body.leagueDescription,
-        leaguePicture: req.body.league.Picture
+        leaguePicture: req.body.leaguePicture
     }
 
     try {
@@ -103,7 +103,7 @@ router.post("/kick_member", checkLeagueID,
     }
 
     res.locals.updates = {
-        $pull: { members : recipient},
+        $pull: { members : recipient, admin: recipient},
     }
     next();
 }, updateLeague);
@@ -120,8 +120,7 @@ router.post("/leave_league", checkLeagueID,
     }
 
     res.locals.updates = {
-        $pull: { members : username},
-        $pull: { admin : username},
+        $pull: { members : username, admin : username},
     }
     next();
 }, updateLeague);

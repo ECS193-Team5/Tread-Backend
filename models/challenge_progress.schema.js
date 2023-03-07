@@ -49,7 +49,7 @@ const challengeProgress = new Schema(
           return false;
         },
         message: () => 'Wrong Status'
-    }
+      }
     }
   }
 );

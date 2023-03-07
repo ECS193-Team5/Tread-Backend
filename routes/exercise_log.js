@@ -3,6 +3,7 @@ const Exercise_log = require("../models/exercise_log.model");
 const Challenge = require("../models/challenge.model");
 const Global_challenge = require("../models/global_challenge.model");
 const Global_challenge_progress = require("../models/global_challenge_progress.model");
+const Challenge_progress = require("../models/challenge_progress.model");
 
 async function addExerciseToLog(req, res, next) {
     const exercise = {
@@ -31,23 +32,20 @@ async function addExerciseToLog(req, res, next) {
 async function updateChallenges(req, res, next) {
     const loggedDate = req.body.loggedDate;
     const username = req.session.username
-    const fieldToIncrement = 'progress.' + username;
-    const incrementObj = {
-        [fieldToIncrement] : res.locals.exerciseLog.exercise.convertedAmount
-    }
-    await Challenge.updateMany({
+    const progress =  res.locals.exerciseLog.exercise.convertedAmount;
+
+    await Challenge_progress.updateMany({
+        username: username,
         'exercise.exerciseName': req.body.exerciseName,
         'exercise.unitType' : res.locals.exerciseLog.exercise.unitType,
-        status: "accepted",
         issuedDate: {
             $lte: Math.min(Date.now(), loggedDate)
         },
         dueDate: {
             $gte: Math.max(Date.now(), loggedDate)
         },
-        participants: username,
     },
-    {$inc: incrementObj});
+    {$inc: {progress: progress}});
 
     next();
 }
@@ -66,7 +64,7 @@ async function updateGlobalChallenges(req, res, next) {
         },
         dueDate: {
             $gte: Math.max(Date.now(), loggedDate)
-        },
+        }
     }, '_id').lean();
 
     if (needUpdatingGlobalChallenge == null) {
@@ -74,15 +72,40 @@ async function updateGlobalChallenges(req, res, next) {
     }
 
     await Global_challenge_progress.updateOne({
-        globalChallengeID: needUpdatingGlobalChallenge._id,
+        challengeID: needUpdatingGlobalChallenge._id,
         username: req.session.username,
     },
     {$inc: incrementObj}, {upsert: true});
 
+    next();
+}
+
+async function checkForChallengeCompletion(req, res, next) {
+    const loggedDate = req.body.loggedDate;
+    const username = req.session.username
+    const challengeCompletionQuery = {
+        username: username,
+        'exercise.exerciseName': req.body.exerciseName,
+        'exercise.unitType' : res.locals.exerciseLog.exercise.unitType,
+        completed: false,
+        issuedDate: {
+            $lte: Math.min(Date.now(), loggedDate)
+        },
+        dueDate: {
+            $gte: Math.max(Date.now(), loggedDate)
+        },
+        $expr: {$gt: [ "$progress" , "$exercise.convertedAmount" ]}
+    }
+    // This is very slow
+    await Challenge_progress.updateMany(challengeCompletionQuery, {completed: true});
+    await Global_challenge_progress.updateMany(challengeCompletionQuery, {completed: true});
     return res.sendStatus(200);
 }
 
-router.route('/add').post(addExerciseToLog, updateChallenges, updateGlobalChallenges);
+router.route('/add').post(addExerciseToLog,
+    updateChallenges,
+    updateGlobalChallenges,
+    checkForChallengeCompletion);
 
 
 
