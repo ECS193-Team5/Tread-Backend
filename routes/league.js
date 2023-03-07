@@ -456,8 +456,33 @@ async function getLeagueActiveChallengeCount(req, res, next) {
     return res.status(200).json(challengeCount)
 }
 
-router.route('/get_league_active_challenges').post(getLeagueActiveChallengeCount)
+router.route('/get_league_active_challenges').post(getLeagueActiveChallengeCount);
 
+
+async function getRole(req, res, next) {
+    const username = req.session.username;
+    const leagueID = req.body.leagueID;
+
+    const leagueInfo = await League.findOne({
+        _id: leagueID,
+        members: username
+    }).lean();
+
+    if (leagueInfo === null) {
+        return res.sendStatus(404);
+    }
+    if (leagueInfo.owner == username) {
+        return res.status(200).json("owner");
+    }
+    if (leagueInfo["admin"].includes(username)) {
+        return res.status(200).json("admin");
+    }
+    if (leagueInfo["members"].includes(username)) {
+        return res.status(200).json("participant");
+    }
+}
+
+router.route('/get_role').post(getRole);
 
 
 
