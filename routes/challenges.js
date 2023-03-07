@@ -4,7 +4,7 @@ const Challenge = require("../models/challenge.model");
 const Challenge_progress = require("../models/challenge_progress.model");
 const League = require("../models/league.model");
 const User = require("../models/user.model");
-const {isExistingUser} = require("./user.js");
+const {isExistingUser, getPropertyOfUser} = require("./user.js");
 
 
 function addInfoSharedAcrossRequests(req, res, next) {
@@ -309,19 +309,41 @@ router.route('/decline_friend_challenge').post(async (req, res) => {
     return res.sendStatus(200);
 });
 
+async function getPicturesForListOfProgress(participantProgress){
+
+    let profilePicturesForEachProgress = [];
+    participantProgress.forEach((progressObj) => {
+        profilePicturesForEachProgress.push(
+            getPropertyOfUser(progressObj.username, {displayName: 1, picture: 1}));
+    });
+
+    return Promise.all(profilePicturesForEachProgress);
+
+}
+
+async function getProgressWithPicturesAndDisplayName(participantProgress) {
+    const profileInfoForParticipant = await getPicturesForListOfProgress(participantProgress);
+    const zippedProgress = participantProgress.map((progress, index) => ({
+        ...progress,
+        pictures: profileInfoForParticipant[index].picture,
+        displayName: profileInfoForParticipant[index].displayName,
+    }));
+
+    return zippedProgress
+}
+
 router.route('/get_challenge_leaderboard').post(async (req, res) => {
     const username = req.session.username;
     const challengeID = req.body.challengeID;
 
     const participantProgress = await Challenge_progress.find({
         challengeID: challengeID,
+    }, {username: 1, progress: 1}).sort({progress: -1}).lean();
 
-    })
-
-
-    const completeInformation = await getCompleteChallengeToProgressInfo(challenges, username);
+    const completeInformation = await getProgressWithPicturesAndDisplayName(participantProgress);
     return res.status(200).send(completeInformation);
 });
 
 
 module.exports = router;
+module.exports.getProgressWithPicturesAndDisplayName = getProgressWithPicturesAndDisplayName;

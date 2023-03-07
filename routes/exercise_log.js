@@ -65,7 +65,7 @@ async function updateGlobalChallenges(req, res, next) {
         dueDate: {
             $gte: Math.max(Date.now(), loggedDate)
         }
-    }, '_id').lean();
+    }).lean();
 
     if (needUpdatingGlobalChallenge == null) {
         return res.sendStatus(200);
@@ -74,6 +74,9 @@ async function updateGlobalChallenges(req, res, next) {
     await Global_challenge_progress.updateOne({
         challengeID: needUpdatingGlobalChallenge._id,
         username: req.session.username,
+        exercise: needUpdatingGlobalChallenge.exercise,
+        dueDate: needUpdatingGlobalChallenge.dueDate,
+        issueDate: needUpdatingGlobalChallenge.issueDate
     },
     {$inc: incrementObj}, {upsert: true});
 

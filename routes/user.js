@@ -16,7 +16,7 @@ router.route('/check_username_exist').post(async (req, res) => {
 
 
 async function getPropertyOfUser(username, property) {
-  return User.findOne({username: username }, property);
+  return User.findOne({username: username }, property).lean();
 }
 // not tested functions
 router.route('/get_display_name').post(async (req, res) => {
@@ -111,3 +111,4 @@ router.delete('/delete_account', async (req, res, next) => {
 
 module.exports = router;
 module.exports.isExistingUser = isExistingUser;
+module.exports.getPropertyOfUser = getPropertyOfUser;
