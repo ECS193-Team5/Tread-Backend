@@ -2,8 +2,10 @@ const router = require("express").Router();
 const League = require("../models/league.model");
 const Challenge = require("../models/challenge.model");
 const Challenge_progress = require("../models/challenge_progress.model");
+const User = require("../models/user.model");
 var ObjectId = require('mongoose').Types.ObjectId;
-const {isExistingUser, route} = require("./user.js");
+const {isExistingUserr} = require("./user.js");
+const { find } = require("../models/user.model");
 
 async function createLeague(leagueInfo) {
     const newUser = new League(leagueInfo);
@@ -318,7 +320,7 @@ async function getAllLeaguesWithChallengeCount(req, res, next) {
     const filter = res.locals.filter;
 
     // Not sure if order is guaranteed
-    const leaguesInfo = await League.find(filter, "_id leagueName members").lean();
+    const leaguesInfo = await League.find(filter, "_id leagueName leaguePicture members").lean();
 
     let challengeCount = [];
     leaguesInfo.forEach((league) => {
@@ -359,6 +361,12 @@ router.route("/get_requested_leagues").post(
         next()
 }, getAllLeaguesWithChallengeCount);
 
+router.route("/get_invited_leagues").post(
+    async (req, res, next) => {
+        res.locals.filter = {sentRequests: req.session.username}
+        next()
+}, getAllLeaguesWithChallengeCount);
+
 router.route("/get_owned_leagues").post(
     async (req, res, next) => {
         res.locals.filter = {owner: req.session.username}
@@ -371,20 +379,6 @@ router.route("/get_admin_leagues").post(
             {admin: req.session.username},
             '_id leagueName'
         );
-
-        return res.status(200).json(leagues);
-});
-
-router.route("/get_admin_league_info").post(
-    async (req, res, next) => {
-        const leagues = await findLeaguesWhere({admin: req.session.username});
-
-        return res.status(200).json(leagues);
-});
-
-router.route("/get_owned_leagues").post(
-    async (req, res, next) => {
-        const leagues = await findLeaguesWhere({owner: req.session.username});
 
         return res.status(200).json(leagues);
 });
@@ -415,10 +409,6 @@ router.route("/get_league_picture").post(
         const leaguePicture = await getPropertyOfLeague(leagueID, "leaguePicture");
 
         return res.status(200).json(leaguePicture);
-});
-
-router.route("/getNumberChallenge").post(async (req, res, next) => {
-
 });
 
 /// Test this
@@ -453,8 +443,76 @@ router.route("/delete_league").post(
 
 });
 
+async function getLeagueActiveChallengeCount(req, res, next) {
+    const username = req.session.username;
+    const leagueID = req.body.leagueID;
+
+    const challengeCount = await getChallengeCount({
+        receivedUser: leagueID,
+        participants: username
+    });
+    return res.status(200).json(challengeCount)
+}
+
+router.route('/get_league_active_challenges').post(getLeagueActiveChallengeCount);
+
+// League object must have members, admin, and owner.
+function getRole(username, league) {
+    if (league.owner === username) {
+        return "owner";
+    }
+    if (league["admin"].includes(username)) {
+        return "admin";
+    }
+    if (league["members"].includes(username)) {
+        return "participant";
+    }
+}
 
 
+async function getMyRole(req, res, next) {
+    const username = req.session.username;
+    const leagueID = req.body.leagueID;
 
+    const leagueInfo = await League.findOne({
+        _id: leagueID,
+        members: username
+    }).lean();
+
+    if (leagueInfo === null) {
+        return res.sendStatus(404);
+    }
+    return res.status(200).json(getRole(username, leagueInfo))
+}
+
+router.route('/get_role').post(getMyRole);
+
+async function getMemberList(req, res, next) {
+    const username = req.session.username;
+    const leagueID = req.body.leagueID;
+
+    const league = await League.findOne({
+        _id: leagueID,
+        members: username
+    }, {members: 1, _id: 0, admin: 1, owner: 1}).lean();
+
+
+    if (league === null) {
+        return res.sendStatus(404);
+    }
+    const leagueMembers = league.members;
+    const memberInfo = await User.find({
+        username: {$in: leagueMembers}
+    }, {picture: 1, displayName: 1, username: 1, _id: 0}).lean();
+
+
+    const membersWithRole = memberInfo.map((member) =>({
+        ...member, role: getRole(member.username, league)
+    }));
+
+    return res.status(200).json(membersWithRole)
+}
+
+router.route('/get_member_list').post(getMemberList);
 
 module.exports = router;

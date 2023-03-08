@@ -207,7 +207,6 @@ async function getCompleteChallengeToProgressInfo(challenges, username) {
 }
 
 
-
 router.route('/accepted_challenges').post(async (req, res) => {
     const username = req.session.username;
 
@@ -310,7 +309,7 @@ router.route('/decline_friend_challenge').post(async (req, res) => {
 });
 
 async function getPicturesForListOfProgress(participantProgress){
-
+    // Might have a better way to query this
     let profilePicturesForEachProgress = [];
     participantProgress.forEach((progressObj) => {
         profilePicturesForEachProgress.push(
@@ -333,6 +332,7 @@ async function getProgressWithPicturesAndDisplayName(participantProgress) {
 }
 
 router.route('/get_challenge_leaderboard').post(async (req, res) => {
+    // need to verify user is in challenge for leaderboard
     const username = req.session.username;
     const challengeID = req.body.challengeID;
 
@@ -343,7 +343,6 @@ router.route('/get_challenge_leaderboard').post(async (req, res) => {
     const completeInformation = await getProgressWithPicturesAndDisplayName(participantProgress);
     return res.status(200).send(completeInformation);
 });
-
 
 module.exports = router;
 module.exports.getProgressWithPicturesAndDisplayName = getProgressWithPicturesAndDisplayName;

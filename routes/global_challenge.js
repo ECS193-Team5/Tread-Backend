@@ -86,9 +86,9 @@ async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
 
 router.route('/get_challenges').post(getGlobalChallengesAndInsertIfDoesntExist);
 
-
+// untested
 async function getLeaderboard(req, res, next) {
-    const username = req.body.username;
+    const username = req.session.username;
     const globalChallengeID = req.body.challengeID;
     const [topFiveUsers, userRank] = await Promise.all([
         Global_challenge_progress.find({
@@ -104,8 +104,11 @@ async function getLeaderboard(req, res, next) {
             username: 1, displayName: 1, progress:1
         }).lean()
     ]);
-
-    return res.status(200).json(await getProgressWithPicturesAndDisplayName(topFiveUsers))
+    const topFiveAndUser = await Promise.all([
+        getProgressWithPicturesAndDisplayName(topFiveUsers),
+        getProgressWithPicturesAndDisplayName([userRank])
+    ]);
+    return res.status(200).json(topFiveAndUser)
 
 }
 
