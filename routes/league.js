@@ -266,6 +266,24 @@ router.route("/decline_request").post(
 }, updateLeague);
 
 
+router.route("/undo_invite").post(
+    checkLeagueID,
+    async (req, res, next) => {
+    const recipient = req.body.recipient;
+
+    res.locals.filter = {
+        _id : ObjectId(req.body.leagueID),
+        admin : req.session.username,
+        sentRequests: recipient
+    }
+
+    res.locals.updates = {
+        $pull: { sentRequests : recipient},
+    }
+    next();
+}, updateLeague);
+
+
 router.route("/ban_user").post(
     checkLeagueID, verifyRecipientUserExists,
     async (req, res, next) => {
