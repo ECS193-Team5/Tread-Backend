@@ -44,7 +44,6 @@ var sess = {
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  name: "auth",
   // enable when we have HTTPS connection
   // secure: true,
   cookie: {
