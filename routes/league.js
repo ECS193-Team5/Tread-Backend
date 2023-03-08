@@ -83,6 +83,23 @@ router.route("/remove_admin").post(
     next();
 }, updateLeague);
 
+router.route("/user_remove_admin").post(
+    checkLeagueID,
+    async (req, res, next) => {
+    const username = req.session.username;
+
+    res.locals.filter = {
+        _id : ObjectId(req.body.leagueID),
+        admin : req.session.username,
+        owner : {$ne: username}
+    }
+
+    res.locals.updates = {
+        $pull: { admin : username},
+    }
+    next();
+}, updateLeague);
+
 
 async function verifyRecipientUserExists(req, res, next) {
     if (await isExistingUser(req.body.recipient)) {
@@ -196,16 +213,16 @@ router.route("/user_request_to_join").post(
 router.route("/user_accept_invite").post(
     checkLeagueID,
     async (req, res, next) => {
-    const recipient = req.body.recipient;
+    const username = req.session.username;
 
     res.locals.filter = {
         _id : ObjectId(req.body.leagueID),
-        sentRequests: recipient
+        sentRequests: username
     }
 
     res.locals.updates = {
-        $addToSet: { members : recipient},
-        $pull: { sentRequests : recipient},
+        $addToSet: { members : username },
+        $pull: { sentRequests : username },
     }
     next();
 }, updateLeague);
@@ -214,7 +231,7 @@ router.route("/user_accept_invite").post(
 router.route("/user_decline_invite").post(
     checkLeagueID,
     async (req, res, next) => {
-    const username = req.session.username
+    const username = req.session.username;
 
     res.locals.filter = {
         _id : ObjectId(req.body.leagueID),
@@ -223,6 +240,23 @@ router.route("/user_decline_invite").post(
 
     res.locals.updates = {
         $pull: { sentRequests : username},
+    }
+    next();
+}, updateLeague);
+
+
+router.route("/user_undo_request").post(
+    checkLeagueID,
+    async (req, res, next) => {
+    const username = req.session.username;
+
+    res.locals.filter = {
+        _id : ObjectId(req.body.leagueID),
+        pendingRequests: username
+    }
+
+    res.locals.updates = {
+        $pull: { pendingRequests : username},
     }
     next();
 }, updateLeague);
