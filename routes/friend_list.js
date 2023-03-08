@@ -371,7 +371,7 @@ router.route('/get_recommended').post(async (req, res, next) => {
         {"DisplayName": "Sinead O'Connor", "MutualFriends": 1, "MutualLeagues": 1},
         {"DisplayName": "Pikachu", "MutualFriends": 2, "MutualLeagues": 0},
     ];
-    return res.status.json(returnObj);
+    return res.status(200).json(returnObj);
 });
 
 
@@ -381,7 +381,7 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
     {"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Ash Ketchum", "challengeType": "League", "challengeTitle": "Swim 4 km", "time": "2d", "type":"progress"},
     {"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Elle Woods", "challengeType": "Global", "challengeTitle": "Run 10 miles", "time": "3d", "type":"complete"}
     ];
-    return res.status.json(returnObj);
+    return res.status(200).json(returnObj);
 });
 
 
