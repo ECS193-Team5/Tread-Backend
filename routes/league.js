@@ -575,7 +575,7 @@ router.route('/get_sent_invite_list').post(async (req, res, next) => {
     if (league === null) {
         return res.sendStatus(404);
     }
-    const leagueSent = league.pendingRequests;
+    const leagueSent = league.sentRequests;
     const memberInfo = await User.find({
         username: {$in: leagueSent}
     }, {picture: 1, displayName: 1, username: 1, _id: 0}).lean();

@@ -66,7 +66,7 @@ async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
                 username: req.session.username,
                 exercise: missingChallenge.exercise,
                 dueDate: missingChallenge.dueDate,
-                issuedate: missingChallenge.issueDate
+                issueDate: missingChallenge.issueDate
             }
 
             newlyInsertedChallenges.push(newGlobalChallenge);

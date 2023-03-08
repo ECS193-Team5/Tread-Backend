@@ -21,6 +21,7 @@ async function addExerciseToLog(req, res, next) {
     try {
         await newExerciseLog.save();
     } catch (err) {
+        console.log(err)
         return res.status(500).json("Error: " + err);
     }
 

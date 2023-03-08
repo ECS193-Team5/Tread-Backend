@@ -2,14 +2,14 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const TIME_UNITS = ["sec", "min", "hr"];
-const DISTANCE_UNITS = ["ft", "yd", "mile", "m", "km"];
+const DISTANCE_UNITS = ["ft", "yd", "mi", "m", "km"];
 const COUNT_UNITS = ["ct"];
 const ALLUNITS = TIME_UNITS.concat(DISTANCE_UNITS, COUNT_UNITS);
 
 const UNIT_CONVERSIONS = {
     "ft" : 0.3048,
     "yd" : 0.9144,
-    "mile" : 1609.34,
+    "mi" : 1609.34,
     "m" : 1,
     "km" : 1000,
     "sec" : 1/60,
