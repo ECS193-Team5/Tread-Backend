@@ -602,4 +602,28 @@ router.route('/get_sent_invite_list').post(async (req, res, next) => {
 });
 
 
+router.route('/get_recommended').post(async (req, res, next) => {
+
+    const returnObj = [
+        {"LeagueName": "Justice", "MutualFriends": 6},
+        {"LeagueName": "Avengers", "MutualFriends": 7},
+        {"LeagueName": "Free Swim", "MutualFriends": 4},
+        {"LeagueName": "Weighlifting Bros", "MutualFriends": 8},
+        {"LeagueName": "Lifting Weights and Friends", "MutualFriends": 1},
+        {"LeagueName": "Pokemon", "MutualFriends": 2},
+    ];
+    return res.status.json(returnObj);
+});
+
+
+router.route('/get_recent_activity').post(async (req, res, next) => {
+
+    const returnObj = [{"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Jonah Jameson", "challengeType": "Personal", "challengeTitle": "Do 50 push ups", "time": "1h", "type": "progress"},
+    {"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Ash Ketchum", "challengeType": "League", "challengeTitle": "Swim 4 km", "time": "2d", "type":"progress"},
+    {"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Elle Woods", "challengeType": "Global", "challengeTitle": "Run 10 miles", "time": "3d", "type":"complete"}
+    ];
+    return res.status.json(returnObj);
+});
+
+
 module.exports = router;
