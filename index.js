@@ -16,7 +16,7 @@ const app = express();
 app.use(cors({
   credentials: true,
   //methods: ['POST'],
-  origin: true ///for dev only
+  origin: process.env.FRONTEND_DOMAIN ///for dev only
   //allowedHeaders: ['Content-Type', 'Authorization', 'Connection']
 }));
 
