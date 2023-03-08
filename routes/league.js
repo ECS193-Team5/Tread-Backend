@@ -4,8 +4,7 @@ const Challenge = require("../models/challenge.model");
 const Challenge_progress = require("../models/challenge_progress.model");
 const User = require("../models/user.model");
 var ObjectId = require('mongoose').Types.ObjectId;
-const {isExistingUserr} = require("./user.js");
-const { find } = require("../models/user.model");
+const { isExistingUser } = require("./user.js");
 
 async function createLeague(leagueInfo) {
     const newUser = new League(leagueInfo);
@@ -487,6 +486,9 @@ async function getMyRole(req, res, next) {
 
 router.route('/get_role').post(getMyRole);
 
+
+
+/// This below should be able to be refactored into 2 functions
 async function getMemberList(req, res, next) {
     const username = req.session.username;
     const leagueID = req.body.leagueID;
@@ -500,6 +502,7 @@ async function getMemberList(req, res, next) {
     if (league === null) {
         return res.sendStatus(404);
     }
+
     const leagueMembers = league.members;
     const memberInfo = await User.find({
         username: {$in: leagueMembers}
@@ -514,5 +517,71 @@ async function getMemberList(req, res, next) {
 }
 
 router.route('/get_member_list').post(getMemberList);
+
+
+router.route('/get_banned_list').post(async (req, res, next) => {
+    const username = req.session.username;
+    const leagueID = req.body.leagueID;
+    const league = await League.findOne({
+        _id: leagueID,
+        members: username
+    }, {bannedUsers: 1, _id: 0}).lean();
+
+
+    if (league === null) {
+        return res.sendStatus(404);
+    }
+
+    const leagueBanned = league.bannedUsers;
+    const bannedInfo = await User.find({
+        username: {$in: leagueBanned}
+    }, {picture: 1, displayName: 1, username: 1, _id: 0}).lean();
+
+
+    return res.status(200).json(bannedInfo);
+});
+
+
+router.route('/get_pending_request_list').post(async (req, res, next) => {
+    const username = req.session.username;
+    const leagueID = req.body.leagueID;
+    const league = await League.findOne({
+        _id: leagueID,
+        admin: username
+    }, {pendingRequests: 1, _id: 0}).lean();
+
+
+    if (league === null) {
+        return res.sendStatus(404);
+    }
+
+    const leaguePending = league.pendingRequests;
+    const memberInfo = await User.find({
+        username: {$in: leaguePending}
+    }, {picture: 1, displayName: 1, username: 1, _id: 0}).lean();
+
+    return res.status(200).json(memberInfo);
+});
+
+router.route('/get_sent_invite_list').post(async (req, res, next) => {
+    const username = req.session.username;
+    const leagueID = req.body.leagueID;
+    const league = await League.findOne({
+        _id: leagueID,
+        admin: username
+    }, {sentRequests: 1, _id: 0}).lean();
+
+
+    if (league === null) {
+        return res.sendStatus(404);
+    }
+    const leagueSent = league.pendingRequests;
+    const memberInfo = await User.find({
+        username: {$in: leagueSent}
+    }, {picture: 1, displayName: 1, username: 1, _id: 0}).lean();
+
+    return res.status(200).json(memberInfo);
+});
+
 
 module.exports = router;
