@@ -55,6 +55,7 @@ if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1) // trust first proxy
   sess.cookie.secure = true // serve secure cookies
   sess.cookie.sameSite = 'none'
+  sess.cookie.httpOnly = true
   console.log(sess)
 }
 
