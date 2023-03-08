@@ -52,15 +52,16 @@ var sess = {
 }
 
 if (process.env.NODE_ENV === 'production') {
-  console.log("here")
   //app.set('trust proxy', 1) // trust first proxy
   sess.cookie.secure = true // serve secure cookies
   sess.cookie.sameSite = 'none'
+  console.log(sess)
 }
 
 app.use(session(sess))
 
 function isAuthenticated(req, res, next) {
+  console.log(req.session)
   if (req.session.authenticationSource && req.session.authenticationID) next();
       // Needs to be changed to the prod login page.
   else res.status(401).json("Not signed in");
