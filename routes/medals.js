@@ -10,7 +10,7 @@ router.route('/get_in_progress').post(async (req, res, next) => {
         {"description": "Swim 5 days in one week", "done": 3, "total": 5},
         {"description": "Join a leauge", "done": 0, "total": 1},
     ];
-    return res.status.json(returnObj);
+    return res.status(200).json(returnObj);
 });
 
 router.route('/get_earned').post(async (req, res, next) => {
@@ -22,7 +22,7 @@ router.route('/get_earned').post(async (req, res, next) => {
         {"description": "Jog 5 times", "date": "10-31-2022"},
         {"description": "Swim 100 km", "date": "01-26-2022"},
     ];
-    return res.status.json(returnObj);
+    return res.status(200).json(returnObj);
 });
 
 
@@ -36,7 +36,7 @@ router.route('/get_recently_earned').post(async (req, res, next) => {
         {"Name":"100 burpees"},
         {"Name":"Try a new sport!"},
     ];
-    return res.status.json(returnObj);
+    return res.status(200).json(returnObj);
 });
 
 module.exports = router;
