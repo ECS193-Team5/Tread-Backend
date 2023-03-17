@@ -47,7 +47,6 @@ var sess = {
   // enable when we have HTTPS connection
   // secure: true,
   cookie: {
-    maxAge: 300000,
   }
 }
 
