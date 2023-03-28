@@ -8,7 +8,7 @@ const userDeviceSchema = new Schema(
         requried: true,
         index: true
       },
-      registrationToken: {
+      deviceToken: {
         type: String,
         required: true,
         unique: true,

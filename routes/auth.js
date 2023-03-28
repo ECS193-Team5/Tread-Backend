@@ -1,6 +1,7 @@
 const router = require("express").Router();
 let User = require("../models/user.model");
 let User_inbox = require("../models/user_inbox.model");
+const { registerDeviceToken } = require("./user_devices.js");
 const {OAuth2Client} = require('google-auth-library');
 const CLIENT_ID = process.env.CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
@@ -103,6 +104,9 @@ router.route('/sign_up').post(async (req, res,) => {
   } catch {
     return res.sendStatus(500);
   }
+
+  // Add device token
+  await registerDeviceToken(req.session.username, req.body.deviceToken)
   return res.sendStatus(200);
 
 });
@@ -163,10 +167,11 @@ async function createNewUserIfNecessary(req, res, next) {
   next();
 }
 
-function generateLoggedInSession(req, res, next) {
+async function generateLoggedInSession(req, res, next) {
   const hasUsername = hasUsernameFromDoc(res.locals.usernameDoc);
   const userInfoFromAuth = res.locals.userInfoFromAuth;
-  req.session.regenerate(function (err) {
+  const deviceToken = req.body.deviceToken;
+  req.session.regenerate(async function (err) {
     if (err) return res.status(500).json(err);
     // store user information in session, typically a user id
     req.session.authenticationSource = 'google';
@@ -174,6 +179,7 @@ function generateLoggedInSession(req, res, next) {
 
     if (hasUsername) {
       req.session.username = res.locals.usernameDoc.username;
+      await registerDeviceToken(req.session.username, deviceToken);
     } else {
       req.session.username = null;
     }

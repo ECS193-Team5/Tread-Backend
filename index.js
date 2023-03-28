@@ -82,7 +82,7 @@ const leagueRouter= require("./routes/league");
 const exerciseLogRouter= require("./routes/exercise_log");
 const globalChallengeRouter = require("./routes/global_challenge");
 const medalsRouter = require("./routes/medals");
-const FCMRouter = require("./routes/userDevices")
+const FCMRouter = require("./routes/user_devices")
 
 app.use("/auth", authRouter);
 app.use("/user", isAuthenticated, hasUsername, userRouter);
@@ -91,7 +91,7 @@ app.use("/challenges", isAuthenticated, hasUsername, challengeRouter);
 app.use("/league", isAuthenticated, hasUsername, leagueRouter);
 app.use("/exercise_log", isAuthenticated, hasUsername, exerciseLogRouter);
 app.use("/medals", isAuthenticated, hasUsername, medalsRouter);
-app.use("/fcm", isAuthenticated, hasUsername, FCMRouter)
+app.use("/user_devices", isAuthenticated, hasUsername, FCMRouter)
 
 // Should be in some kind of protected route
 app.use("/global_challenge", isAuthenticated, hasUsername, globalChallengeRouter);
