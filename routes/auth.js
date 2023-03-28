@@ -1,7 +1,7 @@
 const router = require("express").Router();
 let User = require("../models/user.model");
 let User_inbox = require("../models/user_inbox.model");
-const { registerDeviceToken } = require("./user_devices.js");
+const { registerDeviceToken, removeDeviceToken } = require("./user_devices.js");
 const {OAuth2Client} = require('google-auth-library');
 const CLIENT_ID = process.env.CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
@@ -214,8 +214,10 @@ router.route('/login/google').post(async (req, res, next) => {
 }, createNewUserIfNecessary, generateLoggedInSession);
 
 
-function logout(req, res) {
+async function logout(req, res) {
   // logout logic
+
+  await removeDeviceToken(req.session.username, req.body.deviceToken);
 
   // clear the user from the session object and save.
   // this will ensure that re-using the old session id

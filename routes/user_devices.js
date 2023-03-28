@@ -9,7 +9,12 @@ async function registerDeviceToken(username, deviceToken) {
     {upsert: true})
 }
 
+async function removeDeviceToken(username, deviceToken) {
+    await User_Devices.deleteOne({username: username, deviceToken: deviceToken});
+}
+
 
 
 module.exports = router;
 module.exports.registerDeviceToken = registerDeviceToken;
+module.exports.removeDeviceToken = removeDeviceToken;
