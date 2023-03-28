@@ -5,6 +5,7 @@ const Challenge_progress = require("../models/challenge_progress.model");
 const League = require("../models/league.model");
 const User = require("../models/user.model");
 const {isExistingUser, getPropertyOfUser} = require("./user.js");
+const firebase = require("firebase-admin");
 
 
 function addInfoSharedAcrossRequests(req, res, next) {
@@ -231,7 +232,14 @@ router.route('/sent_challenges').post(async (req, res) => {
     }).lean();
 
     const completeInformation = await getChallengesZippedWithPictures(challenges);
-    return res.status(200).send(completeInformation);
+    res.status(200).send(completeInformation);
+
+    try {
+        response = await firebase.messaging().send(notificationData.message);
+        notificationData.sent = true;
+      } catch (error) {
+        notificationData.error = error.message;
+    }
 });
 
 router.route('/league_challenges').post(async (req, res) => {
