@@ -9,7 +9,7 @@ router.route('/registerToken').post(async (req, res) => {
     // remove tokens from users that are not the same and add entry
     await User_Devices.updateOne({
         registrationToken: registrationToken,
-    }, {username: username, expires: Date.now() + 1000*120}, {upsert: true})
+    }, {username: username, expires: Date.now() + 1000*60*24*60}, {upsert: true})
 
     return res.sendStatus(200);
 });
