@@ -5,6 +5,7 @@ const Challenge_progress = require("../models/challenge_progress.model");
 const User = require("../models/user.model");
 var ObjectId = require('mongoose').Types.ObjectId;
 const { isExistingUser } = require("./user.js");
+const {getDeviceTokens, sendMessageToDevices} = require("./user_devices.js")
 
 async function createLeague(leagueInfo) {
     const newUser = new League(leagueInfo);
