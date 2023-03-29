@@ -82,16 +82,19 @@ async function notifyNewChallenge(req, res, next) {
     }
 
     deviceTokens = await getDeviceTokens(participants);
-    if (deviceTokens.lenght > 0) {
+    if (deviceTokens.length > 0) {
         const message = {
             tokens: deviceTokens,
             notification:{
-                title: "New challenge from " + sentUser,
+                title: "New challenge from " + sentUser + ".",
                 body: ""
+            },
+            data: {
+                pages: "currentChallengePage"
             }
         }
         await sendMessageToDevices(message);
-    } 
+    }
     return res.sendStatus(200);
 }
 
@@ -257,13 +260,6 @@ router.route('/sent_challenges').post(async (req, res) => {
 
     const completeInformation = await getChallengesZippedWithPictures(challenges);
     res.status(200).send(completeInformation);
-
-    try {
-        response = await firebase.messaging().send(notificationData.message);
-        notificationData.sent = true;
-      } catch (error) {
-        notificationData.error = error.message;
-    }
 });
 
 router.route('/league_challenges').post(async (req, res) => {
@@ -302,7 +298,7 @@ router.route('/received_challenges').post(async (req, res) => {
 
 
 async function updatePendingChallengeStatusByID(challengeID, username, newStatus) {
-    return Challenge.updateOne({
+    return Challenge.findOneAndUpdate({
         _id : ObjectId(challengeID),
         receivedUser: username,
         status: 'pending'
@@ -312,16 +308,34 @@ async function updatePendingChallengeStatusByID(challengeID, username, newStatus
         }).lean();
 }
 
+async function notifyAcceptedChallenge(challengerUsername) {
+    deviceToken = await getDeviceTokens([challengerUsername]);
+    const message = {
+        tokens: deviceToken,
+        notification:{
+            title: sentUser + " accepted your challenge.",
+            body: ""
+        },
+        data: {
+            pages: "currentChallengePage"
+        }
+    }
+    await sendMessageToDevices(message);
+}
+
 router.route('/accept_friend_challenge').post(async (req, res) => {
     const username = req.session.username;
     const challengeID = req.body.challengeID;
 
-    const updateReport = await updatePendingChallengeStatusByID(
+    const challenge = await updatePendingChallengeStatusByID(
         challengeID, username, 'accepted')
 
-    if (updateReport.matchedCount == 0) {
+    if (challenge === null) {
         return res.sendStatus(404);
     }
+
+    await notifyAcceptedChallenge(challenge.sentUser);
+
 
     return res.sendStatus(200);
 });

@@ -14,20 +14,27 @@ async function removeDeviceToken(username, deviceToken) {
     await User_Devices.deleteOne({username: username, deviceToken: deviceToken});
 }
 
+async function removeMultipleDeviceTokens(deviceTokens) {
+    await User_Devices.deleteMany({deviceToken: {$in: deviceTokens}});
+}
+
 async function getDeviceTokens(usernames) {
     return await User_Devices.find({username: {$in: usernames}}).distinct('deviceToken');
 }
 
-function sendMessageToDevices(message) {
-    firebase.messaging().sendMulticast(message).then((response) => {
-        // Response is a message ID string.
-        console.log('Successfully sent message:', response);
-      })
-      .catch((error) => {
-        // Will need to see if I can get 400 and 401
-        console.log('Error sending message:', error);
-      });
-
+async function sendMessageToDevices(message) {
+    console.log("ehre")
+    const messageReport = await firebase.messaging().sendMulticast(message);
+    if (messageReport.failureCount > 0) {
+        const failedTokens = [];
+          messageReport.responses.forEach((resp, idx) => {
+            if (!resp.success) {
+              failedTokens.push(message.tokens[idx]);
+            }
+          });
+        console.log('List of tokens that caused failures: ' + failedTokens);
+        await removeMultipleDeviceTokens(failedTokens);
+    }
 }
 module.exports = router;
 module.exports.registerDeviceToken = registerDeviceToken;
