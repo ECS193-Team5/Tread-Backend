@@ -308,12 +308,12 @@ async function updatePendingChallengeStatusByID(challengeID, username, newStatus
         }).lean();
 }
 
-async function notifyAcceptedChallenge(challengerUsername) {
+async function notifyAcceptedChallenge(challengerUsername, user) {
     deviceToken = await getDeviceTokens([challengerUsername]);
     const message = {
         tokens: deviceToken,
         notification:{
-            title: sentUser + " accepted your challenge.",
+            title: user + " accepted your challenge.",
             body: ""
         },
         data: {
@@ -334,7 +334,7 @@ router.route('/accept_friend_challenge').post(async (req, res) => {
         return res.sendStatus(404);
     }
 
-    await notifyAcceptedChallenge(challenge.sentUser);
+    await notifyAcceptedChallenge(challenge.sentUser, username);
 
 
     return res.sendStatus(200);
