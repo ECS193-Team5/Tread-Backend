@@ -3,6 +3,7 @@ let User = require("../models/user.model");
 const User_inbox = require("../models/user_inbox.model");
 const Friend_connection = require("../models/friend_connection.model");
 const {isExistingUser} = require("./user.js");
+const {getDeviceTokens, sendMessageToDevices} = require("./user_devices.js")
 /*
 router.route("/").get((req, res) => {
     User_inbox.find()
