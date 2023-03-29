@@ -23,7 +23,6 @@ async function getDeviceTokens(usernames) {
 }
 
 async function sendMessageToDevices(message) {
-    console.log("ehre")
     const messageReport = await firebase.messaging().sendMulticast(message);
     if (messageReport.failureCount > 0) {
         const failedTokens = [];

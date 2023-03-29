@@ -143,6 +143,21 @@ router.post("/leave_league", checkLeagueID,
     next();
 }, updateLeague);
 
+async function notifyPendingMember(username, memberName, actionMessage) {
+    deviceToken = await getDeviceTokens([memberName]);
+    const message = {
+        tokens: deviceToken,
+        notification:{
+            title: username + actionMessage,
+            body: ""
+        },
+        data: {
+            pages: "leagueMemberPage"
+        }
+    }
+    await sendMessageToDevices(message);
+}
+
 router.route("/invite_to_join").post(
     checkLeagueID, verifyRecipientUserExists,
     async (req, res, next) => {
@@ -164,6 +179,7 @@ router.route("/invite_to_join").post(
         )
 
         if (updateLog.matchedCount == 1) {
+            await notifyPendingMember(username, recipient, " accepted your league request.");
             return res.sendStatus(200);
         }
 
@@ -176,6 +192,7 @@ router.route("/invite_to_join").post(
             $addToSet: { sentRequests : recipient},
         }
 
+        await notifyPendingMember(username, recipient, " invited you to a league.");
         next();
 }, updateLeague);
 
@@ -278,6 +295,8 @@ router.route("/accept_join_request").post(
         $addToSet: { members : recipient},
         $pull: { pendingRequests : recipient},
     }
+    await notifyPendingMember(username, recipient, " accepted your league request.");
+
     next();
 }, updateLeague);
 

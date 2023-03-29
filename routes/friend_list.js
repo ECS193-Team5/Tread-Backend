@@ -205,6 +205,21 @@ async function verifyFriendExists(req, res, next) {
     next()
 }
 
+async function notifyFriend(username, friendName, actionMessage) {
+    deviceToken = await getDeviceTokens([friendName]);
+    const message = {
+        tokens: deviceToken,
+        notification:{
+            title: username + actionMessage,
+            body: ""
+        },
+        data: {
+            pages: "socialFriendPage"
+        }
+    }
+    await sendMessageToDevices(message);
+}
+
 router.route('/send_friend_request').post(
     verifyFriendNameNotUsername,
     verifyFriendExists,
@@ -237,6 +252,8 @@ router.route('/send_friend_request').post(
 
     sendRequest(username, friendName);
 
+    await notifyFriend(username, friendName, " sent an friend request.")
+
     return res.sendStatus(200);
 });
 
@@ -247,6 +264,7 @@ router.route('/accept_received_request').post(
     const friendName = req.body.friendName
 
     acceptFriendRequest(username, friendName);
+    await notifyFriend(username, friendName, " accepted your friend request.")
 
     return res.sendStatus(200);
 });
