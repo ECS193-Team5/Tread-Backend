@@ -4,6 +4,7 @@ const Challenge = require("../models/challenge.model");
 const Challenge_progress = require("../models/challenge_progress.model");
 const League = require("../models/league.model");
 const User = require("../models/user.model");
+const { getDeviceTokens, sendMessageToDevices } = require("./user_devices.js")
 const {isExistingUser, getPropertyOfUser} = require("./user.js");
 const firebase = require("firebase-admin");
 
@@ -67,8 +68,31 @@ async function addChallengeProgress(req, res, next) {
         return res.status(500).json("Error: " + err);
     }
 
-    return res.sendStatus(200);
+    next();
 
+}
+
+async function notifyNewChallenge(req, res, next) {
+    const participants = res.locals.challenge.participants;
+    const sentUser = req.session.username;
+    // remove self from notification list
+    const index = participants.indexOf(sentUser);
+    if (index > -1) { // only splice array when item is found
+        participants.splice(index, 1); // 2nd parameter means remove one item only
+    }
+
+    deviceTokens = await getDeviceTokens(participants);
+    if (deviceTokens.lenght > 0) {
+        const message = {
+            tokens: deviceTokens,
+            notification:{
+                title: "New challenge from " + sentUser,
+                body: ""
+            }
+        }
+        await sendMessageToDevices(message);
+    } 
+    return res.sendStatus(200);
 }
 
 router.route('/add_friend_challenge').post(async (req, res, next) => {
@@ -87,7 +111,7 @@ router.route('/add_friend_challenge').post(async (req, res, next) => {
         challengeType: challengeType,
     }
     next();
-}, addInfoSharedAcrossRequests, addChallenge, addChallengeProgress);
+}, addInfoSharedAcrossRequests, addChallenge, addChallengeProgress, notifyNewChallenge);
 
 router.route('/add_self_challenge').post(async (req, res, next) => {
     const sentUser = req.session.username;
@@ -102,7 +126,7 @@ router.route('/add_self_challenge').post(async (req, res, next) => {
 
     }
     next();
-}, addInfoSharedAcrossRequests, addChallenge, addChallengeProgress);
+}, addInfoSharedAcrossRequests, addChallenge, addChallengeProgress, notifyNewChallenge);
 
 router.route('/add_league_challenge').post(async (req, res, next) => {
     const sentUser = req.session.username;
@@ -127,7 +151,7 @@ router.route('/add_league_challenge').post(async (req, res, next) => {
         challengeType: challengeType,
     }
     next();
-}, addInfoSharedAcrossRequests, addChallenge, addChallengeProgress);
+}, addInfoSharedAcrossRequests, addChallenge, addChallengeProgress, notifyNewChallenge);
 
 router.route('/delete_friend_challenge').post(async (req, res) => {
     const username = req.session.username;
