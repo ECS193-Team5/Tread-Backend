@@ -459,6 +459,7 @@ async function getPropertyOfLeague(leagueID, property) {
 }
 
 router.route("/get_league_name").post(
+    checkLeagueID,
     async (req, res, next) => {
         const leagueID = req.body.leagueID;
         const leagueName = await getPropertyOfLeague(leagueID, "leagueName");
@@ -467,6 +468,7 @@ router.route("/get_league_name").post(
 });
 
 router.route("/get_league_description").post(
+    checkLeagueID,
     async (req, res, next) => {
         const leagueID = req.body.leagueID;
         const leagueDescription = await getPropertyOfLeague(leagueID, "leagueDescription");
@@ -475,6 +477,7 @@ router.route("/get_league_description").post(
 });
 
 router.route("/get_league_picture").post(
+    checkLeagueID,
     async (req, res, next) => {
         const leagueID = req.body.leagueID;
         const leaguePicture = await getPropertyOfLeague(leagueID, "leaguePicture");
@@ -525,7 +528,7 @@ async function getLeagueActiveChallengeCount(req, res, next) {
     return res.status(200).json(challengeCount)
 }
 
-router.route('/get_league_active_challenges').post(getLeagueActiveChallengeCount);
+router.route('/get_league_active_challenges').post(checkLeagueID, getLeagueActiveChallengeCount);
 
 // League object must have members, admin, and owner.
 function getRole(username, league) {
@@ -556,7 +559,7 @@ async function getMyRole(req, res, next) {
     return res.status(200).json(getRole(username, leagueInfo))
 }
 
-router.route('/get_role').post(getMyRole);
+router.route('/get_role').post(checkLeagueID, getMyRole);
 
 
 
@@ -588,10 +591,12 @@ async function getMemberList(req, res, next) {
     return res.status(200).json(membersWithRole)
 }
 
-router.route('/get_member_list').post(getMemberList);
+router.route('/get_member_list').post(checkLeagueID, getMemberList);
 
 
-router.route('/get_banned_list').post(async (req, res, next) => {
+router.route('/get_banned_list').post(
+    checkLeagueID,
+    async (req, res, next) => {
     const username = req.session.username;
     const leagueID = req.body.leagueID;
     const league = await League.findOne({
@@ -614,7 +619,9 @@ router.route('/get_banned_list').post(async (req, res, next) => {
 });
 
 
-router.route('/get_pending_request_list').post(async (req, res, next) => {
+router.route('/get_pending_request_list').post(
+    checkLeagueID,
+    async (req, res, next) => {
     const username = req.session.username;
     const leagueID = req.body.leagueID;
     const league = await League.findOne({
@@ -635,7 +642,9 @@ router.route('/get_pending_request_list').post(async (req, res, next) => {
     return res.status(200).json(memberInfo);
 });
 
-router.route('/get_sent_invite_list').post(async (req, res, next) => {
+router.route('/get_sent_invite_list').post(
+    checkLeagueID,
+    async (req, res, next) => {
     const username = req.session.username;
     const leagueID = req.body.leagueID;
     const league = await League.findOne({
