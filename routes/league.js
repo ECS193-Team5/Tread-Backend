@@ -5,7 +5,8 @@ const Challenge_progress = require("../models/challenge_progress.model");
 const User = require("../models/user.model");
 var ObjectId = require('mongoose').Types.ObjectId;
 const { isExistingUser } = require("./user.js");
-const {getDeviceTokens, sendMessageToDevices} = require("./user_devices.js")
+const {getDeviceTokens, sendMessageToDevices} = require("./user_devices.js");
+const {getFieldFrequencyAndProfilesSorted} = require("./helpers.js");
 
 async function createLeague(leagueInfo) {
     const newUser = new League(leagueInfo);
@@ -674,22 +675,11 @@ router.route('/get_leaderboard').post(checkLeagueID,
         }, {
             _id: 0, username: 1
         }).lean()
-        const completedChallengeCounts = completedChallenges.reduce((acc, curr) => (acc[curr.username] = (acc[curr.username] || 0) + 1, acc), {});
-        const leaderboardProfiles = await User.find({
-            username: {$in: Object.keys(completedChallengeCounts)}
-        }, {_id: 0, picture: 1, displayName: 1, username: 1}).lean();
-        const countsAndProfile = leaderboardProfiles.map((profile) => ({
-            ...profile,
-            completed: completedChallengeCounts[profile.username],
-        }));
-        const sortedResult = countsAndProfile.sort((a , b) => a.completed > b.completed);
-
-
+        const sortedResult = await getFieldFrequencyAndProfilesSorted("username", "completed", completedChallenges);
 
     return res.status(200).send(sortedResult);
 
 });
-
 
 router.route('/get_recommended').post(async (req, res, next) => {
 
