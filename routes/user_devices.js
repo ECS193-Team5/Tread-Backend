@@ -25,14 +25,16 @@ async function getDeviceTokens(usernames) {
 async function sendMessageToDevices(message) {
     const messageReport = await firebase.messaging().sendMulticast(message);
     if (messageReport.failureCount > 0) {
-        const failedTokens = [];
+        const expiredOrInvalidTokens = [];
           messageReport.responses.forEach((resp, idx) => {
-            if (!resp.success) {
-              failedTokens.push(message.tokens[idx]);
+            if (!resp.success &&
+                (resp.error.code === "messaging/invalid-argument"
+                || resp.error.code === "messaging/unregistered")) {
+                expiredOrInvalidTokens.push(message.tokens[idx]);
             }
           });
-        console.log('List of tokens that caused failures: ' + failedTokens);
-        await removeMultipleDeviceTokens(failedTokens);
+        console.log('List of tokens that caused failures: ' + expiredOrInvalidTokens);
+        await removeMultipleDeviceTokens(expiredOrInvalidTokens);
     }
 }
 module.exports = router;
