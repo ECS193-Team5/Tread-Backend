@@ -3,6 +3,7 @@ const League = require("../models/league.model");
 const Challenge = require("../models/challenge.model");
 const Challenge_progress = require("../models/challenge_progress.model");
 const User = require("../models/user.model");
+const Exercise_log = require("../models/exercise_log.model");
 var ObjectId = require('mongoose').Types.ObjectId;
 const { isExistingUser } = require("./user.js");
 const {getDeviceTokens, sendMessageToDevices} = require("./user_devices.js");
@@ -682,16 +683,32 @@ router.route('/get_leaderboard').post(checkLeagueID,
 });
 
 router.route('/get_recommended').post(async (req, res, next) => {
+    // find 10 recent exercises logged
+    // find all league challenges in the last x time with recent exercises
+    // find at most 6 leagues that are open from that list
+    const NUMBER_OF_RECENT_EXERCISES = 10;
+    const WEEK_IN_MILISECONDS = 604800000;
+    const CHALLENGE_QUERY_TIME_LIMIT = Date.now() - WEEK_IN_MILISECONDS;
+    const username =  req.session.username;
+    const recentExercises = await Exercise_log.find({
+        username: username
+    }, {"_id": 0, "exercise": 1}).limit(NUMBER_OF_RECENT_EXERCISES).lean();
 
-    const returnObj = [
-        {"LeagueName": "Justice", "MutualFriends": 6},
-        {"LeagueName": "Avengers", "MutualFriends": 7},
-        {"LeagueName": "Free Swim", "MutualFriends": 4},
-        {"LeagueName": "Weighlifting Bros", "MutualFriends": 8},
-        {"LeagueName": "Lifting Weights and Friends", "MutualFriends": 1},
-        {"LeagueName": "Pokemon", "MutualFriends": 2},
-    ];
-    return res.status(200).json(returnObj);
+    const uniqueRecentExercises = [...new Set(recentExercises.map(item => item.exercise.exerciseName))];
+
+    const relatedLeagueChallenges = await Challenge.find({
+        challengeType: "league",
+        issuedDate: {$gt: CHALLENGE_QUERY_TIME_LIMIT},
+        "exercise.exerciseName": {$in: uniqueRecentExercises}
+    }, {"_id": 0, "receivedUser": 1}).distinct("receivedUser").lean();
+
+
+    const openRelatedLeagues = await League.find({
+        _id: {$in: relatedLeagueChallenges},
+        leagueType: "open"
+    }, {"leagueName": 1, "leaguePicture": 1}).lean();
+
+    return res.status(200).json(openRelatedLeagues);
 });
 
 

@@ -384,6 +384,7 @@ router.route('/block_user').post(
 
 router.route('/get_recommended').post(async (req, res, next) => {
     const username = req.session.username;
+    const MUTUAL_FRIEND_QUERY_LIMIT = 6000;
 
     const friendList = await Friend_connection.find({
         username: username,
@@ -393,7 +394,7 @@ router.route('/get_recommended').post(async (req, res, next) => {
     const mutualFriends = await Friend_connection.find({
         username: {$in: friendList},
         friendName:{$nin: invalidFriends}
-    }, {"_id": 0, "friendName": 1}).lean()
+    }, {"_id": 0, "friendName": 1}).limit(MUTUAL_FRIEND_QUERY_LIMIT).lean()
 
     const mutualFriendsFrequency = await getFieldFrequencyAndProfilesSorted("friendName", "mutualFriendCount", mutualFriends)
 
