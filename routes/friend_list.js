@@ -2,6 +2,7 @@ const router = require("express").Router();
 let User = require("../models/user.model");
 const User_inbox = require("../models/user_inbox.model");
 const Friend_connection = require("../models/friend_connection.model");
+const Exercise_log = require("../models/exercise_log.model");
 const {isExistingUser} = require("./user.js");
 const {getDeviceTokens, sendMessageToDevices} = require("./user_devices.js");
 const {getFieldFrequencyAndProfilesSorted} = require("./helpers.js");
@@ -402,11 +403,35 @@ router.route('/get_recommended').post(async (req, res, next) => {
 
 router.route('/get_recent_activity').post(async (req, res, next) => {
 
-    const returnObj = [{"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Jonah Jameson", "challengeType": "Personal", "challengeTitle": "Do 50 push ups", "time": "1h", "type": "progress"},
-    {"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Ash Ketchum", "challengeType": "League", "challengeTitle": "Swim 4 km", "time": "2d", "type":"progress"},
-    {"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Elle Woods", "challengeType": "Global", "challengeTitle": "Run 10 miles", "time": "3d", "type":"complete"}
-    ];
-    return res.status(200).json(returnObj);
+    const username = req.session.username;
+
+    const friendList = await Friend_connection.find({
+        username: username
+    }).distinct("friendName");
+
+    const recentFriendActivity = await Exercise_log.find({
+        username: {$in: friendList}
+    },{
+        "_id": 0
+    }).sort({loggedDate: -1}).limit(5).lean();
+
+
+    const uniqueUsernames = [...new Set(recentFriendActivity.map(item => item.username))];
+
+    const profileInformationArray = await User.find({
+        username: {$in : uniqueUsernames}
+    }, {_id: 0, picture: 1, displayName: 1, username: 1}).lean();
+
+    const profileInformationDictionary = profileInformationArray.reduce((map, obj) => (map[obj.username] = obj, map), {})
+
+
+    const activityWithProfileInfo = recentFriendActivity.map((activity) => ({
+        ...activity,
+        picture: profileInformationDictionary[activity.username]["picture"],
+        displayName: profileInformationDictionary[activity.username]["displayName"]
+    }))
+
+    return res.status(200).json(activityWithProfileInfo);
 });
 
 
