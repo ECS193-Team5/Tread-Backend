@@ -665,6 +665,32 @@ router.route('/get_sent_invite_list').post(
 });
 
 
+router.route('/get_leaderboard').post(checkLeagueID,
+    async (req, res, next) => {
+        const leagueChallenges = await Challenge.find({receivedUser: req.body.leagueID}).distinct("_id");
+        const completedChallenges = await Challenge_progress.find({
+            challengeID: {$in: leagueChallenges},
+            completed: true,
+        }, {
+            _id: 0, username: 1
+        }).lean()
+        const completedChallengeCounts = completedChallenges.reduce((acc, curr) => (acc[curr.username] = (acc[curr.username] || 0) + 1, acc), {});
+        const leaderboardProfiles = await User.find({
+            username: {$in: Object.keys(completedChallengeCounts)}
+        }, {_id: 0, picture: 1, displayName: 1, username: 1}).lean();
+        const countsAndProfile = leaderboardProfiles.map((profile) => ({
+            ...profile,
+            completed: completedChallengeCounts[profile.username],
+        }));
+        const sortedResult = countsAndProfile.sort((a , b) => a.completed > b.completed);
+
+
+
+    return res.status(200).send(sortedResult);
+
+});
+
+
 router.route('/get_recommended').post(async (req, res, next) => {
 
     const returnObj = [
