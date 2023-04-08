@@ -7,7 +7,7 @@ const Exercise_log = require("../models/exercise_log.model");
 var ObjectId = require('mongoose').Types.ObjectId;
 const { isExistingUser } = require("./user.js");
 const {getDeviceTokens, sendMessageToDevices} = require("./user_devices.js");
-const {getFieldFrequencyAndProfilesSorted} = require("./helpers.js");
+const {getFieldFrequencyAndProfilesSorted, appendProfileInformationToArrayOfObjectsWithUsername} = require("./helpers.js");
 
 async function createLeague(leagueInfo) {
     const newUser = new League(leagueInfo);
@@ -690,15 +690,20 @@ router.route('/get_recommended').post(async (req, res, next) => {
     const WEEK_IN_MILISECONDS = 604800000;
     const CHALLENGE_QUERY_TIME_LIMIT = Date.now() - WEEK_IN_MILISECONDS;
     const username =  req.session.username;
+
+    const leaguesUserIsIn = League.find({
+        members: username
+    }).distinct("_id");
     const recentExercises = await Exercise_log.find({
         username: username
-    }, {"_id": 0, "exercise": 1}).limit(NUMBER_OF_RECENT_EXERCISES).lean();
+    }, {"_id": 0, "exercise": 1}).sort({"loggedDate": -1}).limit(NUMBER_OF_RECENT_EXERCISES).lean();
 
     const uniqueRecentExercises = [...new Set(recentExercises.map(item => item.exercise.exerciseName))];
 
     const relatedLeagueChallenges = await Challenge.find({
         challengeType: "league",
         issuedDate: {$gt: CHALLENGE_QUERY_TIME_LIMIT},
+        receivedUser: {$nin: await leaguesUserIsIn},
         "exercise.exerciseName": {$in: uniqueRecentExercises}
     }, {"_id": 0, "receivedUser": 1}).distinct("receivedUser").lean();
 
@@ -713,12 +718,33 @@ router.route('/get_recommended').post(async (req, res, next) => {
 
 
 router.route('/get_recent_activity').post(async (req, res, next) => {
+    // Get league participants from all leagues
+    // Get active league challenges and find their exerciseName/unitType
+    // Find exercise_logs that match exerciseName and type that are logged by participants
+    // attach profile information.
+    const username = req.session.username;
+    const NUMBER_OF_EXERCISES_TO_RETURN = 6;
 
-    const returnObj = [{"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Jonah Jameson", "challengeType": "Personal", "challengeTitle": "Do 50 push ups", "time": "1h", "type": "progress"},
-    {"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Ash Ketchum", "challengeType": "League", "challengeTitle": "Swim 4 km", "time": "2d", "type":"progress"},
-    {"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Elle Woods", "challengeType": "Global", "challengeTitle": "Run 10 miles", "time": "3d", "type":"complete"}
-    ];
-    return res.status(200).json(returnObj);
+    const allMembersFromAllLeagues = await League.find({
+        members: username
+    }, {"_id": 0, "members": 1}).distinct("members").lean();
+
+    if (allMembersFromAllLeagues.length === 0) {
+        return res.sendStatus(200);
+    }
+
+    const otherMembersFromLeagues = allMembersFromAllLeagues.filter(memberName => memberName !== username);
+
+    const recentExercises = await Exercise_log.find({
+        username: {$in: otherMembersFromLeagues}
+    }).sort({"loggedDate": -1}).limit(NUMBER_OF_EXERCISES_TO_RETURN).lean();
+
+
+    const recentExercisesWithProfileInformation = await appendProfileInformationToArrayOfObjectsWithUsername(recentExercises, otherMembersFromLeagues)
+
+    console.log(recentExercisesWithProfileInformation)
+
+    return res.status(200).json(recentExercisesWithProfileInformation);
 });
 
 

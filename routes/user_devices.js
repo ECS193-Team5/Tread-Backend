@@ -23,6 +23,10 @@ async function getDeviceTokens(usernames) {
 }
 
 async function sendMessageToDevices(message) {
+    if (!message["token"] || message["token"].length === 0) {
+        return;
+    }
+
     const messageReport = await firebase.messaging().sendMulticast(message);
     if (messageReport.failureCount > 0) {
         const expiredOrInvalidTokens = [];

@@ -5,7 +5,7 @@ const Friend_connection = require("../models/friend_connection.model");
 const Exercise_log = require("../models/exercise_log.model");
 const {isExistingUser} = require("./user.js");
 const {getDeviceTokens, sendMessageToDevices} = require("./user_devices.js");
-const {getFieldFrequencyAndProfilesSorted} = require("./helpers.js");
+const {getFieldFrequencyAndProfilesSorted, appendProfileInformationToArrayOfObjectsWithUsername} = require("./helpers.js");
 /*
 router.route("/").get((req, res) => {
     User_inbox.find()
@@ -419,18 +419,7 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
 
     const uniqueUsernames = [...new Set(recentFriendActivity.map(item => item.username))];
 
-    const profileInformationArray = await User.find({
-        username: {$in : uniqueUsernames}
-    }, {_id: 0, picture: 1, displayName: 1, username: 1}).lean();
-
-    const profileInformationDictionary = profileInformationArray.reduce((map, obj) => (map[obj.username] = obj, map), {})
-
-
-    const activityWithProfileInfo = recentFriendActivity.map((activity) => ({
-        ...activity,
-        picture: profileInformationDictionary[activity.username]["picture"],
-        displayName: profileInformationDictionary[activity.username]["displayName"]
-    }))
+    const activityWithProfileInfo = await appendProfileInformationToArrayOfObjectsWithUsername(recentFriendActivity,uniqueUsernames);
 
     return res.status(200).json(activityWithProfileInfo);
 });

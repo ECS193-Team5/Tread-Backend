@@ -26,7 +26,9 @@ app.use(cors({
 
 app.use(express.json());
 
-const uri = process.env.ATLAS_URI
+const uri = process.env.ATLAS_URI;
+// Will be set to false by default in mongoose 7
+//mongoose.set('strictQuery', true);
 mongoose.connect(uri);
 const connection = mongoose.connection;
 connection.once("open", () => {
