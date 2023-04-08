@@ -69,7 +69,7 @@ async function updateGlobalChallenges(req, res, next) {
     }).lean();
 
     if (needUpdatingGlobalChallenge == null) {
-        return res.sendStatus(200);
+        return next();
     }
 
     await Global_challenge_progress.updateOne({
