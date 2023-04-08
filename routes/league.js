@@ -6,7 +6,7 @@ const User = require("../models/user.model");
 const Exercise_log = require("../models/exercise_log.model");
 var ObjectId = require('mongoose').Types.ObjectId;
 const { isExistingUser } = require("./user.js");
-const {getDeviceTokens, sendMessageToDevices} = require("./user_devices.js");
+const {sendPushNotificationToUsers} = require("./user_devices.js");
 const {getFieldFrequencyAndProfilesSorted, appendProfileInformationToArrayOfObjectsWithUsername} = require("./helpers.js");
 
 async function createLeague(leagueInfo) {
@@ -147,18 +147,7 @@ router.post("/leave_league", checkLeagueID,
 }, updateLeague);
 
 async function notifyPendingMember(username, memberName, actionMessage) {
-    deviceToken = await getDeviceTokens([memberName]);
-    const message = {
-        tokens: deviceToken,
-        notification:{
-            title: username + actionMessage,
-            body: ""
-        },
-        data: {
-            pages: "leagueMemberPage"
-        }
-    }
-    await sendMessageToDevices(message);
+    sendPushNotificationToUsers([memberName], username + actionMessage, "leagueMemberPage");
 }
 
 router.route("/invite_to_join").post(

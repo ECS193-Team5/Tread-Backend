@@ -4,7 +4,7 @@ const Challenge = require("../models/challenge.model");
 const Challenge_progress = require("../models/challenge_progress.model");
 const League = require("../models/league.model");
 const User = require("../models/user.model");
-const { getDeviceTokens, sendMessageToDevices } = require("./user_devices.js")
+const {sendPushNotificationToUsers} = require("./user_devices.js")
 const {isExistingUser, getPropertyOfUser} = require("./user.js");
 const firebase = require("firebase-admin");
 
@@ -81,20 +81,11 @@ async function notifyNewChallenge(req, res, next) {
         participants.splice(index, 1); // 2nd parameter means remove one item only
     }
 
-    deviceTokens = await getDeviceTokens(participants);
-    if (deviceTokens.length > 0) {
-        const message = {
-            tokens: deviceTokens,
-            notification:{
-                title: "New challenge from " + sentUser + ".",
-                body: ""
-            },
-            data: {
-                pages: "currentChallengePage"
-            }
-        }
-        await sendMessageToDevices(message);
-    }
+    sendPushNotificationToUsers(
+        participants,
+        "New challenge from " + sentUser + ".",
+        "currentChallengePage"
+    );
     return res.sendStatus(200);
 }
 
@@ -309,18 +300,11 @@ async function updatePendingChallengeStatusByID(challengeID, username, newStatus
 }
 
 async function notifyAcceptedChallenge(challengerUsername, user) {
-    deviceToken = await getDeviceTokens([challengerUsername]);
-    const message = {
-        tokens: deviceToken,
-        notification:{
-            title: user + " accepted your challenge.",
-            body: ""
-        },
-        data: {
-            pages: "currentChallengePage"
-        }
-    }
-    await sendMessageToDevices(message);
+    sendPushNotificationToUsers(
+        [challengerUsername],
+        user + " accepted your challenge",
+        "currentChallengePage"
+    );
 }
 
 router.route('/accept_friend_challenge').post(async (req, res) => {

@@ -1,4 +1,3 @@
-const router = require("express").Router();
 const User_Devices = require("../models/user_devices.model");
 const firebase = require("firebase-admin");
 
@@ -23,10 +22,6 @@ async function getDeviceTokens(usernames) {
 }
 
 async function sendMessageToDevices(message) {
-    if (!message["token"] || message["token"].length === 0) {
-        return;
-    }
-
     const messageReport = await firebase.messaging().sendMulticast(message);
     if (messageReport.failureCount > 0) {
         const expiredOrInvalidTokens = [];
@@ -41,8 +36,26 @@ async function sendMessageToDevices(message) {
         await removeMultipleDeviceTokens(expiredOrInvalidTokens);
     }
 }
-module.exports = router;
+
+async function sendPushNotificationToUsers (usernames, title, page) {
+    deviceToken = await getDeviceTokens(usernames);
+
+    if (deviceToken.length === 0) {
+        return;
+    }
+    const message = {
+        tokens: deviceToken,
+        notification:{
+            title: title,
+            body: ""
+        },
+        data: {
+            page: page
+        }
+    }
+    await sendMessageToDevices(message);
+}
+
 module.exports.registerDeviceToken = registerDeviceToken;
 module.exports.removeDeviceToken = removeDeviceToken;
-module.exports.getDeviceTokens = getDeviceTokens;
-module.exports.sendMessageToDevices = sendMessageToDevices;
+module.exports.sendPushNotificationToUsers = sendPushNotificationToUsers;

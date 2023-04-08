@@ -4,7 +4,7 @@ const User_inbox = require("../models/user_inbox.model");
 const Friend_connection = require("../models/friend_connection.model");
 const Exercise_log = require("../models/exercise_log.model");
 const {isExistingUser} = require("./user.js");
-const {getDeviceTokens, sendMessageToDevices} = require("./user_devices.js");
+const {sendPushNotificationToUsers} = require("./user_devices.js");
 const {getFieldFrequencyAndProfilesSorted, appendProfileInformationToArrayOfObjectsWithUsername} = require("./helpers.js");
 /*
 router.route("/").get((req, res) => {
@@ -209,18 +209,7 @@ async function verifyFriendExists(req, res, next) {
 }
 
 async function notifyFriend(username, friendName, actionMessage) {
-    deviceToken = await getDeviceTokens([friendName]);
-    const message = {
-        tokens: deviceToken,
-        notification:{
-            title: username + actionMessage,
-            body: ""
-        },
-        data: {
-            pages: "socialFriendPage"
-        }
-    }
-    await sendMessageToDevices(message);
+    sendPushNotificationToUsers([friendName], username + actionMessage , "socialFriendPage");
 }
 
 router.route('/send_friend_request').post(
