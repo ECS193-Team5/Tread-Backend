@@ -667,6 +667,8 @@ router.route('/get_leaderboard').post(checkLeagueID,
         }).lean()
         const sortedResult = await getFieldFrequencyAndProfilesSorted("username", "completed", completedChallenges);
 
+    console.log(sortedResult)
+
     return res.status(200).send(sortedResult);
 
 });
@@ -730,8 +732,6 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
 
 
     const recentExercisesWithProfileInformation = await appendProfileInformationToArrayOfObjectsWithUsername(recentExercises, otherMembersFromLeagues)
-
-    console.log(recentExercisesWithProfileInformation)
 
     return res.status(200).json(recentExercisesWithProfileInformation);
 });

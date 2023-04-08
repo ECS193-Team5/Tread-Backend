@@ -98,7 +98,7 @@ async function checkForChallengeCompletion(req, res, next) {
         dueDate: {
             $gte: Math.max(Date.now(), loggedDate)
         },
-        $expr: {$gt: [ "$progress" , "$exercise.convertedAmount" ]}
+        $expr: {$gte: [ "$progress" , "$exercise.convertedAmount" ]}
     }
     // This is very slow
     await Challenge_progress.updateMany(challengeCompletionQuery, {completed: true});
