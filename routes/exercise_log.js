@@ -105,13 +105,28 @@ async function checkForChallengeCompletion(req, res, next) {
     // This is very slow
     await Challenge_progress.updateMany(challengeCompletionQuery, {completed: true});
     await Global_challenge_progress.updateMany(challengeCompletionQuery, {completed: true});
+    next();
+}
+
+
+async function updateMedalProgress(req, res, next) {
+    const username = req.session.username
+    const medalCompletionQuery = {
+        username: username,
+        'exercise.exerciseName': req.body.exerciseName,
+        'exercise.unitType' : res.locals.exerciseLog.exercise.unitType,
+        $expr: {$gte: [ "$progress" , "$exercise.convertedAmount" ]}
+    }
+
+    await Medal_progress.updateMany(medalCompletionQuery, {completed: true});
     return res.sendStatus(200);
 }
 
 router.route('/add').post(addExerciseToLog,
     updateChallenges,
     updateGlobalChallenges,
-    checkForChallengeCompletion);
+    checkForChallengeCompletion,
+    updateMedalProgress);
 
 
 
