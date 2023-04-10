@@ -192,6 +192,7 @@ router.route("/user_request_to_join").post(
     checkLeagueID,
     async (req, res, next) => {
         const username = req.session.username;
+        const leagueID = req.body.leagueID;
 
 
         const updateLog = await League.updateOne(
