@@ -1,10 +1,13 @@
 const router = require("express").Router();
 let User = require("../models/user.model");
 let User_inbox = require("../models/user_inbox.model");
+const Medals = require("../models/medals.model");
+const Medal_progress = require("../models/medal_progress.model");
 const { registerDeviceToken, removeDeviceToken } = require("./user_devices.js");
 const {OAuth2Client} = require('google-auth-library');
 const CLIENT_ID = process.env.CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
+
 
 function verifyLoggedIn(req, res, next) {
   if (!req.session.authenticationID || !req.session.authenticationSource) {
@@ -68,6 +71,22 @@ async function setUsernameAndUpdateProfile(userIdentifiers, profileInfo, chosenU
   return profileInfo.username;
 }
 
+async function generateUserMedalProgress(username) {
+
+  const medals = await Medals.find({});
+  const medalsProgress = medals.map(medal => {
+    return {insertOne: {
+      document: {
+        username: username,
+        medalID: medal["_id"],
+        exercise: medal["exercise"]
+      }
+    }}
+  });
+
+  await Medal_progress.bulkWrite(medalsProgress);
+}
+
 router.route('/sign_up').post(async (req, res,) => {
   if (req.session.username !== null) {
     return res.status(400).json("Error: already has username");
@@ -101,6 +120,7 @@ router.route('/sign_up').post(async (req, res,) => {
   // Init necessary models
   try {
     await createUserInbox(completeUsername);
+    await generateUserMedalProgress(completeUsername);
   } catch {
     return res.sendStatus(500);
   }

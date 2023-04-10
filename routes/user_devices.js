@@ -38,13 +38,13 @@ async function sendMessageToDevices(message) {
 }
 
 async function sendPushNotificationToUsers (usernames, title, page) {
-    deviceToken = await getDeviceTokens(usernames);
+    deviceTokens = await getDeviceTokens(usernames);
 
-    if (deviceToken.length === 0) {
+    if (deviceTokens.length === 0) {
         return;
     }
     const message = {
-        tokens: deviceToken,
+        tokens: deviceTokens,
         notification:{
             title: title,
             body: ""
