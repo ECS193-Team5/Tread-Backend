@@ -9,8 +9,8 @@ const medalProgressSchema =  new Schema(
       type: String,
       required: true,
     },
-    medalID: {
-      type: ObjectId,
+    level: {
+      type: Number,
       required: true,
     },
     exercise: {
@@ -35,7 +35,7 @@ const medalProgressSchema =  new Schema(
 //add indexes
 
 medalProgressSchema.index({
-  username: 1, medalID : 1
+  username: 1, exercise: 1, level : 1
 }, {unique: true});
 
 const Medal_progress = mongoose.model(

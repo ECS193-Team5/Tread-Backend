@@ -78,7 +78,7 @@ async function generateUserMedalProgress(username) {
     return {insertOne: {
       document: {
         username: username,
-        medalID: medal["_id"],
+        level: medal["level"],
         exercise: medal["exercise"]
       }
     }}

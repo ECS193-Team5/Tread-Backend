@@ -8,6 +8,10 @@ const medalSchema = new Schema(
         type: exercise,
         required: true,
     },
+    level: {
+      type: Number,
+      required: true,
+    }
   },
   {
     collection: "medals"
