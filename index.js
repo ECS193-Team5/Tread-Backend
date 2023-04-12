@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 var session = require('express-session');
 const MongoStore = require('connect-mongo');
-//const initializeFirebaseSDK = require("./firebase_startup");
+const initializeFirebaseSDK = require("./firebase_startup");
 
 
 //const https = require("https");
