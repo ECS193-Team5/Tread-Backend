@@ -3,8 +3,11 @@ const League = require("../models/league.model");
 const Challenge = require("../models/challenge.model");
 const Challenge_progress = require("../models/challenge_progress.model");
 const User = require("../models/user.model");
+const Exercise_log = require("../models/exercise_log.model");
 var ObjectId = require('mongoose').Types.ObjectId;
 const { isExistingUser } = require("./user.js");
+const {sendPushNotificationToUsers} = require("./user_devices.js");
+const {getFieldFrequencyAndProfilesSorted, appendProfileInformationToArrayOfObjectsWithUsername} = require("./helpers.js");
 
 async function createLeague(leagueInfo) {
     const newUser = new League(leagueInfo);
@@ -143,6 +146,10 @@ router.post("/leave_league", checkLeagueID,
     next();
 }, updateLeague);
 
+async function notifyPendingMember(username, memberName, actionMessage) {
+    sendPushNotificationToUsers([memberName], username + actionMessage, "leagueMemberPage");
+}
+
 router.route("/invite_to_join").post(
     checkLeagueID, verifyRecipientUserExists,
     async (req, res, next) => {
@@ -164,6 +171,7 @@ router.route("/invite_to_join").post(
         )
 
         if (updateLog.matchedCount == 1) {
+            await notifyPendingMember(username, recipient, " accepted your league request.");
             return res.sendStatus(200);
         }
 
@@ -176,6 +184,7 @@ router.route("/invite_to_join").post(
             $addToSet: { sentRequests : recipient},
         }
 
+        await notifyPendingMember(username, recipient, " invited you to a league.");
         next();
 }, updateLeague);
 
@@ -183,6 +192,7 @@ router.route("/user_request_to_join").post(
     checkLeagueID,
     async (req, res, next) => {
         const username = req.session.username;
+        const leagueID = req.body.leagueID;
 
 
         const updateLog = await League.updateOne(
@@ -278,6 +288,8 @@ router.route("/accept_join_request").post(
         $addToSet: { members : recipient},
         $pull: { pendingRequests : recipient},
     }
+    await notifyPendingMember(username, recipient, " accepted your league request.");
+
     next();
 }, updateLeague);
 
@@ -439,6 +451,7 @@ async function getPropertyOfLeague(leagueID, property) {
 }
 
 router.route("/get_league_name").post(
+    checkLeagueID,
     async (req, res, next) => {
         const leagueID = req.body.leagueID;
         const leagueName = await getPropertyOfLeague(leagueID, "leagueName");
@@ -447,6 +460,7 @@ router.route("/get_league_name").post(
 });
 
 router.route("/get_league_description").post(
+    checkLeagueID,
     async (req, res, next) => {
         const leagueID = req.body.leagueID;
         const leagueDescription = await getPropertyOfLeague(leagueID, "leagueDescription");
@@ -455,6 +469,7 @@ router.route("/get_league_description").post(
 });
 
 router.route("/get_league_picture").post(
+    checkLeagueID,
     async (req, res, next) => {
         const leagueID = req.body.leagueID;
         const leaguePicture = await getPropertyOfLeague(leagueID, "leaguePicture");
@@ -505,7 +520,7 @@ async function getLeagueActiveChallengeCount(req, res, next) {
     return res.status(200).json(challengeCount)
 }
 
-router.route('/get_league_active_challenges').post(getLeagueActiveChallengeCount);
+router.route('/get_league_active_challenges').post(checkLeagueID, getLeagueActiveChallengeCount);
 
 // League object must have members, admin, and owner.
 function getRole(username, league) {
@@ -536,7 +551,7 @@ async function getMyRole(req, res, next) {
     return res.status(200).json(getRole(username, leagueInfo))
 }
 
-router.route('/get_role').post(getMyRole);
+router.route('/get_role').post(checkLeagueID, getMyRole);
 
 
 
@@ -568,10 +583,12 @@ async function getMemberList(req, res, next) {
     return res.status(200).json(membersWithRole)
 }
 
-router.route('/get_member_list').post(getMemberList);
+router.route('/get_member_list').post(checkLeagueID, getMemberList);
 
 
-router.route('/get_banned_list').post(async (req, res, next) => {
+router.route('/get_banned_list').post(
+    checkLeagueID,
+    async (req, res, next) => {
     const username = req.session.username;
     const leagueID = req.body.leagueID;
     const league = await League.findOne({
@@ -594,7 +611,9 @@ router.route('/get_banned_list').post(async (req, res, next) => {
 });
 
 
-router.route('/get_pending_request_list').post(async (req, res, next) => {
+router.route('/get_pending_request_list').post(
+    checkLeagueID,
+    async (req, res, next) => {
     const username = req.session.username;
     const leagueID = req.body.leagueID;
     const league = await League.findOne({
@@ -615,7 +634,9 @@ router.route('/get_pending_request_list').post(async (req, res, next) => {
     return res.status(200).json(memberInfo);
 });
 
-router.route('/get_sent_invite_list').post(async (req, res, next) => {
+router.route('/get_sent_invite_list').post(
+    checkLeagueID,
+    async (req, res, next) => {
     const username = req.session.username;
     const leagueID = req.body.leagueID;
     const league = await League.findOne({
@@ -636,27 +657,84 @@ router.route('/get_sent_invite_list').post(async (req, res, next) => {
 });
 
 
-router.route('/get_recommended').post(async (req, res, next) => {
+router.route('/get_leaderboard').post(checkLeagueID,
+    async (req, res, next) => {
+        const leagueChallenges = await Challenge.find({receivedUser: req.body.leagueID}).distinct("_id");
+        const completedChallenges = await Challenge_progress.find({
+            challengeID: {$in: leagueChallenges},
+            completed: true,
+        }, {
+            _id: 0, username: 1
+        }).lean()
+        const sortedResult = await getFieldFrequencyAndProfilesSorted("username", "completed", completedChallenges);
 
-    const returnObj = [
-        {"LeagueName": "Justice", "MutualFriends": 6},
-        {"LeagueName": "Avengers", "MutualFriends": 7},
-        {"LeagueName": "Free Swim", "MutualFriends": 4},
-        {"LeagueName": "Weighlifting Bros", "MutualFriends": 8},
-        {"LeagueName": "Lifting Weights and Friends", "MutualFriends": 1},
-        {"LeagueName": "Pokemon", "MutualFriends": 2},
-    ];
-    return res.status(200).json(returnObj);
+    console.log(sortedResult)
+
+    return res.status(200).send(sortedResult);
+
+});
+
+router.route('/get_recommended').post(async (req, res, next) => {
+    // find 10 recent exercises logged
+    // find all league challenges in the last x time with recent exercises
+    // find at most 6 leagues that are open from that list
+    const NUMBER_OF_RECENT_EXERCISES = 10;
+    const WEEK_IN_MILISECONDS = 604800000;
+    const CHALLENGE_QUERY_TIME_LIMIT = Date.now() - WEEK_IN_MILISECONDS;
+    const username =  req.session.username;
+
+    const leaguesUserIsIn = League.find({
+        members: username
+    }).distinct("_id");
+    const recentExercises = await Exercise_log.find({
+        username: username
+    }, {"_id": 0, "exercise": 1}).sort({"loggedDate": -1}).limit(NUMBER_OF_RECENT_EXERCISES).lean();
+
+    const uniqueRecentExercises = [...new Set(recentExercises.map(item => item.exercise.exerciseName))];
+
+    const relatedLeagueChallenges = await Challenge.find({
+        challengeType: "league",
+        issuedDate: {$gt: CHALLENGE_QUERY_TIME_LIMIT},
+        receivedUser: {$nin: await leaguesUserIsIn},
+        "exercise.exerciseName": {$in: uniqueRecentExercises}
+    }, {"_id": 0, "receivedUser": 1}).distinct("receivedUser").lean();
+
+
+    const openRelatedLeagues = await League.find({
+        _id: {$in: relatedLeagueChallenges},
+        leagueType: "open"
+    }, {"leagueName": 1, "leaguePicture": 1}).lean();
+
+    return res.status(200).json(openRelatedLeagues);
 });
 
 
 router.route('/get_recent_activity').post(async (req, res, next) => {
+    // Get league participants from all leagues
+    // Get active league challenges and find their exerciseName/unitType
+    // Find exercise_logs that match exerciseName and type that are logged by participants
+    // attach profile information.
+    const username = req.session.username;
+    const NUMBER_OF_EXERCISES_TO_RETURN = 6;
 
-    const returnObj = [{"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Jonah Jameson", "challengeType": "Personal", "challengeTitle": "Do 50 push ups", "time": "1h", "type": "progress"},
-    {"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Ash Ketchum", "challengeType": "League", "challengeTitle": "Swim 4 km", "time": "2d", "type":"progress"},
-    {"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Elle Woods", "challengeType": "Global", "challengeTitle": "Run 10 miles", "time": "3d", "type":"complete"}
-    ];
-    return res.status(200).json(returnObj);
+    const allMembersFromAllLeagues = await League.find({
+        members: username
+    }, {"_id": 0, "members": 1}).distinct("members").lean();
+
+    if (allMembersFromAllLeagues.length === 0) {
+        return res.sendStatus(200);
+    }
+
+    const otherMembersFromLeagues = allMembersFromAllLeagues.filter(memberName => memberName !== username);
+
+    const recentExercises = await Exercise_log.find({
+        username: {$in: otherMembersFromLeagues}
+    }).sort({"loggedDate": -1}).limit(NUMBER_OF_EXERCISES_TO_RETURN).lean();
+
+
+    const recentExercisesWithProfileInformation = await appendProfileInformationToArrayOfObjectsWithUsername(recentExercises, otherMembersFromLeagues)
+
+    return res.status(200).json(recentExercisesWithProfileInformation);
 });
 
 

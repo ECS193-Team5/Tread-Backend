@@ -1,9 +1,13 @@
 const router = require("express").Router();
 let User = require("../models/user.model");
 let User_inbox = require("../models/user_inbox.model");
+const Medals = require("../models/medals.model");
+const Medal_progress = require("../models/medal_progress.model");
+const { registerDeviceToken, removeDeviceToken } = require("./user_devices.js");
 const {OAuth2Client} = require('google-auth-library');
 const CLIENT_ID = process.env.CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
+
 
 function verifyLoggedIn(req, res, next) {
   if (!req.session.authenticationID || !req.session.authenticationSource) {
@@ -67,6 +71,22 @@ async function setUsernameAndUpdateProfile(userIdentifiers, profileInfo, chosenU
   return profileInfo.username;
 }
 
+async function generateUserMedalProgress(username) {
+
+  const medals = await Medals.find({});
+  const medalsProgress = medals.map(medal => {
+    return {insertOne: {
+      document: {
+        username: username,
+        level: medal["level"],
+        exercise: medal["exercise"]
+      }
+    }}
+  });
+
+  await Medal_progress.bulkWrite(medalsProgress);
+}
+
 router.route('/sign_up').post(async (req, res,) => {
   if (req.session.username !== null) {
     return res.status(400).json("Error: already has username");
@@ -100,9 +120,13 @@ router.route('/sign_up').post(async (req, res,) => {
   // Init necessary models
   try {
     await createUserInbox(completeUsername);
+    await generateUserMedalProgress(completeUsername);
   } catch {
     return res.sendStatus(500);
   }
+
+  // Add device token
+  await registerDeviceToken(req.session.username, req.body.deviceToken)
   return res.sendStatus(200);
 
 });
@@ -163,10 +187,11 @@ async function createNewUserIfNecessary(req, res, next) {
   next();
 }
 
-function generateLoggedInSession(req, res, next) {
+async function generateLoggedInSession(req, res, next) {
   const hasUsername = hasUsernameFromDoc(res.locals.usernameDoc);
   const userInfoFromAuth = res.locals.userInfoFromAuth;
-  req.session.regenerate(function (err) {
+  const deviceToken = req.body.deviceToken;
+  req.session.regenerate(async function (err) {
     if (err) return res.status(500).json(err);
     // store user information in session, typically a user id
     req.session.authenticationSource = 'google';
@@ -174,6 +199,7 @@ function generateLoggedInSession(req, res, next) {
 
     if (hasUsername) {
       req.session.username = res.locals.usernameDoc.username;
+      await registerDeviceToken(req.session.username, deviceToken);
     } else {
       req.session.username = null;
     }
@@ -208,8 +234,10 @@ router.route('/login/google').post(async (req, res, next) => {
 }, createNewUserIfNecessary, generateLoggedInSession);
 
 
-function logout(req, res) {
+async function logout(req, res) {
   // logout logic
+
+  await removeDeviceToken(req.session.username, req.body.deviceToken);
 
   // clear the user from the session object and save.
   // this will ensure that re-using the old session id

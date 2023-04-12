@@ -2,9 +2,8 @@ const router = require("express").Router();
 const Global_challenge_progress = require("../models/global_challenge_progress.model");
 const Global_challenge = require("../models/global_challenge.model");
 const { getProgressWithPicturesAndDisplayName } = require("../routes/challenges.js");
-const User = require("../models/user.model");
 
-
+// Move to protected route
 router.route('/add_challenge').post(async (req, res) => {
     // To access theses fields in query: " 'exercise.unit': 5 "
     const exercise = {

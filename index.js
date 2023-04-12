@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 var session = require('express-session');
 const MongoStore = require('connect-mongo');
+const initializeFirebaseSDK = require("./firebase_startup");
 
 
 //const https = require("https");
@@ -25,7 +26,9 @@ app.use(cors({
 
 app.use(express.json());
 
-const uri = process.env.ATLAS_URI
+const uri = process.env.ATLAS_URI;
+// Will be set to false by default in mongoose 7
+//mongoose.set('strictQuery', true);
 mongoose.connect(uri);
 const connection = mongoose.connection;
 connection.once("open", () => {
@@ -47,6 +50,7 @@ var sess = {
   // enable when we have HTTPS connection
   // secure: true,
   cookie: {
+    //maxAge: 300000,
   }
 }
 
@@ -58,6 +62,8 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.use(session(sess))
+
+initializeFirebaseSDK();
 
 function isAuthenticated(req, res, next) {
   if (req.session.authenticationSource && req.session.authenticationID) next();
@@ -94,12 +100,3 @@ const port = parseInt(process.env.PORT) || 8080;
 app.listen(port, () => {
   console.log(`Server Started at ${port}`)
 });
-/*
-https.createServer({
-  key: fs.readFileSync("key.pem"),
-  cert: fs.readFileSync("cert.pem"),
-},
-app
-).listen(5000, () => {
-  console.log(`Server Started at ${5000}`)
-});*/

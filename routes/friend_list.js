@@ -2,7 +2,10 @@ const router = require("express").Router();
 let User = require("../models/user.model");
 const User_inbox = require("../models/user_inbox.model");
 const Friend_connection = require("../models/friend_connection.model");
+const Exercise_log = require("../models/exercise_log.model");
 const {isExistingUser} = require("./user.js");
+const {sendPushNotificationToUsers} = require("./user_devices.js");
+const {getFieldFrequencyAndProfilesSorted, appendProfileInformationToArrayOfObjectsWithUsername} = require("./helpers.js");
 /*
 router.route("/").get((req, res) => {
     User_inbox.find()
@@ -205,6 +208,10 @@ async function verifyFriendExists(req, res, next) {
     next()
 }
 
+async function notifyFriend(username, friendName, actionMessage) {
+    sendPushNotificationToUsers([friendName], username + actionMessage , "socialFriendPage");
+}
+
 router.route('/send_friend_request').post(
     verifyFriendNameNotUsername,
     verifyFriendExists,
@@ -237,6 +244,8 @@ router.route('/send_friend_request').post(
 
     sendRequest(username, friendName);
 
+    await notifyFriend(username, friendName, " sent an friend request.")
+
     return res.sendStatus(200);
 });
 
@@ -247,6 +256,7 @@ router.route('/accept_received_request').post(
     const friendName = req.body.friendName
 
     acceptFriendRequest(username, friendName);
+    await notifyFriend(username, friendName, " accepted your friend request.")
 
     return res.sendStatus(200);
 });
@@ -362,26 +372,45 @@ router.route('/block_user').post(
 
 
 router.route('/get_recommended').post(async (req, res, next) => {
+    const username = req.session.username;
+    const MUTUAL_FRIEND_QUERY_LIMIT = 6000;
 
-    const returnObj = [
-        {"DisplayName": "Shazam", "MutualFriends": 6, "MutualLeagues": 4},
-        {"DisplayName": "Wonder Woman", "MutualFriends": 7, "MutualLeagues": 6},
-        {"DisplayName": "Bruce Wayne", "MutualFriends": 4, "MutualLeagues": 4},
-        {"DisplayName": "Alan Rickman", "MutualFriends": 8, "MutualLeagues": 2},
-        {"DisplayName": "Sinead O'Connor", "MutualFriends": 1, "MutualLeagues": 1},
-        {"DisplayName": "Pikachu", "MutualFriends": 2, "MutualLeagues": 0},
-    ];
-    return res.status(200).json(returnObj);
+    const friendList = await Friend_connection.find({
+        username: username,
+    }).distinct("friendName");
+
+    const invalidFriends = [...friendList, username]
+    const mutualFriends = await Friend_connection.find({
+        username: {$in: friendList},
+        friendName:{$nin: invalidFriends}
+    }, {"_id": 0, "friendName": 1}).limit(MUTUAL_FRIEND_QUERY_LIMIT).lean()
+
+    const mutualFriendsFrequency = await getFieldFrequencyAndProfilesSorted("friendName", "mutualFriendCount", mutualFriends)
+
+    return res.status(200).json(mutualFriendsFrequency);
 });
 
 
 router.route('/get_recent_activity').post(async (req, res, next) => {
 
-    const returnObj = [{"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Jonah Jameson", "challengeType": "Personal", "challengeTitle": "Do 50 push ups", "time": "1h", "type": "progress"},
-    {"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Ash Ketchum", "challengeType": "League", "challengeTitle": "Swim 4 km", "time": "2d", "type":"progress"},
-    {"photo":"https://i.imgur.com/3Ia9gVG.png","displayName": "Elle Woods", "challengeType": "Global", "challengeTitle": "Run 10 miles", "time": "3d", "type":"complete"}
-    ];
-    return res.status(200).json(returnObj);
+    const username = req.session.username;
+
+    const friendList = await Friend_connection.find({
+        username: username
+    }).distinct("friendName");
+
+    const recentFriendActivity = await Exercise_log.find({
+        username: {$in: friendList}
+    },{
+        "_id": 0
+    }).sort({loggedDate: -1}).limit(5).lean();
+
+
+    const uniqueUsernames = [...new Set(recentFriendActivity.map(item => item.username))];
+
+    const activityWithProfileInfo = await appendProfileInformationToArrayOfObjectsWithUsername(recentFriendActivity,uniqueUsernames);
+
+    return res.status(200).json(activityWithProfileInfo);
 });
 
 

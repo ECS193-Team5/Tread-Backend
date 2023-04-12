@@ -4,7 +4,9 @@ const Challenge = require("../models/challenge.model");
 const Challenge_progress = require("../models/challenge_progress.model");
 const League = require("../models/league.model");
 const User = require("../models/user.model");
+const {sendPushNotificationToUsers} = require("./user_devices.js")
 const {isExistingUser, getPropertyOfUser} = require("./user.js");
+const firebase = require("firebase-admin");
 
 
 function addInfoSharedAcrossRequests(req, res, next) {
@@ -66,8 +68,25 @@ async function addChallengeProgress(req, res, next) {
         return res.status(500).json("Error: " + err);
     }
 
-    return res.sendStatus(200);
+    next();
 
+}
+
+async function notifyNewChallenge(req, res, next) {
+    const participants = res.locals.challenge.participants;
+    const sentUser = req.session.username;
+    // remove self from notification list
+    const index = participants.indexOf(sentUser);
+    if (index > -1) { // only splice array when item is found
+        participants.splice(index, 1); // 2nd parameter means remove one item only
+    }
+
+    sendPushNotificationToUsers(
+        participants,
+        "New challenge from " + sentUser + ".",
+        "currentChallengePage"
+    );
+    return res.sendStatus(200);
 }
 
 router.route('/add_friend_challenge').post(async (req, res, next) => {
@@ -86,7 +105,7 @@ router.route('/add_friend_challenge').post(async (req, res, next) => {
         challengeType: challengeType,
     }
     next();
-}, addInfoSharedAcrossRequests, addChallenge, addChallengeProgress);
+}, addInfoSharedAcrossRequests, addChallenge, addChallengeProgress, notifyNewChallenge);
 
 router.route('/add_self_challenge').post(async (req, res, next) => {
     const sentUser = req.session.username;
@@ -101,7 +120,7 @@ router.route('/add_self_challenge').post(async (req, res, next) => {
 
     }
     next();
-}, addInfoSharedAcrossRequests, addChallenge, addChallengeProgress);
+}, addInfoSharedAcrossRequests, addChallenge, addChallengeProgress, notifyNewChallenge);
 
 router.route('/add_league_challenge').post(async (req, res, next) => {
     const sentUser = req.session.username;
@@ -126,7 +145,7 @@ router.route('/add_league_challenge').post(async (req, res, next) => {
         challengeType: challengeType,
     }
     next();
-}, addInfoSharedAcrossRequests, addChallenge, addChallengeProgress);
+}, addInfoSharedAcrossRequests, addChallenge, addChallengeProgress, notifyNewChallenge);
 
 router.route('/delete_friend_challenge').post(async (req, res) => {
     const username = req.session.username;
@@ -231,7 +250,7 @@ router.route('/sent_challenges').post(async (req, res) => {
     }).lean();
 
     const completeInformation = await getChallengesZippedWithPictures(challenges);
-    return res.status(200).send(completeInformation);
+    res.status(200).send(completeInformation);
 });
 
 router.route('/league_challenges').post(async (req, res) => {
@@ -270,7 +289,7 @@ router.route('/received_challenges').post(async (req, res) => {
 
 
 async function updatePendingChallengeStatusByID(challengeID, username, newStatus) {
-    return Challenge.updateOne({
+    return Challenge.findOneAndUpdate({
         _id : ObjectId(challengeID),
         receivedUser: username,
         status: 'pending'
@@ -280,16 +299,27 @@ async function updatePendingChallengeStatusByID(challengeID, username, newStatus
         }).lean();
 }
 
+async function notifyAcceptedChallenge(challengerUsername, user) {
+    sendPushNotificationToUsers(
+        [challengerUsername],
+        user + " accepted your challenge",
+        "currentChallengePage"
+    );
+}
+
 router.route('/accept_friend_challenge').post(async (req, res) => {
     const username = req.session.username;
     const challengeID = req.body.challengeID;
 
-    const updateReport = await updatePendingChallengeStatusByID(
+    const challenge = await updatePendingChallengeStatusByID(
         challengeID, username, 'accepted')
 
-    if (updateReport.matchedCount == 0) {
+    if (challenge === null) {
         return res.sendStatus(404);
     }
+
+    await notifyAcceptedChallenge(challenge.sentUser, username);
+
 
     return res.sendStatus(200);
 });
@@ -309,7 +339,7 @@ router.route('/decline_friend_challenge').post(async (req, res) => {
 });
 
 async function getPicturesForListOfProgress(participantProgress){
-    // Might have a better way to query this
+    // Might have a better way to query (this find with list of participants)
     let profilePicturesForEachProgress = [];
     participantProgress.forEach((progressObj) => {
         profilePicturesForEachProgress.push(

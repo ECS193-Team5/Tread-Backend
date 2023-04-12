@@ -1,6 +1,8 @@
 const router = require("express").Router();
 const Exercise_log = require("../models/exercise_log.model");
 const Challenge = require("../models/challenge.model");
+const Medal_progress = require("../models/medal_progress.model");
+const Medals = require("../models/medals.model");
 const Global_challenge = require("../models/global_challenge.model");
 const Global_challenge_progress = require("../models/global_challenge_progress.model");
 const Challenge_progress = require("../models/challenge_progress.model");
@@ -69,7 +71,7 @@ async function updateGlobalChallenges(req, res, next) {
     }).lean();
 
     if (needUpdatingGlobalChallenge == null) {
-        return res.sendStatus(200);
+        return next();
     }
 
     await Global_challenge_progress.updateOne({
@@ -98,18 +100,33 @@ async function checkForChallengeCompletion(req, res, next) {
         dueDate: {
             $gte: Math.max(Date.now(), loggedDate)
         },
-        $expr: {$gt: [ "$progress" , "$exercise.convertedAmount" ]}
+        $expr: {$gte: [ "$progress" , "$exercise.convertedAmount" ]}
     }
     // This is very slow
     await Challenge_progress.updateMany(challengeCompletionQuery, {completed: true});
     await Global_challenge_progress.updateMany(challengeCompletionQuery, {completed: true});
+    next();
+}
+
+
+async function updateMedalProgress(req, res, next) {
+    const username = req.session.username
+    const medalCompletionQuery = {
+        username: username,
+        'exercise.exerciseName': req.body.exerciseName,
+        'exercise.unitType' : res.locals.exerciseLog.exercise.unitType,
+        $expr: {$gte: [ "$progress" , "$exercise.convertedAmount" ]}
+    }
+
+    await Medal_progress.updateMany(medalCompletionQuery, {completed: true});
     return res.sendStatus(200);
 }
 
 router.route('/add').post(addExerciseToLog,
     updateChallenges,
     updateGlobalChallenges,
-    checkForChallengeCompletion);
+    checkForChallengeCompletion,
+    updateMedalProgress);
 
 
 
