@@ -4,6 +4,18 @@ var session = require('express-session');
 const MongoStore = require('connect-mongo');
 const initializeFirebaseSDK = require("./firebase_startup");
 
+/* File System Object */
+var fs = require('fs');
+
+/* Read File */
+fs.readFile('tread-379302-c0d24a7ca7b0.json', bar)
+
+function bar (err, data)
+  {
+  /* If an error exists, show it, otherwise show the file */
+  err ? Function("error","throw error")(err) : console.log(JSON.stringify(data) );
+  };
+
 
 //const https = require("https");
 //const fs = require('fs');
