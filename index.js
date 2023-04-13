@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 var session = require('express-session');
 const MongoStore = require('connect-mongo');
-const initializeFirebaseSDK = require("./firebase_startup");
+//const initializeFirebaseSDK = require("./firebase_startup");
 
 /* File System Object */
 var fs = require('fs');
@@ -75,7 +75,7 @@ if (process.env.NODE_ENV === 'production') {
 
 app.use(session(sess))
 
-initializeFirebaseSDK();
+//initializeFirebaseSDK();
 
 function isAuthenticated(req, res, next) {
   if (req.session.authenticationSource && req.session.authenticationID) next();
