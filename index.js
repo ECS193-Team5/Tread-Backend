@@ -2,21 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 var session = require('express-session');
 const MongoStore = require('connect-mongo');
-//const initializeFirebaseSDK = require("./firebase_startup");
-
-/* File System Object */
-var fs = require('fs');
-
-/* Read File */
-fs.readFile('./secrets/tread-379302-c0d24a7ca7b0.json', bar)
-
-
-function bar (err, data)
-  {
-   console.log("trying to log" , data)
-  /* If an error exists, show it, otherwise show the file */
-  err ? Function("error","throw error")(err) : console.log(JSON.stringify(data) );
-  };
+const initializeFirebaseSDK = require("./firebase_startup");
 
 
 //const https = require("https");
@@ -77,7 +63,7 @@ if (process.env.NODE_ENV === 'production') {
 
 app.use(session(sess))
 
-//initializeFirebaseSDK();
+initializeFirebaseSDK();
 
 function isAuthenticated(req, res, next) {
   if (req.session.authenticationSource && req.session.authenticationID) next();
