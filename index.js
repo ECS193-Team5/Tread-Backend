@@ -15,6 +15,7 @@ fs.readFile('/secrets/tread-379302-c0d24a7ca7b0.json', bar)
 
 function bar (err, data)
   {
+   console.log("trying to log" , data)
   /* If an error exists, show it, otherwise show the file */
   err ? Function("error","throw error")(err) : console.log(JSON.stringify(data) );
   };
