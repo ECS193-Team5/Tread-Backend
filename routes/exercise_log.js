@@ -111,14 +111,36 @@ async function checkForChallengeCompletion(req, res, next) {
 
 async function updateMedalProgress(req, res, next) {
     const username = req.session.username
+    const incrementObj = {
+        progress : res.locals.exerciseLog.exercise.convertedAmount
+    }
+    const medalProgressQuery = {
+        username: username,
+        'exercise.exerciseName': req.body.exerciseName,
+        'exercise.unitType' : res.locals.exerciseLog.exercise.unitType,
+        completed: false,
+    }
+
+    await Medal_progress.updateMany(medalProgressQuery , {$inc: incrementObj});
+
+    next();
+ }
+
+
+async function checkMedalCompletion(req, res, next) {
+    const username = req.session.username
     const medalCompletionQuery = {
         username: username,
         'exercise.exerciseName': req.body.exerciseName,
         'exercise.unitType' : res.locals.exerciseLog.exercise.unitType,
-        $expr: {$gte: [ "$progress" , "$exercise.convertedAmount" ]}
+        completed: false,
+        $expr: {$gte: [ "$progress" , "$exercise.convertedAmount" ]},
     }
 
-    await Medal_progress.updateMany(medalCompletionQuery, {completed: true});
+    await Medal_progress.updateMany(medalCompletionQuery, {
+        completed: true
+    });
+
     return res.sendStatus(200);
 }
 
@@ -126,7 +148,8 @@ router.route('/add').post(addExerciseToLog,
     updateChallenges,
     updateGlobalChallenges,
     checkForChallengeCompletion,
-    updateMedalProgress);
+    updateMedalProgress,
+    checkMedalCompletion);
 
 
 
