@@ -94,12 +94,18 @@ async function removeFriend(username, friendName) {
     await Friend_connection.bulkWrite([
         {
             deleteOne:{
-                filter: {username: username}
+                filter: {
+                    username: username,
+                    friendName: friendName
+                }
             }
         },
         {
             deleteOne:{
-                filter: {username: friendName}
+                filter: {
+                    username: friendName,
+                    friendName: username
+                }
             }
         }
     ]);
