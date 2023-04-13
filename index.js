@@ -8,7 +8,10 @@ const MongoStore = require('connect-mongo');
 var fs = require('fs');
 
 /* Read File */
+fs.readFile('/./tread-379302-c0d24a7ca7b0.json', bar)
 fs.readFile('tread-379302-c0d24a7ca7b0.json', bar)
+fs.readFile('/secrets/tread-379302-c0d24a7ca7b0.json', bar)
+
 
 function bar (err, data)
   {
