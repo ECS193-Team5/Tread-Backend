@@ -722,7 +722,7 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
     }, {"_id": 0, "members": 1}).distinct("members").lean();
 
     if (allMembersFromAllLeagues.length === 0) {
-        return res.sendStatus(200);
+        return res.status(200).json([]);
     }
 
     const otherMembersFromLeagues = allMembersFromAllLeagues.filter(memberName => memberName !== username);
