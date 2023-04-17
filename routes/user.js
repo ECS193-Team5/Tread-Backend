@@ -48,7 +48,7 @@ router.route('/update_picture').post(multer().array(), async (req, res) => {
     return res.sendStatus(200);
   }
 
-  try {console.log(username)
+  try {
     await uploadImage(picture, 'profilePictures', username.replace('#', '_'));
   } catch (err) {
     console.log(err);
