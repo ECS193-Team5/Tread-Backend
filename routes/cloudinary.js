@@ -6,7 +6,7 @@ async function uploadImage(fileSource, folder, publicID){
         upload_preset: process.env.CLOUDINARY_PRESET,
         public_id: publicID,
         folder: folder,
-        unique_filname: true,
+        unique_filename: true,
         resource_type: 'image',
         overwrite: true
     });

@@ -89,7 +89,7 @@ async function generateUserMedalProgress(username) {
   await Medal_progress.bulkWrite(medalsProgress);
 }
 
-router.route('/sign_up').post(async (req, res,) => {
+router.route('/sign_up').post(multer().array(), async (req, res,) => {
   if (req.session.username !== null) {
     return res.status(400).json("Error: already has username");
   }
@@ -122,9 +122,9 @@ router.route('/sign_up').post(async (req, res,) => {
   try {
     await createUserInbox(completeUsername);
     await generateUserMedalProgress(completeUsername);
-    await uploadImage(picture, 'profilePicture', completeUsername.replace('#', '_'));
+    await uploadImage(picture, 'profilePictures', completeUsername.replace('#', '_'));
   } catch (err){
-    return res.sendStatus(500, err);
+    return res.sendStatus(500);
   }
 
   // Add device token
