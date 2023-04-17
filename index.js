@@ -3,10 +3,8 @@ const mongoose = require('mongoose');
 var session = require('express-session');
 const MongoStore = require('connect-mongo');
 const initializeFirebaseSDK = require("./firebase_startup");
+const initializeCloudinarySDK = require("./cloudinary_startup")
 
-
-//const https = require("https");
-//const fs = require('fs');
 const cors = require("cors");
 require('dotenv').config();
 
@@ -63,6 +61,7 @@ if (process.env.NODE_ENV === 'production') {
 
 app.use(session(sess))
 
+initializeCloudinarySDK();
 initializeFirebaseSDK();
 
 function isAuthenticated(req, res, next) {

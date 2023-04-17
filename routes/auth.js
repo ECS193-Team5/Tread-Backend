@@ -122,9 +122,9 @@ router.route('/sign_up').post(async (req, res,) => {
   try {
     await createUserInbox(completeUsername);
     await generateUserMedalProgress(completeUsername);
-    await uploadImage(picture, 'profilePicture', completeUsername);
-  } catch {
-    return res.sendStatus(500);
+    await uploadImage(picture, 'profilePicture', completeUsername.replace('#', '_'));
+  } catch (err){
+    return res.sendStatus(500, err);
   }
 
   // Add device token
