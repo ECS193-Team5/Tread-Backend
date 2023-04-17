@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const {uploadImage} = require('./cloudinary.js');
 const League = require("../models/league.model");
 const Challenge = require("../models/challenge.model");
 const Challenge_progress = require("../models/challenge_progress.model");
@@ -15,16 +16,17 @@ async function createLeague(leagueInfo) {
 }
 
 router.route("/create_league").post(async (req, res) => {
+    const leaguePicture = req.body.leaguePicture;
     leagueInfo = {
         owner: req.session.username,
         leagueName: req.body.leagueName,
         leagueType: req.body.leagueType,
         leagueDescription: req.body.leagueDescription,
-        leaguePicture: req.body.leaguePicture
     }
 
     try {
-        await createLeague(leagueInfo)
+        leagueDocument = await createLeague(leagueInfo);
+        await uploadImage(leaguePicture, "leaguePicture", leagueDocument["_id"]);
     } catch (err){
         console.log(err)
         return res.status(500).json("Server error or name invalid");

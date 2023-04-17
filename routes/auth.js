@@ -6,7 +6,7 @@ const Medals = require("../models/medals.model");
 const Medal_progress = require("../models/medal_progress.model");
 const { registerDeviceToken, removeDeviceToken } = require("./user_devices.js");
 const {OAuth2Client} = require('google-auth-library');
-const {uploadImage} = require('./cloudinary.js')
+const {uploadImage} = require('./cloudinary.js');
 const CLIENT_ID = process.env.CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
 
