@@ -676,8 +676,6 @@ router.route('/get_leaderboard').post(checkLeagueID,
         }).lean()
         const sortedResult = await getSortedFieldFrequency("username", completedChallenges);
 
-    console.log(sortedResult)
-
     return res.status(200).send(sortedResult);
 
 });

@@ -29,6 +29,10 @@ const exerciseLogSchema = new Schema(
   collection: "exercise_log"
 });
 
+exerciseSchema.index({
+    username: 1, loggedDate: 1
+});
+
 const Exercise_log = mongoose.model("Exercise_log", exerciseLogSchema);
 
 module.exports = Exercise_log;
