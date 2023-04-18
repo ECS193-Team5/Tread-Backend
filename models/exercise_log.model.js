@@ -29,7 +29,7 @@ const exerciseLogSchema = new Schema(
   collection: "exercise_log"
 });
 
-exerciseSchema.index({
+exerciseLogSchema.index({
     username: 1, loggedDate: 1
 });
 

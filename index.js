@@ -92,7 +92,7 @@ app.use("/challenges", isAuthenticated, hasUsername, challengeRouter);
 app.use("/league", isAuthenticated, hasUsername, leagueRouter);
 app.use("/exercise_log", isAuthenticated, hasUsername, exerciseLogRouter);
 app.use("/medals", isAuthenticated, hasUsername, medalsRouter);
-app.use("/stats", isAuthenticated, hasUsername, statisticsRouter)
+app.use("/stats", isAuthenticated, hasUsername, statisticsRouter);
 
 // Should be in some kind of protected route
 app.use("/global_challenge", isAuthenticated, hasUsername, globalChallengeRouter);

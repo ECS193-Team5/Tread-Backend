@@ -22,3 +22,5 @@ router.route("/get_past_challenges").post(async (req, res, next) => {
 
     return res.status(200).json(exerciseLogData);
 });
+
+module.exports = router;
