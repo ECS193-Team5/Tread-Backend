@@ -224,7 +224,9 @@ router.route("/user_request_to_join").post(
                 $addToSet: { members: username}
             }
         } else {
-            res.locals.updates = { pendingRequests : username}
+            res.locals.updates = {
+                $addToSet: { pendingRequests : username},
+            }
         }
 
         res.locals.filter = {
