@@ -1,9 +1,11 @@
 const router = require("express").Router();
+const multer = require("multer");
 let User = require("../models/user.model");
 let User_inbox = require("../models/user_inbox.model");
 const Friend_connection = require("../models/friend_connection.model");
 const Challenge = require("../models/challenge.model");
 const League = require("../models/league.model");
+const { uploadImage } = require("./cloudinary.js");
 const { logout } = require("./auth.js");
 
 async function isExistingUser(username) {
@@ -31,18 +33,44 @@ router.route('/get_username').post(async (req, res) => {
   return res.json(req.session.username);
 });
 
-router.route('/update_profile_info').post(async (req, res) => {
+async function updateProfileField(username, updates) {
+  User.findOneAndUpdate(
+    {username: username},
+    updates, {runValidators: true}
+  );
+}
+
+router.route('/update_picture').post(multer().array(), async (req, res) => {
   const picture = req.body.picture;
+  const username = req.session.username;
+
+  if (!picture) {
+    return res.sendStatus(200);
+  }
+
+  try {
+    await uploadImage(picture, 'profilePictures', username.replace('#', '_'));
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json("picture upload error");
+  }
+  return res.sendStatus(200);
+})
+
+router.route('/update_display_name').post(async (req, res) => {
   const displayName = req.body.displayName;
   const username = req.session.username;
 
-  let update = {};
-  if (displayName) update.displayName = displayName;
-  if (picture) update.picture = picture;
+  if (!displayName) {
+    return res.sendStatus(200);
+  }
+
+  let update = {
+    displayName: displayName
+  };
+
   try {
-    await User.findOneAndUpdate(
-      {username: username},
-      update, {runValidators: true});
+    await updateProfileField(username, update);
   } catch {
     return res.status(400).json("displayName not valid");
   }
