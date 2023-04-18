@@ -1,7 +1,6 @@
 const router = require("express").Router();
 const Global_challenge_progress = require("../models/global_challenge_progress.model");
 const Global_challenge = require("../models/global_challenge.model");
-const { getProgressWithPicturesAndDisplayName } = require("../routes/challenges.js");
 
 // Move to protected route
 router.route('/add_challenge').post(async (req, res) => {
@@ -103,10 +102,8 @@ async function getLeaderboard(req, res, next) {
             username: 1, displayName: 1, progress:1
         }).lean()
     ]);
-    const topFiveAndUser = await Promise.all([
-        getProgressWithPicturesAndDisplayName(topFiveUsers),
-        getProgressWithPicturesAndDisplayName([userRank])
-    ]);
+    const topFiveAndUser = [topFiveUsers, userRank
+    ];
     return res.status(200).json(topFiveAndUser)
 
 }

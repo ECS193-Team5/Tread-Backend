@@ -5,7 +5,7 @@ const Friend_connection = require("../models/friend_connection.model");
 const Exercise_log = require("../models/exercise_log.model");
 const {isExistingUser} = require("./user.js");
 const {sendPushNotificationToUsers} = require("./user_devices.js");
-const {getFieldFrequencyAndProfilesSorted, appendProfileInformationToArrayOfObjectsWithUsername} = require("./helpers.js");
+const {getSortedFieldFrequency} = require("./helpers.js");
 /*
 router.route("/").get((req, res) => {
     User_inbox.find()
@@ -45,8 +45,8 @@ router.route('/friend_list').post(async (req, res) => {
     return res.json(friendList);
 });
 
-async function getUsernameDisplayNamePicture(usernameArray){
-    return User.find({username: {$in: usernameArray}}, 'username displayName picture');
+async function getUsernameDisplayName(usernameArray){
+    return User.find({username: {$in: usernameArray}}, 'username displayName');
 }
 
 router.route('/get_all_friends_info').post(async (req, res) => {
@@ -54,22 +54,22 @@ router.route('/get_all_friends_info').post(async (req, res) => {
 
     const friendList = await getfriendList(username);
 
-    const friendInfo = await getUsernameDisplayNamePicture(friendList);
+    const friendInfo = await getUsernameDisplayName(friendList);
 
     return res.json(friendInfo);
 });
 
-async function getUsernameDislayNamePictureFromInboxNames(username, inboxField) {
+async function getUsernameDislayNameFromInboxNames(username, inboxField) {
     const usernameList = await getPropertyOfFriendList(username, inboxField);
 
-    return await getUsernameDisplayNamePicture(usernameList[inboxField]);
+    return await getUsernameDisplayName(usernameList[inboxField]);
 
 }
 
 router.route('/sent_request_list').post(async (req, res) => {
     const username = req.session.username;
 
-    const requestInfoArray = await getUsernameDislayNamePictureFromInboxNames(username, 'sentRequests');
+    const requestInfoArray = await getUsernameDislayNameFromInboxNames(username, 'sentRequests');
 
     return res.json(requestInfoArray);
 });
@@ -77,7 +77,7 @@ router.route('/sent_request_list').post(async (req, res) => {
 router.route('/received_request_list').post(async (req, res) => {
     const username = req.session.username;
 
-    const requestList = await getUsernameDislayNamePictureFromInboxNames(username, 'receivedRequests');
+    const requestList = await getUsernameDislayNameFromInboxNames(username, 'receivedRequests');
 
     return res.json(requestList);
 });
@@ -85,7 +85,7 @@ router.route('/received_request_list').post(async (req, res) => {
 router.route('/blocked_list').post(async (req, res) => {
     const username = req.session.username;
 
-    const blockedList = await getUsernameDislayNamePictureFromInboxNames(username, 'blocked');
+    const blockedList = await getUsernameDislayNameFromInboxNames(username, 'blocked');
 
     return res.json(blockedList);
 });
@@ -391,7 +391,7 @@ router.route('/get_recommended').post(async (req, res, next) => {
         friendName:{$nin: invalidFriends}
     }, {"_id": 0, "friendName": 1}).limit(MUTUAL_FRIEND_QUERY_LIMIT).lean()
 
-    const mutualFriendsFrequency = await getFieldFrequencyAndProfilesSorted("friendName", "mutualFriendCount", mutualFriends)
+    const mutualFriendsFrequency = await getSortedFieldFrequency("friendName", mutualFriends)
 
     return res.status(200).json(mutualFriendsFrequency);
 });
@@ -411,12 +411,7 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
         "_id": 0
     }).sort({loggedDate: -1}).limit(5).lean();
 
-
-    const uniqueUsernames = [...new Set(recentFriendActivity.map(item => item.username))];
-
-    const activityWithProfileInfo = await appendProfileInformationToArrayOfObjectsWithUsername(recentFriendActivity,uniqueUsernames);
-
-    return res.status(200).json(activityWithProfileInfo);
+    return res.status(200).json(recentFriendActivity);
 });
 
 
