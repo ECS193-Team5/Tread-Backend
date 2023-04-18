@@ -213,13 +213,25 @@ router.route("/user_request_to_join").post(
             return res.sendStatus(200);
         }
 
+        const leagueType = await League.findOne(
+            {
+                _id: ObjectId(leagueID),
+            },{ "_id": 0, "leagueType": 1 }
+        )
+
+        if (leagueType.leagueType === "open") {
+            res.locals.updates = {
+                $addToSet: { members: username}
+            }
+        } else {
+            res.locals.updates = { pendingRequests : username}
+        }
+
         res.locals.filter = {
             _id : ObjectId(leagueID),
             members: {$ne: username}
         },
-        res.locals.updates ={
-            $addToSet: { pendingRequests : username},
-        }
+
         next();
 }, updateLeague);
 
