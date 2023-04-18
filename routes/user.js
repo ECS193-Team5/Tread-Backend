@@ -25,10 +25,6 @@ router.route('/get_display_name').post(async (req, res) => {
   return res.json(await getPropertyOfUser(req.session.username, 'displayName'));
 });
 
-router.route('/get_profile_photo').post(async (req, res) => {
-  return res.json(await getPropertyOfUser(req.session.username, 'picture'));
-});
-
 router.route('/get_username').post(async (req, res) => {
   return res.json(req.session.username);
 });

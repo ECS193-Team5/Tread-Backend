@@ -28,11 +28,6 @@ const LeagueSchema = new Schema(
             message: () => 'Size must be less than 140'
         }
     },
-    leaguePicture: {
-        type: String,
-        required: true,
-        default : "https://i.imgur.com/uPaX0Km.png"
-    },
     leagueName: {
         type: String,
         required: true,
