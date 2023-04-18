@@ -9,7 +9,7 @@ const Exercise_log = require("../models/exercise_log.model");
 var ObjectId = require('mongoose').Types.ObjectId;
 const { isExistingUser } = require("./user.js");
 const {sendPushNotificationToUsers} = require("./user_devices.js");
-const {getFieldFrequencyAndProfilesSorted, appendProfileInformationToArrayOfObjectsWithUsername} = require("./helpers.js");
+const {getSortedFieldFrequency} = require("./helpers.js");
 
 async function createLeague(leagueInfo) {
     const newUser = new League(leagueInfo);
@@ -386,7 +386,7 @@ async function getAllLeaguesWithChallengeCount(req, res, next) {
     const filter = res.locals.filter;
 
     // Not sure if order is guaranteed
-    const leaguesInfo = await League.find(filter, "_id leagueName leaguePicture members").lean();
+    const leaguesInfo = await League.find(filter, "_id leagueName members").lean();
 
     let challengeCount = [];
     leaguesInfo.forEach((league) => {
@@ -469,15 +469,6 @@ router.route("/get_league_description").post(
         const leagueDescription = await getPropertyOfLeague(leagueID, "leagueDescription");
 
         return res.status(200).json(leagueDescription);
-});
-
-router.route("/get_league_picture").post(
-    checkLeagueID,
-    async (req, res, next) => {
-        const leagueID = req.body.leagueID;
-        const leaguePicture = await getPropertyOfLeague(leagueID, "leaguePicture");
-
-        return res.status(200).json(leaguePicture);
 });
 
 /// Test this
@@ -576,7 +567,7 @@ async function getMemberList(req, res, next) {
     const leagueMembers = league.members;
     const memberInfo = await User.find({
         username: {$in: leagueMembers}
-    }, {picture: 1, displayName: 1, username: 1, _id: 0}).lean();
+    }, {displayName: 1, username: 1, _id: 0}).lean();
 
 
     const membersWithRole = memberInfo.map((member) =>({
@@ -607,7 +598,7 @@ router.route('/get_banned_list').post(
     const leagueBanned = league.bannedUsers;
     const bannedInfo = await User.find({
         username: {$in: leagueBanned}
-    }, {picture: 1, displayName: 1, username: 1, _id: 0}).lean();
+    }, {displayName: 1, username: 1, _id: 0}).lean();
 
 
     return res.status(200).json(bannedInfo);
@@ -632,7 +623,7 @@ router.route('/get_pending_request_list').post(
     const leaguePending = league.pendingRequests;
     const memberInfo = await User.find({
         username: {$in: leaguePending}
-    }, {picture: 1, displayName: 1, username: 1, _id: 0}).lean();
+    }, {displayName: 1, username: 1, _id: 0}).lean();
 
     return res.status(200).json(memberInfo);
 });
@@ -654,7 +645,7 @@ router.route('/get_sent_invite_list').post(
     const leagueSent = league.sentRequests;
     const memberInfo = await User.find({
         username: {$in: leagueSent}
-    }, {picture: 1, displayName: 1, username: 1, _id: 0}).lean();
+    }, {displayName: 1, username: 1, _id: 0}).lean();
 
     return res.status(200).json(memberInfo);
 });
@@ -669,7 +660,7 @@ router.route('/get_leaderboard').post(checkLeagueID,
         }, {
             _id: 0, username: 1
         }).lean()
-        const sortedResult = await getFieldFrequencyAndProfilesSorted("username", "completed", completedChallenges);
+        const sortedResult = await getSortedFieldFrequency("username", completedChallenges);
 
     console.log(sortedResult)
 
@@ -706,7 +697,7 @@ router.route('/get_recommended').post(async (req, res, next) => {
     const openRelatedLeagues = await League.find({
         _id: {$in: relatedLeagueChallenges},
         leagueType: "open"
-    }, {"leagueName": 1, "leaguePicture": 1}).lean();
+    }, {"leagueName": 1}).lean();
 
     return res.status(200).json(openRelatedLeagues);
 });
@@ -734,10 +725,7 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
         username: {$in: otherMembersFromLeagues}
     }).sort({"loggedDate": -1}).limit(NUMBER_OF_EXERCISES_TO_RETURN).lean();
 
-
-    const recentExercisesWithProfileInformation = await appendProfileInformationToArrayOfObjectsWithUsername(recentExercises, otherMembersFromLeagues)
-
-    return res.status(200).json(recentExercisesWithProfileInformation);
+    return res.status(200).json(recentExercises);
 });
 
 

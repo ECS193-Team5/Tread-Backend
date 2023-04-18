@@ -167,28 +167,11 @@ router.route('/delete_friend_challenge').post(async (req, res) => {
     return res.sendStatus(200);
 });
 
-
-async function getPicturesOfPeople(people) {
-    return User.find({
-        username: {$in: people}
-    }, {_id: 0, picture: 1}).lean();
-}
-
 async function getProgressOfChallenge(challenge, username) {
     return Challenge_progress.findOne({
         challengeID: challenge._id,
         username: username
     }).lean();
-}
-
-
-async function getPicturesForListOfChallenges(challenges) {
-    let profilePicturesForEachChallenge = [];
-    challenges.forEach((challenge) => {
-        profilePicturesForEachChallenge.push(getPicturesOfPeople(challenge.participants));
-    });
-
-    return  Promise.all(profilePicturesForEachChallenge);
 }
 
 async function getProgressForListOfChallenges(challenges, username) {
@@ -200,25 +183,11 @@ async function getProgressForListOfChallenges(challenges, username) {
     return Promise.all(progressOfChallenges);
 }
 
-async function getChallengesZippedWithPictures(challenges) {
-    const pictures = await getPicturesForListOfChallenges(challenges);
-    const zippedChallenges = challenges.map((challenge, index) => ({
-        ...challenge,
-        pictures: pictures[index],
-    }));
-
-    return zippedChallenges;
-}
-
 async function getCompleteChallengeToProgressInfo(challenges, username) {
-    const [progress, pictures] = await Promise.all([
-        getProgressForListOfChallenges(challenges, username),
-        getPicturesForListOfChallenges(challenges)
-    ]);
+    const progress = await getProgressForListOfChallenges(challenges, username);
 
     const zippedCompleteChallengeInfo = challenges.map((challenge, index) => ({
         ...challenge,
-        pictures: pictures[index],
         progress: progress[index]
     }));
 
@@ -249,8 +218,7 @@ router.route('/sent_challenges').post(async (req, res) => {
         },
     }).lean();
 
-    const completeInformation = await getChallengesZippedWithPictures(challenges);
-    res.status(200).send(completeInformation);
+    res.status(200).send(challenges);
 });
 
 router.route('/league_challenges').post(async (req, res) => {
@@ -283,8 +251,7 @@ router.route('/received_challenges').post(async (req, res) => {
         },
     }).lean();
 
-    const completeInformation = await getChallengesZippedWithPictures(challenges);
-    return res.status(200).send(completeInformation);
+    return res.status(200).send(challenges);
 });
 
 
@@ -338,29 +305,6 @@ router.route('/decline_friend_challenge').post(async (req, res) => {
     return res.sendStatus(200);
 });
 
-async function getPicturesForListOfProgress(participantProgress){
-    // Might have a better way to query (this find with list of participants)
-    let profilePicturesForEachProgress = [];
-    participantProgress.forEach((progressObj) => {
-        profilePicturesForEachProgress.push(
-            getPropertyOfUser(progressObj.username, {displayName: 1, picture: 1}));
-    });
-
-    return Promise.all(profilePicturesForEachProgress);
-
-}
-
-async function getProgressWithPicturesAndDisplayName(participantProgress) {
-    const profileInfoForParticipant = await getPicturesForListOfProgress(participantProgress);
-    const zippedProgress = participantProgress.map((progress, index) => ({
-        ...progress,
-        pictures: profileInfoForParticipant[index].picture,
-        displayName: profileInfoForParticipant[index].displayName,
-    }));
-
-    return zippedProgress
-}
-
 router.route('/get_challenge_leaderboard').post(async (req, res) => {
     // need to verify user is in challenge for leaderboard
     const username = req.session.username;
@@ -370,9 +314,7 @@ router.route('/get_challenge_leaderboard').post(async (req, res) => {
         challengeID: challengeID,
     }, {username: 1, progress: 1}).sort({progress: -1}).lean();
 
-    const completeInformation = await getProgressWithPicturesAndDisplayName(participantProgress);
-    return res.status(200).send(completeInformation);
+    return res.status(200).send(participantProgress);
 });
 
 module.exports = router;
-module.exports.getProgressWithPicturesAndDisplayName = getProgressWithPicturesAndDisplayName;
