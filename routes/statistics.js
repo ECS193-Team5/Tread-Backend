@@ -7,7 +7,7 @@ router.route("/get_exercise_log").post(async (req, res, next) => {
 
     const exerciseLogData = await Exercise_log.find({
         username: username
-    }).sort({loggedDate: 1});
+    }).sort({loggedDate: -1});
 
     return res.status(200).json(exerciseLogData);
 });

@@ -4,8 +4,7 @@ const Challenge = require("../models/challenge.model");
 const Challenge_progress = require("../models/challenge_progress.model");
 const League = require("../models/league.model");
 const {sendPushNotificationToUsers} = require("./user_devices.js")
-const {isExistingUser, getPropertyOfUser} = require("./user.js");
-const firebase = require("firebase-admin");
+const {isExistingUser} = require("./user.js");
 
 
 function addInfoSharedAcrossRequests(req, res, next) {
