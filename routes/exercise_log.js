@@ -101,8 +101,10 @@ async function checkForChallengeCompletion(req, res, next) {
         $expr: {$gte: [ "$progress" , "$exercise.convertedAmount" ]}
     }
     // This is very slow
-    await Challenge_progress.updateMany(challengeCompletionQuery, {completed: true});
-    await Global_challenge_progress.updateMany(challengeCompletionQuery, {completed: true});
+    await Promise.all([
+        Challenge_progress.updateMany(challengeCompletionQuery, {completed: true}),
+        Global_challenge_progress.updateMany(challengeCompletionQuery, {completed: true})
+    ]);
     next();
 }
 
