@@ -35,8 +35,12 @@ const medalProgressSchema =  new Schema(
 //add indexes
 
 medalProgressSchema.index({
-  username: 1, exercise: 1, level : 1
+  username: 1, completed: 1, exercise: 1, level: 1
 }, {unique: true});
+
+medalProgressSchema.index({
+  username: 1, exercise: 1, completed: 1
+});
 
 const Medal_progress = mongoose.model(
     "Medal_progresss", medalProgressSchema, 'medal_progress');
