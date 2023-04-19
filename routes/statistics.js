@@ -17,8 +17,8 @@ router.route("/get_past_challenges").post(async (req, res, next) => {
 
     const exerciseLogData = await Challenge_progress.find({
         username: username,
-        duedate: {$lt: Date.now()}
-    });
+        dueDate: {$lt: Date.now()}
+    }).sort({dueDate: -1});
 
     return res.status(200).json(exerciseLogData);
 });
