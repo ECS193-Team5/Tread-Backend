@@ -15,8 +15,8 @@ async function uploadImage(fileSource, folder, publicID){
 
 async function deleteImage(publicID) {
     await cloudinary.uploader.destroy(publicID, {
-        resource_type: image,
-        type: upload,
+        resource_type: 'image',
+        type: 'upload',
         invalidate: false
     })
 }

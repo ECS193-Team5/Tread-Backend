@@ -128,6 +128,7 @@ router.route('/sign_up').post(multer().array(), async (req, res,) => {
       registerDeviceToken(req.session.username, req.body.deviceToken)
     ]);
   } catch (err){
+    console.log(err)
     return res.sendStatus(500);
   }
 

@@ -13,7 +13,7 @@ const { deleteImage } = require("./cloudinary.js")
 
 
 
-async function createQueryToPullFieldFromMany(filter) {
+function createQueryToPullFieldFromMany(filter) {
     return {
         updateMany: {
             filter: filter,
@@ -22,7 +22,7 @@ async function createQueryToPullFieldFromMany(filter) {
     }
 }
 
-async function createQueryToDeleteMany(filter) {
+function createQueryToDeleteMany(filter) {
     return {
         deleteMany: {
             filter: filter,
@@ -33,12 +33,12 @@ async function createQueryToDeleteMany(filter) {
 async function deleteUserFriendList(username) {
     let userInboxQueries = [];
     let friendConnectionQueries = [];
-    userInboxQueries.append(createQueryToPullFieldFromMany({ blocked: username }));
-    userInboxQueries.append(createQueryToPullFieldFromMany({ blockedBy: username }));
-    userInboxQueries.append(createQueryToPullFieldFromMany({ sentRequests: username }));
-    userInboxQueries.append(createQueryToPullFieldFromMany({ recievedRequests: username }));
-    friendConnectionQueries.append(createQueryToDeleteMany({ username: username }));
-    friendConnectionQueries.append(createQueryToDeleteMany({ friendName: username }));
+    userInboxQueries.push(createQueryToPullFieldFromMany({ blocked: username }));
+    userInboxQueries.push(createQueryToPullFieldFromMany({ blockedBy: username }));
+    userInboxQueries.push(createQueryToPullFieldFromMany({ sentRequests: username }));
+    userInboxQueries.push(createQueryToPullFieldFromMany({ receivedRequests: username }));
+    friendConnectionQueries.push(createQueryToDeleteMany({ username: username }));
+    friendConnectionQueries.push(createQueryToDeleteMany({ friendName: username }));
     return Promise.all([
         User_inbox.bulkWrite(userInboxQueries),
         Friend_connection.bulkWrite(friendConnectionQueries),
@@ -49,21 +49,21 @@ async function deleteUserFriendList(username) {
 // Need to bulk write this
 async function deleteUserChallenges(username) {
     let challengeQueries = [];
-    challengeQueries.append(createQueryToDeleteMany({ sentUser: username, challengeType: "self" }));
-    challengeQueries.append(createQueryToDeleteMany({ sentUser: username, status: "pending" }));
-    challengeQueries.append(createQueryToDeleteMany({ recievedUser: username, status: "pending" }));
+    challengeQueries.push(createQueryToDeleteMany({ sentUser: username, challengeType: "self" }));
+    challengeQueries.push(createQueryToDeleteMany({ sentUser: username, status: "pending" }));
+    challengeQueries.push(createQueryToDeleteMany({ recievedUser: username, status: "pending" }));
     return Challenge.bulkWrite(challengeQueries);
 }
 
 async function removeUserFromLeagues(username) {
     let leagueQueries = [];
-    leagueQueries.append(createQueryToDeleteMany({ owner: username }));
-    leagueQueries.append(createQueryToPullFieldFromMany({ admin: username }));
-    leagueQueries.append(createQueryToPullFieldFromMany({ members: username }));
-    leagueQueries.append(createQueryToPullFieldFromMany({ sentRequests: username }));
-    leagueQueries.append(createQueryToPullFieldFromMany({ pendingRequests: username }));
-    leagueQueries.append(createQueryToPullFieldFromMany({ bannedUsers: username }));
-    return League.bulkWrite(challengeQueries);
+    leagueQueries.push(createQueryToDeleteMany({ owner: username }));
+    leagueQueries.push(createQueryToPullFieldFromMany({ admin: username }));
+    leagueQueries.push(createQueryToPullFieldFromMany({ members: username }));
+    leagueQueries.push(createQueryToPullFieldFromMany({ sentRequests: username }));
+    leagueQueries.push(createQueryToPullFieldFromMany({ pendingRequests: username }));
+    leagueQueries.push(createQueryToPullFieldFromMany({ bannedUsers: username }));
+    return League.bulkWrite(leagueQueries);
 }
 // maybe add error handling middleware.
 router.delete('/', async (req, res, next) => {
@@ -78,7 +78,7 @@ router.delete('/', async (req, res, next) => {
             Medal_progress.deleteMany({ username: username }),
             User_devices.deleteMany({ username: username }),
             Exercise_log.deleteMany({ username: username }),
-            deleteImage(completeUsername.replace('#', '_'))
+            deleteImage(username.replace('#', '_'))
         ]);
         // Remove from league
 
