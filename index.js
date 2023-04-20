@@ -76,6 +76,7 @@ function hasUsername(req, res, next) {
 }
 
 const authRouter = require("./routes/auth");
+const signUpRouter = require("./routes/sign_up")
 const userRouter = require("./routes/user");
 const friendRouter = require("./routes/friend_list");
 const challengeRouter= require("./routes/challenges");
@@ -87,6 +88,7 @@ const statisticsRouter = require("./routes/statistics");
 const deleteUserRouter = require("./routes/delete_user.js");
 
 app.use("/auth", authRouter);
+app.use("/sign_up", isAuthenticated, signUpRouter)
 app.use("/user", isAuthenticated, hasUsername, userRouter);
 app.use("/friend_list", isAuthenticated, hasUsername, friendRouter);
 app.use("/challenges", isAuthenticated, hasUsername, challengeRouter);
@@ -95,7 +97,6 @@ app.use("/exercise_log", isAuthenticated, hasUsername, exerciseLogRouter);
 app.use("/medals", isAuthenticated, hasUsername, medalsRouter);
 app.use("/stats", isAuthenticated, hasUsername, statisticsRouter);
 app.use("/delete_user", isAuthenticated, hasUsername, deleteUserRouter);
-
 // Should be in some kind of protected route
 app.use("/global_challenge", isAuthenticated, hasUsername, globalChallengeRouter);
 
