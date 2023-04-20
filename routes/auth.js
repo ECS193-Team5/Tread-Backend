@@ -120,15 +120,18 @@ router.route('/sign_up').post(multer().array(), async (req, res,) => {
 
   // Init necessary models
   try {
-    await createUserInbox(completeUsername);
-    await generateUserMedalProgress(completeUsername);
-    await uploadImage(picture, 'profilePictures', completeUsername.replace('#', '_'));
+    await Promise.all([
+      createUserInbox(completeUsername),
+      generateUserMedalProgress(completeUsername),
+      uploadImage(picture, 'profilePictures', completeUsername.replace('#', '_')),
+      // Add device token
+      registerDeviceToken(req.session.username, req.body.deviceToken)
+    ]);
   } catch (err){
+    console.log(err)
     return res.sendStatus(500);
   }
 
-  // Add device token
-  await registerDeviceToken(req.session.username, req.body.deviceToken)
   return res.sendStatus(200);
 
 });

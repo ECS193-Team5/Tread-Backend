@@ -8,8 +8,18 @@ async function uploadImage(fileSource, folder, publicID){
         folder: folder,
         unique_filename: true,
         resource_type: 'image',
-        overwrite: true
+        overwrite: true,
+        invalidate: true
     });
 }
 
+async function deleteImage(publicID) {
+    await cloudinary.uploader.destroy(publicID, {
+        resource_type: 'image',
+        type: 'upload',
+        invalidate: false
+    })
+}
+
 module.exports.uploadImage = uploadImage;
+module.exports.deleteImage = deleteImage;
