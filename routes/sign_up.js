@@ -121,3 +121,5 @@ router.route('/get_profile_photo').post(
 
     return res.sendStatus(200);
   });
+
+module.exports = router;
