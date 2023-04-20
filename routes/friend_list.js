@@ -357,7 +357,7 @@ async function blockUser(username, target) {
             },
         ]),
 
-        await removeFriend(username, target)
+        removeFriend(username, target)
     ]);
 }
 
@@ -369,7 +369,7 @@ router.route('/block_user').post(
     const friendName = req.body.friendName;
 
 
-    blockUser(username, friendName);
+    await blockUser(username, friendName);
 
 
 

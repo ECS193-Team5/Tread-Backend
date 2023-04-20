@@ -31,7 +31,7 @@ router.route('/get_in_progress').post(async (req, res, next) => {
     const userMedals = Medal_progress.find({
         username: req.session.username,
         completed: false
-    }, {"_id": 0});
+    }, {"_id": 0}).sort({exercise: 1, level: 1});
 
     return res.status(200).json (await userMedals);
 });
@@ -41,7 +41,7 @@ router.route('/get_earned').post(async (req, res, next) => {
     const userMedals = Medal_progress.find({
         username: req.session.username,
         completed: true
-    }, {"_id": 0});
+    }, {"_id": 0}).sort({exercise: 1, level: 1});
 
     return res.status(200).json (await userMedals);
 });

@@ -24,12 +24,12 @@ const userDeviceSchema = new Schema(
     {
       collection: "user_devices"
     }
-  );
+);
 
-  // change this afterwared
-  userDeviceSchema.index({expires: 1}, {expireAfterSeconds: 60*60*24*60});
+// change this afterwared
+userDeviceSchema.index({expires: 1}, {expireAfterSeconds: 60*60*24*60});
 
-  const User_Devices = mongoose.model("User_devices", userDeviceSchema);
+const User_devices = mongoose.model("User_devices", userDeviceSchema);
 
-  module.exports = User_Devices;
+module.exports = User_devices;
 

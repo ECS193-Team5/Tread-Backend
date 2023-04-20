@@ -1,5 +1,3 @@
-const User = require("../models/user.model");
-
 function getFieldFrequency(searchField, arrayOfObjects) {
     return arrayOfObjects.reduce((acc, currentObject) => (acc[currentObject[searchField]] = (acc[currentObject[searchField]] || 0) + 1, acc), {})
 }
