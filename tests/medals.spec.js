@@ -43,13 +43,6 @@ describe('Testing Medals System', () => {
         sandbox.restore();
     })
 
-    /*it("Should return the in progress medals when given a username", async function () {
-        req = { "session": { "username": "notexist" } };
-        let getInProgress = medals.__get__("getInProgressMedals");
-        let r = await getInProgress(req, res);
-        expect(r.status).to.equal(200);
-    });*/
-
     it("test addMedal on save success", async function () {
         req = { "body" :{"unit":"m", "amount": 10, "exerciseName":"Basketball", "level":1}};
         sandbox.stub(mongoose.Model.prototype, 'save').resolves("");
