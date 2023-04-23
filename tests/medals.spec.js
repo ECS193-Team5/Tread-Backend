@@ -1,8 +1,7 @@
-const { expect, assert } = require("chai");
+const { expect } = require("chai");
 const rewire = require("rewire");
 const mongoose = require("mongoose");
 var sandbox = require("sinon").createSandbox();
-const sinon = require("sinon");
 
 describe('Testing Medals System', () => {
     let medals;
@@ -55,7 +54,7 @@ describe('Testing Medals System', () => {
     it("test addMedal on save failure", async function () {
         // invalid unit: l
         req = { "body" :{"unit":"l", "amount": 10, "exerciseName":"Basketball", "level":1}};
-        sandbox.stub(mongoose.Model.prototype, 'save').throws("");
+        sandbox.stub(mongoose.Model.prototype, 'save').rejects("");
         let addMedal = medals.__get__("addMedal");
         await addMedal(req, res);
         expect(res.status).to.equal(500);
@@ -63,10 +62,10 @@ describe('Testing Medals System', () => {
     });
 
     it("test getInProgressMedals returns medals", async function () {
-        let req = {"session":{"username":"notexist"}}
-        let getInProgressMedals = medals.__get__("getInProgressMedals");
+        let req = {"session":{"username":"notexist"}};
         let medalsList = [{"exercise":{"exerciseName": "Basketball", "amount": 100, "unit":"min"}, "level":1}, {"exercise":{"exerciseName": "Basketball", "amount": 500, "unit":"min"}, "level":2}];
-        let leanStub = sandbox.stub().returns(medalsList)
+        let getInProgressMedals = medals.__get__("getInProgressMedals");
+        let leanStub = sandbox.stub().resolves(medalsList)
         let sortStub = sandbox.stub().returns({lean:leanStub})
         sandbox.stub(mongoose.Model, "find").returns({sort: sortStub});
         await getInProgressMedals(req, res);
@@ -78,7 +77,7 @@ describe('Testing Medals System', () => {
         let req = {"session":{"username":"notexist"}}
         let getCompletedMedals = medals.__get__("getEarnedMedals");
         let medalsList = [{"exercise":{"exerciseName": "Basketball", "amount": 100, "unit":"min"}, "level":1}, {"exercise":{"exerciseName": "Basketball", "amount": 500, "unit":"min"}, "level":2}];
-        let leanStub = sandbox.stub().returns(medalsList)
+        let leanStub = sandbox.stub().resolves(medalsList)
         let sortStub = sandbox.stub().returns({lean:leanStub})
         sandbox.stub(mongoose.Model, "find").returns({sort: sortStub});
         await getCompletedMedals(req, res);
