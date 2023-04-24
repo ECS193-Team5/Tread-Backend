@@ -36,6 +36,37 @@ router.route("/create_league").post(multer().array(), async (req, res) => {
     return res.sendStatus(200);
 });
 
+router.route("/delete_league").post(
+    checkLeagueID,
+    async (req, res, next) => {
+        const leagueID = req.body.leagueID
+
+        const deletedInfo = await League.deleteOne({
+            _id : ObjectId(leagueID),
+            owner: req.session.username,
+        });
+
+        if (deletedInfo.deletedCount == 1) {
+            const activeChallenges = await Challenge.find({
+                receivedUser : leagueID,
+                dueDate : {$gte: Date.now()}
+            }).distinct("_id");
+            await Promise.all([
+                Challenge.deleteMany({
+                    receivedUser : leagueID,
+                    dueDate : {$gte: Date.now()}
+                }).lean(),
+                Challenge_progress.deleteMany({
+                    challengeID: {$in: activeChallenges}
+                }).lean()
+            ]);
+        } else {
+            return res.sendStatus(400);
+        }
+        return res.sendStatus(200);
+
+});
+
 async function updateLeague(req, res, next) {
     try {
         const updateReport = await League.updateOne(res.locals.filter, res.locals.updates).lean();
@@ -43,7 +74,6 @@ async function updateLeague(req, res, next) {
             return res.sendStatus(404);
         }
     } catch (err) {
-        // Try to catch with middleware later
         return res.sendStatus(500);
     }
     return res.sendStatus(200);
@@ -463,59 +493,15 @@ router.route("/get_admin_leagues").post(
         return res.status(200).json(leagues);
 });
 
-async function getPropertyOfLeague(leagueID, property) {
-    return League.findOne({_id: leagueID }, property).lean();
-}
+async function getLeagueNameDescriptionType(req, res, next) {
+    const leagueID = req.body.leagueID;
+    const leagueDescription = await League.findOne(
+        {_id: leagueID},
+        {"_id": 0, "leagueName": 1, "leagueDescription": 1, "leagueType": 1}).lean();
 
-router.route("/get_league_name").post(
-    checkLeagueID,
-    async (req, res, next) => {
-        const leagueID = req.body.leagueID;
-        const leagueName = await getPropertyOfLeague(leagueID, "leagueName");
-
-        return res.status(200).json(leagueName);
-});
-
-router.route("/get_league_description").post(
-    checkLeagueID,
-    async (req, res, next) => {
-        const leagueID = req.body.leagueID;
-        const leagueDescription = await getPropertyOfLeague(leagueID, "leagueDescription");
-
-        return res.status(200).json(leagueDescription);
-});
-
-/// Test this
-router.route("/delete_league").post(
-    checkLeagueID,
-    async (req, res, next) => {
-        const leagueID = req.body.leagueID
-
-        const deletedInfo = await League.deleteOne({
-            _id : ObjectId(leagueID),
-            owner: req.session.username,
-        });
-
-        if (deletedInfo.deletedCount == 1) {
-            const activeChallenges = await Challenge.find({
-                receivedUser : leagueID,
-                dueDate : {$gte: Date.now()}
-            }).distinct("_id");
-            await Promise.all([
-                Challenge.deleteMany({
-                    receivedUser : leagueID,
-                    dueDate : {$gte: Date.now()}
-                }).lean(),
-                Challenge_progress.deleteMany({
-                    challengeID: {$in: activeChallenges}
-                }).lean()
-            ]);
-        } else {
-            return res.sendStatus(400);
-        }
-        return res.sendStatus(200);
-
-});
+    return res.status(200).json(leagueDescription);
+};
+router.route("/get_league_name_description_type").post(checkLeagueID, getLeagueNameDescriptionType);
 
 async function getLeagueActiveChallengeCount(req, res, next) {
     const username = req.session.username;
@@ -714,7 +700,6 @@ router.route('/get_recommended').post(async (req, res, next) => {
     return res.status(200).json(openRelatedLeagues);
 });
 
-
 router.route('/get_recent_activity').post(async (req, res, next) => {
     // Get league participants from all leagues
     // Get active league challenges and find their exerciseName/unitType
@@ -739,6 +724,58 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
 
     return res.status(200).json(recentExercises);
 });
+
+async function checkUserLeagueAdmin(req, res, next) {
+    const leagueID = req.body.leagueID;
+    const username = req.session.username;
+    const isUserLeagueAdmin = await League.exists({
+        _id: leagueID, admin: username
+    }).lean();
+
+    if (isUserLeagueAdmin === null) {
+        return res.sendStatus(401);
+    }
+    return next();
+}
+async function updatePicture(req, res) {
+    const leaguePicture = req.body.leaguePicture;
+    const leagueID = req.body.leagueID;
+    await uploadImage(leaguePicture, "leaguePicture", leagueID);
+    return res.sendStatus(200);
+}
+
+async function updateName(req, res) {
+    const leagueName= req.body.leagueName;
+    const leagueID = req.body.leagueID;
+    const username = req.session.username;
+
+    await League.updateOne({
+        _id: leagueID,
+        admin: username
+    },{
+        leagueName: leagueName
+    })
+
+    return res.sendStatus(200);
+}
+
+async function updateDescription(req, res) {
+    const leagueDescription = req.body.leagueDescription;
+    const leagueID = req.body.leagueID;
+    const username = req.session.username;
+
+    await League.updateOne({
+        _id: leagueID,
+        admin: username
+    },{
+        leagueDescription: leagueDescription
+    })
+
+    return res.sendStatus(200);
+}
+router.route('/update_picture').post(multer().array(), checkLeagueID, checkUserLeagueAdmin, updatePicture);
+router.route('/update_name').post(checkLeagueID, updateName);
+router.route('/update_description').post(checkLeagueID, updateDescription);
 
 
 module.exports = router;
