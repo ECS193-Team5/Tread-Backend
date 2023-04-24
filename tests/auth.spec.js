@@ -130,12 +130,13 @@ describe('Testing authentication', () =>{
     describe('Tests with requests and responses', () => {
         let req;
         let res;
-        const next = function () {};
+        let next;
 
         beforeEach(() => {
             req = {
                 body: {},
-                headers: {}
+                headers: {},
+                session: {},
             }
 
             res = {
@@ -159,6 +160,8 @@ describe('Testing authentication', () =>{
                     return this
                 }
             }
+
+            next = sandbox.stub();
         });
 
         describe("Testing verifyUserAndFindUsername()", () => {
@@ -196,6 +199,7 @@ describe('Testing authentication', () =>{
             let createNewUserIfNecessary;
             let isNewUserStub;
             let createUserStub;
+
             beforeEach(() => {
                 createNewUserIfNecessary = auth.__get__("createNewUserIfNecessary");
                 isNewUserStub = sandbox.stub();
@@ -211,6 +215,7 @@ describe('Testing authentication', () =>{
                 await createNewUserIfNecessary(req, res, next);
                 expect(createUserStub).to.not.have.been.called;
                 expect(isNewUserStub).to.have.been.called;
+                expect(next).to.have.been.called;
             });
 
             it("Returns status 500 if createUser() rejects", async function() {
@@ -219,13 +224,129 @@ describe('Testing authentication', () =>{
                 await createNewUserIfNecessary(req, res, next);
                 expect(createUserStub).to.have.been.called;
                 expect(isNewUserStub).to.have.been.called;
+                expect(next).to.not.have.been.called;
                 expect(res.status).to.equal(500);
                 expect(JSON.parse(res.data)).to.deep.equal("Error: error");
             });
+
+            it("CreateNewUserIftNecessary() returns successfully", async function() {
+                isNewUserStub.returns(true);
+                createUserStub.resolves();
+                await createNewUserIfNecessary(req, res, next);
+                expect(createUserStub).to.have.been.called;
+                expect(isNewUserStub).to.have.been.called;
+                expect(next).to.have.been.called;
+            });
         });
 
-        /* test createNewUserIfNecessary*/
-        /* generateLoggedInSession */
+        describe("Testing generateLoggedInSession()", () => {
+            let generateLoggedInSession;
+            let hasUsernameFromDocStub;
+
+            beforeEach(() => {
+                generateLoggedInSession = auth.__get__("generateLoggedInSession");
+                hasUsernameFromDocStub = sandbox.stub();
+                registerDeviceTokenStub = sandbox.stub();
+                auth.__set__('hasUsernameFromDoc', hasUsernameFromDocStub);
+                auth.__set__('registerDeviceToken', registerDeviceTokenStub);
+                res.locals.usernameDoc = {username: "User#2222"};
+                res.locals.userInfoFromAuth = {"iss":"https://accounts.google.com","nbf":1682032534,"aud":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","sub":"108876580734941179924","email":"howardw117@gmail.com","email_verified":true,"azp":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","name":"Howard Wang","picture":"https://lh3.googleusercontent.com/a/AGNmyxbjdCdenNt_rsh6wKGKFqHIsnmWR3qrc4oFecg8kw=s96-c","given_name":"Howard","family_name":"Wang","iat":1682032834,"exp":1682036434,"jti":"f75ecd240a5c906b362599b9a4ee0416b47d5e12"};
+                req.body.deviceToken = "cIn_pQAWKDe7-_qUzYcF1I:APA91bGBrIU-Ldd0Le9aDPeYJXT2AaUoI3El7FImQacGJMSRsfvJOr3jBWtYVMpmfDEopu42NbGD4ZJGGqJg4cM1ODt04SPyqkjrlCWz-uvaqvf-5_dGH1QHMGi_3ClrFn6Xr_UlP83Y";
+            });
+
+            it("generateLoggedInSession() returns successfully", async function() {
+                req.session.regenerate = async function(inputFunction) {
+                    await inputFunction();
+                };
+                req.session.save = async function(inputFunction) {
+                    await inputFunction();
+                };
+                hasUsernameFromDocStub.returns(false);
+                await generateLoggedInSession(req, res, next);
+                expect(hasUsernameFromDocStub).to.have.been.called;
+                expect(registerDeviceTokenStub).to.have.not.been.called;
+                expect(req.session.username).to.equal(null);
+            });
+
+            it("generateLoggedInSession() returns status 500 if regenerate fails",
+                async function () {
+                    req.session.regenerate = async function (inputFunction) {
+                        await inputFunction("error");
+                    };
+                    req.session.save = async function (inputFunction) {
+                        await inputFunction();
+                    };
+                    hasUsernameFromDocStub.returns(false);
+                    await generateLoggedInSession(req, res, next);
+                    expect(hasUsernameFromDocStub).to.have.been.called;
+                    expect(registerDeviceTokenStub).to.have.not.been.called;
+                    expect(res.status).to.equal(500);
+                    expect(JSON.parse(res.data)).to.deep.equal("error");
+                });
+
+                it("generateLoggedInSession() returns status 200 if save fails",
+                async function () {
+                    req.session.regenerate = async function (inputFunction) {
+                        await inputFunction();
+                    };
+                    req.session.save = async function (inputFunction) {
+                        await inputFunction("error");
+                    };
+                    hasUsernameFromDocStub.returns(false);
+                    await generateLoggedInSession(req, res, next);
+                    expect(hasUsernameFromDocStub).to.have.been.called;
+                    expect(registerDeviceTokenStub).to.have.not.been.called;
+                    expect(res.status).to.equal(500);
+                    expect(JSON.parse(res.data)).to.deep.equal("error");
+                });
+
+                it("generateLoggedInSession() returns correctly with username",
+                async function () {
+                    req.session.regenerate = async function (inputFunction) {
+                        await inputFunction();
+                    };
+                    req.session.save = async function (inputFunction) {
+                        await inputFunction();
+                    };
+                    hasUsernameFromDocStub.returns(true);
+                    await generateLoggedInSession(req, res, next);
+                    expect(hasUsernameFromDocStub).to.have.been.called;
+                    expect(registerDeviceTokenStub).to.have.been.called;
+                    expect(req.session.username).to.equal("User#2222");
+                    expect(req.session.authenticationSource).to.equal('google');
+                    expect(req.session.authenticationID).to.equal("108876580734941179924");
+                    expect(res.status).to.equal(200);
+                    expect(JSON.parse(res.data)).to.deep.equal({
+                        hasUsername: true
+                    });
+                });
+
+                it("generateLoggedInSession() returns correctly with no username",
+                async function () {
+                    req.session.regenerate = async function (inputFunction) {
+                        await inputFunction();
+                    };
+                    req.session.save = async function (inputFunction) {
+                        await inputFunction();
+                    };
+                    hasUsernameFromDocStub.returns(false);
+                    await generateLoggedInSession(req, res, next);
+                    expect(hasUsernameFromDocStub).to.have.been.called;
+                    expect(registerDeviceTokenStub).to.not.have.been.called;
+                    expect(req.session.username).to.equal(null);
+                    expect(res.status).to.equal(200);
+                    expect(req.session.authenticationSource).to.equal('google');
+                    expect(req.session.authenticationID).to.equal("108876580734941179924");
+                    expect(JSON.parse(res.data)).to.deep.equal({
+                        hasUsername: false
+                    });
+                });
+
+            describe("Testing logout()", () => {
+
+            });
+        });
+
         /* logout */
     });
 })
