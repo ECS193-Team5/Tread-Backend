@@ -36,7 +36,6 @@ router.route("/create_league").post(multer().array(), async (req, res) => {
     return res.sendStatus(200);
 });
 
-/// Test this
 router.route("/delete_league").post(
     checkLeagueID,
     async (req, res, next) => {
@@ -75,7 +74,6 @@ async function updateLeague(req, res, next) {
             return res.sendStatus(404);
         }
     } catch (err) {
-        // Try to catch with middleware later
         return res.sendStatus(500);
     }
     return res.sendStatus(200);
@@ -728,10 +726,21 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
     return res.status(200).json(recentExercises);
 });
 
-router.route('/update_picture').post();
+async function updatePicture(req, res, next) {
+    const leaguePicture = req.body.leaguePicture;
+    const leagueID = req.body.leagueID;
+    const username = req.session.username;
+    const isUserLeagueAdmin = await League.UpdateOne({
+        _id: leagueID, admin: username
+    }).lean();
+    if (isUserLeagueAdmin === null) {
+        return res.status(401);
+    }
+    await uploadImage(leaguePicture, "leaguePicture", leagueID);
+}
+router.route('/update_picture').post(checkLeagueID, updatePicture);
 router.route('/update_name').post();
 router.route('/update_description').post();
-route
 
 
 module.exports = router;
