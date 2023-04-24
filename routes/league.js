@@ -36,6 +36,38 @@ router.route("/create_league").post(multer().array(), async (req, res) => {
     return res.sendStatus(200);
 });
 
+/// Test this
+router.route("/delete_league").post(
+    checkLeagueID,
+    async (req, res, next) => {
+        const leagueID = req.body.leagueID
+
+        const deletedInfo = await League.deleteOne({
+            _id : ObjectId(leagueID),
+            owner: req.session.username,
+        });
+
+        if (deletedInfo.deletedCount == 1) {
+            const activeChallenges = await Challenge.find({
+                receivedUser : leagueID,
+                dueDate : {$gte: Date.now()}
+            }).distinct("_id");
+            await Promise.all([
+                Challenge.deleteMany({
+                    receivedUser : leagueID,
+                    dueDate : {$gte: Date.now()}
+                }).lean(),
+                Challenge_progress.deleteMany({
+                    challengeID: {$in: activeChallenges}
+                }).lean()
+            ]);
+        } else {
+            return res.sendStatus(400);
+        }
+        return res.sendStatus(200);
+
+});
+
 async function updateLeague(req, res, next) {
     try {
         const updateReport = await League.updateOne(res.locals.filter, res.locals.updates).lean();
@@ -472,38 +504,6 @@ async function getLeagueNameDescriptionType(req, res, next) {
     return res.status(200).json(leagueDescription);
 };
 router.route("/get_league_name_description_type").post(checkLeagueID, getLeagueNameDescriptionType);
-
-/// Test this
-router.route("/delete_league").post(
-    checkLeagueID,
-    async (req, res, next) => {
-        const leagueID = req.body.leagueID
-
-        const deletedInfo = await League.deleteOne({
-            _id : ObjectId(leagueID),
-            owner: req.session.username,
-        });
-
-        if (deletedInfo.deletedCount == 1) {
-            const activeChallenges = await Challenge.find({
-                receivedUser : leagueID,
-                dueDate : {$gte: Date.now()}
-            }).distinct("_id");
-            await Promise.all([
-                Challenge.deleteMany({
-                    receivedUser : leagueID,
-                    dueDate : {$gte: Date.now()}
-                }).lean(),
-                Challenge_progress.deleteMany({
-                    challengeID: {$in: activeChallenges}
-                }).lean()
-            ]);
-        } else {
-            return res.sendStatus(400);
-        }
-        return res.sendStatus(200);
-
-});
 
 async function getLeagueActiveChallengeCount(req, res, next) {
     const username = req.session.username;
