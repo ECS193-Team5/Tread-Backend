@@ -1,3 +1,6 @@
+const chai = require("chai")
+const sinonChai = require("sinon-chai")
+chai.use(sinonChai)
 const { expect, assert } = require("chai");
 const rewire = require("rewire");
 const mongoose = require("mongoose");
@@ -127,6 +130,7 @@ describe('Testing authentication', () =>{
     describe('Tests with requests and responses', () => {
         let req;
         let res;
+        const next = function () {};
 
         beforeEach(() => {
             req = {
@@ -157,25 +161,66 @@ describe('Testing authentication', () =>{
             }
         });
 
-        describe("Testing verifyUserAndFindUsername", () => {
+        describe("Testing verifyUserAndFindUsername()", () => {
             let verifyStub;
             let findOneStub;
             let verifyUserAndFindUsername;
+            let leanStub;
 
-            before(() => {
+            beforeEach(() => {
+                req.headers.authorization = 'eyJhbGciOiJSUzI1NiIsImtpZCI6Ijk2OTcxODA4Nzk2ODI5YTk3MmU3OWE5ZDFhOWZmZjExY2Q2MWIxZTMiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJuYmYiOjE2ODIwMzI1MzQsImF1ZCI6IjE3MTU3MTY1Mzg2OS1sczVpcWRsbzFib2U2aXNqN3Ixa29vMnR2aTU3ZzYybS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjEwODg3NjU4MDczNDk0MTE3OTkyNCIsImVtYWlsIjoiaG93YXJkdzExN0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXpwIjoiMTcxNTcxNjUzODY5LWxzNWlxZGxvMWJvZTZpc2o3cjFrb28ydHZpNTdnNjJtLmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tIiwibmFtZSI6Ikhvd2FyZCBXYW5nIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FHTm15eGJqZENkZW5OdF9yc2g2d0tHS0ZxSElzbm1XUjNxcmM0b0ZlY2c4a3c9czk2LWMiLCJnaXZlbl9uYW1lIjoiSG93YXJkIiwiZmFtaWx5X25hbWUiOiJXYW5nIiwiaWF0IjoxNjgyMDMyODM0LCJleHAiOjE2ODIwMzY0MzQsImp0aSI6ImY3NWVjZDI0MGE1YzkwNmIzNjI1OTliOWE0ZWUwNDE2YjQ3ZDVlMTIifQ.qeFtF3_9zlCbexLZzr6iEGz4RXWU2aCSCl9MDddTYzR0hfXMc4S_bpEH1FtFXELhB3zozzMKH-ox3xBU7lLzwFj29jPPkHZOhU-V6GldSwZbVl7iSpm2Sfek9Xw_NW012wEi9CpKSKDlpFIxmGEyGDUBa5lpdowRAbdwVX43Pq_mo_H-tSqfwzI3Gb55CinbABqRHO1yRV_KReKQ0fsi28kuNhMdEtszYJq79XfvdAKpyi7lcghYfU5l-Vsz58VfB9X1AnRDj-Rfn8nGBrLangRfKfYgFTWNTtetXzLlugcif8UseK1AgrhIcIb3f4h2MAXvVXjV8N2b1GUVmyzy6A';
                 verifyUserAndFindUsername = auth.__get__("verifyUserAndFindUsername");
                 verifyStub = sandbox.stub();
                 auth.__set__('verify', verifyStub);
-                findOneStub = sandbox.stub(mongoose.Model, "findOne");
+                leanStub = sandbox.stub();
+                findOneStub = sandbox.stub(mongoose.Model, "findOne").returns({lean: leanStub});
             });
             it("verifyUserAndFindUsername should return 401 if verify() fails", async function() {
-                req.headers.authorization = 'eyJhbGciOiJSUzI1NiIsImtpZCI6Ijk2OTcxODA4Nzk2ODI5YTk3MmU3OWE5ZDFhOWZmZjExY2Q2MWIxZTMiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJuYmYiOjE2ODIwMzI1MzQsImF1ZCI6IjE3MTU3MTY1Mzg2OS1sczVpcWRsbzFib2U2aXNqN3Ixa29vMnR2aTU3ZzYybS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjEwODg3NjU4MDczNDk0MTE3OTkyNCIsImVtYWlsIjoiaG93YXJkdzExN0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXpwIjoiMTcxNTcxNjUzODY5LWxzNWlxZGxvMWJvZTZpc2o3cjFrb28ydHZpNTdnNjJtLmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tIiwibmFtZSI6Ikhvd2FyZCBXYW5nIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FHTm15eGJqZENkZW5OdF9yc2g2d0tHS0ZxSElzbm1XUjNxcmM0b0ZlY2c4a3c9czk2LWMiLCJnaXZlbl9uYW1lIjoiSG93YXJkIiwiZmFtaWx5X25hbWUiOiJXYW5nIiwiaWF0IjoxNjgyMDMyODM0LCJleHAiOjE2ODIwMzY0MzQsImp0aSI6ImY3NWVjZDI0MGE1YzkwNmIzNjI1OTliOWE0ZWUwNDE2YjQ3ZDVlMTIifQ.qeFtF3_9zlCbexLZzr6iEGz4RXWU2aCSCl9MDddTYzR0hfXMc4S_bpEH1FtFXELhB3zozzMKH-ox3xBU7lLzwFj29jPPkHZOhU-V6GldSwZbVl7iSpm2Sfek9Xw_NW012wEi9CpKSKDlpFIxmGEyGDUBa5lpdowRAbdwVX43Pq_mo_H-tSqfwzI3Gb55CinbABqRHO1yRV_KReKQ0fsi28kuNhMdEtszYJq79XfvdAKpyi7lcghYfU5l-Vsz58VfB9X1AnRDj-Rfn8nGBrLangRfKfYgFTWNTtetXzLlugcif8UseK1AgrhIcIb3f4h2MAXvVXjV8N2b1GUVmyzy6A';
                 verifyStub.rejects('test error');
-                findOneStub.resolves('should not appear');
-                await verifyUserAndFindUsername(req, res);
+                leanStub.resolves('should not appear');
+                await verifyUserAndFindUsername(req, res, next);
                 expect(res.status).to.equal(401);
                 expect(JSON.parse(res.data)).to.equal('Error: test error')
                 expect(res.locals.usernameDoc).to.not.equal('should not appear')
+            });
+            it("verifyUserAndFindUsername returns correctly", async function() {
+                verifyStub.resolves({"iss":"https://accounts.google.com","nbf":1682032534,"aud":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","sub":"108876580734941179924","email":"howardw117@gmail.com","email_verified":true,"azp":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","name":"Howard Wang","picture":"https://lh3.googleusercontent.com/a/AGNmyxbjdCdenNt_rsh6wKGKFqHIsnmWR3qrc4oFecg8kw=s96-c","given_name":"Howard","family_name":"Wang","iat":1682032834,"exp":1682036434,"jti":"f75ecd240a5c906b362599b9a4ee0416b47d5e12"});
+                leanStub.resolves({username: "test#2222"});
+                await verifyUserAndFindUsername(req, res, next);
+                expect(res.locals.userInfoFromAuth).to.deep.equal({"iss":"https://accounts.google.com","nbf":1682032534,"aud":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","sub":"108876580734941179924","email":"howardw117@gmail.com","email_verified":true,"azp":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","name":"Howard Wang","picture":"https://lh3.googleusercontent.com/a/AGNmyxbjdCdenNt_rsh6wKGKFqHIsnmWR3qrc4oFecg8kw=s96-c","given_name":"Howard","family_name":"Wang","iat":1682032834,"exp":1682036434,"jti":"f75ecd240a5c906b362599b9a4ee0416b47d5e12"})
+                expect(res.locals.usernameDoc).to.deep.equal({username: 'test#2222'});
+            });
+        });
+
+        describe("Testing createNewUserIfNecessary", () => {
+            let createNewUserIfNecessary;
+            let isNewUserStub;
+            let createUserStub;
+            beforeEach(() => {
+                createNewUserIfNecessary = auth.__get__("createNewUserIfNecessary");
+                isNewUserStub = sandbox.stub();
+                createUserStub = sandbox.stub();
+                auth.__set__('isNewUser', isNewUserStub);
+                auth.__set__('createUser', createUserStub);
+                res.locals.userInfoFromAuth = {"iss":"https://accounts.google.com","nbf":1682032534,"aud":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","sub":"108876580734941179924","email":"howardw117@gmail.com","email_verified":true,"azp":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","name":"Howard Wang","picture":"https://lh3.googleusercontent.com/a/AGNmyxbjdCdenNt_rsh6wKGKFqHIsnmWR3qrc4oFecg8kw=s96-c","given_name":"Howard","family_name":"Wang","iat":1682032834,"exp":1682036434,"jti":"f75ecd240a5c906b362599b9a4ee0416b47d5e12"};
+            });
+
+            it("Skips createUser() if isNewUser() returns false", async function() {
+                isNewUserStub.returns(false);
+                createUserStub.rejects();
+                await createNewUserIfNecessary(req, res, next);
+                expect(createUserStub).to.not.have.been.called;
+                expect(isNewUserStub).to.have.been.called;
+            });
+
+            it("Returns status 500 if createUser() rejects", async function() {
+                isNewUserStub.returns(true);
+                createUserStub.rejects("error");
+                await createNewUserIfNecessary(req, res, next);
+                expect(createUserStub).to.have.been.called;
+                expect(isNewUserStub).to.have.been.called;
+                expect(res.status).to.equal(500);
+                expect(JSON.parse(res.data)).to.deep.equal("Error: error");
             });
         });
 

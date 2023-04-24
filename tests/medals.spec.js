@@ -42,7 +42,7 @@ describe('Testing Medals System', () => {
         sandbox.restore();
     })
 
-    describe("Test addMedal", () => {
+    describe("Test addMedal()", () => {
         let addMedal;
         beforeEach(() => {
             req = { "body" :{"unit":"m", "amount": 10, "exerciseName":"Basketball", "level":1}};
@@ -77,7 +77,7 @@ describe('Testing Medals System', () => {
             sortStub = sandbox.stub().returns({lean:leanStub});
             findStub = sandbox.stub(mongoose.Model, "find").returns({sort: sortStub});
         });
-        it("test getInProgressMedals returns medals", async function () {
+        it("test getInProgressMedals() returns medals", async function () {
             let getInProgressMedals = medals.__get__("getInProgressMedals");
             findStub.returns({sort: sortStub});
             await getInProgressMedals(req, res);
@@ -85,7 +85,7 @@ describe('Testing Medals System', () => {
             expect(JSON.parse(res.data)).to.deep.equal(medalsList);
         });
 
-        it("test getEarnedMedals returns medals", async function () {
+        it("test getEarnedMedals() returns medals", async function () {
             findStub.returns({sort: sortStub});
             let getEarnedMedals = medals.__get__("getEarnedMedals");
             await getEarnedMedals(req, res);
