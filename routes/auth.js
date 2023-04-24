@@ -1,19 +1,18 @@
 const router = require("express").Router();
 let User = require("../models/user.model");
 const { registerDeviceToken, removeDeviceToken } = require("./user_devices.js");
-const {OAuth2Client} = require('google-auth-library');
+const { OAuth2Client } = require('google-auth-library');
 const CLIENT_ID = process.env.CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
 
 async function verify(token) {
   const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: CLIENT_ID,  // Specify the CLIENT_ID of the app that accesses the backend
-      // Or, if multiple clients access the backend:
-      //[CLIENT_ID_1, CLIENT_ID_2, CLIENT_ID_3]
+    idToken: token,
+    audience: CLIENT_ID,  // Specify the CLIENT_ID of the app that accesses the backend
+    // Or, if multiple clients access the backend:
+    //[CLIENT_ID_1, CLIENT_ID_2, CLIENT_ID_3]
   });
   const userInfoFromAuth = ticket.getPayload();
-  const userid = userInfoFromAuth['sub'];
   return userInfoFromAuth;
   // If request specified a G Suite domain:
   // const domain = userInfoFromAuth['hd'];
@@ -27,15 +26,34 @@ function hasUsernameFromDoc(usernameDoc) {
 }
 
 function isNewUser(usernameDoc) {
-  if (usernameDoc == null) {
+  if (usernameDoc === null) {
     return true;
   }
   return false;
 }
 
 async function createUser(userInfo) {
-const newUser = new User(userInfo);
-await newUser.save()
+  const newUser = new User(userInfo);
+  await newUser.save()
+}
+
+async function verifyUserAndFindUsername(req, res, next) {
+
+  // need to add csrf preventions
+  let userInfoFromAuth;
+  try {
+    userInfoFromAuth = await verify(req.headers.authorization);
+  } catch (err) {
+    return res.status(401).json("Error: " + err);
+  }
+
+  let usernameDoc = await User.findOne(
+    { authenticationSource: 'google', authenticationID: userInfoFromAuth.sub },
+    'username').lean();
+
+  res.locals.usernameDoc = usernameDoc;
+  res.locals.userInfoFromAuth = userInfoFromAuth;
+  next();
 }
 
 async function createNewUserIfNecessary(req, res, next) {
@@ -81,31 +99,13 @@ async function generateLoggedInSession(req, res, next) {
     // save the session before redirection to ensure page
     // load does not happen before session is saved
     req.session.save(function (err) {
-    if (err) return res.status(500).json(err);
-    return res.status(200).json({hasUsername: hasUsername});
+      if (err) return res.status(500).json(err);
+      return res.status(200).json({ hasUsername: hasUsername });
     })
   })
 }
 
-router.route('/login/google').post(async (req, res, next) => {
-
-  // need to add csrf preventions
-  let userInfoFromAuth;
-  try {
-    userInfoFromAuth = await verify(req.headers.authorization);
-  } catch (err) {
-    return res.status(401).json("Error: " + err);
-  }
-
-  let usernameDoc = await User.findOne(
-    {authenticationSource: 'google', authenticationID: userInfoFromAuth.sub},
-    'username').lean();
-
-  res.locals.usernameDoc = usernameDoc;
-  res.locals.userInfoFromAuth = userInfoFromAuth;
-  next();
-
-}, createNewUserIfNecessary, generateLoggedInSession);
+router.route('/login/google').post(verifyUserAndFindUsername, createNewUserIfNecessary, generateLoggedInSession);
 
 
 async function logout(req, res) {
