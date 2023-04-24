@@ -733,16 +733,15 @@ async function checkUserLeagueAdmin(req, res, next) {
     }).lean();
 
     if (isUserLeagueAdmin === null) {
-        return res.status(401);
+        return res.sendStatus(401);
     }
-
     return next();
 }
 async function updatePicture(req, res) {
     const leaguePicture = req.body.leaguePicture;
     const leagueID = req.body.leagueID;
     await uploadImage(leaguePicture, "leaguePicture", leagueID);
-    return res.status(200);
+    return res.sendStatus(200);
 }
 
 async function updateName(req, res) {
@@ -750,29 +749,29 @@ async function updateName(req, res) {
     const leagueID = req.body.leagueID;
     const username = req.session.username;
 
-    await League.UpdateOne({
+    await League.updateOne({
         _id: leagueID,
         admin: username
     },{
         leagueName: leagueName
     })
 
-    return res.status(200);
+    return res.sendStatus(200);
 }
 
 async function updateDescription(req, res) {
-    const leagueDescription = req.body.leagueName;
+    const leagueDescription = req.body.leagueDescription;
     const leagueID = req.body.leagueID;
     const username = req.session.username;
 
-    await League.UpdateOne({
+    await League.updateOne({
         _id: leagueID,
         admin: username
     },{
         leagueDescription: leagueDescription
     })
 
-    return res.status(200);
+    return res.sendStatus(200);
 }
 router.route('/update_picture').post(multer().array(), checkLeagueID, checkUserLeagueAdmin, updatePicture);
 router.route('/update_name').post(checkLeagueID, updateName);
