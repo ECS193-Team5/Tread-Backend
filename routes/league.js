@@ -700,7 +700,6 @@ router.route('/get_recommended').post(async (req, res, next) => {
     return res.status(200).json(openRelatedLeagues);
 });
 
-
 router.route('/get_recent_activity').post(async (req, res, next) => {
     // Get league participants from all leagues
     // Get active league challenges and find their exerciseName/unitType
@@ -726,21 +725,58 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
     return res.status(200).json(recentExercises);
 });
 
-async function updatePicture(req, res, next) {
-    const leaguePicture = req.body.leaguePicture;
+async function checkUserLeagueAdmin(req, res, next) {
     const leagueID = req.body.leagueID;
     const username = req.session.username;
-    const isUserLeagueAdmin = await League.UpdateOne({
+    const isUserLeagueAdmin = await League.exists({
         _id: leagueID, admin: username
     }).lean();
+
     if (isUserLeagueAdmin === null) {
         return res.status(401);
     }
-    await uploadImage(leaguePicture, "leaguePicture", leagueID);
+
+    return next();
 }
-router.route('/update_picture').post(checkLeagueID, updatePicture);
-router.route('/update_name').post();
-router.route('/update_description').post();
+async function updatePicture(req, res) {
+    const leaguePicture = req.body.leaguePicture;
+    const leagueID = req.body.leagueID;
+    await uploadImage(leaguePicture, "leaguePicture", leagueID);
+    return res.status(200);
+}
+
+async function updateName(req, res) {
+    const leagueName= req.body.leagueName;
+    const leagueID = req.body.leagueID;
+    const username = req.session.username;
+
+    await League.UpdateOne({
+        _id: leagueID,
+        admin: username
+    },{
+        leagueName: leagueName
+    })
+
+    return res.status(200);
+}
+
+async function updateDescription(req, res) {
+    const leagueDescription = req.body.leagueName;
+    const leagueID = req.body.leagueID;
+    const username = req.session.username;
+
+    await League.UpdateOne({
+        _id: leagueID,
+        admin: username
+    },{
+        leagueDescription: leagueDescription
+    })
+
+    return res.status(200);
+}
+router.route('/update_picture').post(multer().array(), checkLeagueID, checkUserLeagueAdmin, updatePicture);
+router.route('/update_name').post(checkLeagueID, updateName);
+router.route('/update_description').post(checkLeagueID, updateDescription);
 
 
 module.exports = router;
