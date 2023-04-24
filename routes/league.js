@@ -463,27 +463,15 @@ router.route("/get_admin_leagues").post(
         return res.status(200).json(leagues);
 });
 
-async function getPropertyOfLeague(leagueID, property) {
-    return League.findOne({_id: leagueID }, property).lean();
-}
+async function getLeagueNameDescriptionType(req, res, next) {
+    const leagueID = req.body.leagueID;
+    const leagueDescription = await League.findOne(
+        {_id: leagueID},
+        {"_id": 0, "leagueName": 1, "leagueDescription": 1, "leagueType": 1}).lean();
 
-router.route("/get_league_name").post(
-    checkLeagueID,
-    async (req, res, next) => {
-        const leagueID = req.body.leagueID;
-        const leagueName = await getPropertyOfLeague(leagueID, "leagueName");
-
-        return res.status(200).json(leagueName);
-});
-
-router.route("/get_league_description").post(
-    checkLeagueID,
-    async (req, res, next) => {
-        const leagueID = req.body.leagueID;
-        const leagueDescription = await getPropertyOfLeague(leagueID, "leagueDescription");
-
-        return res.status(200).json(leagueDescription);
-});
+    return res.status(200).json(leagueDescription);
+};
+router.route("/get_league_name_description_type").post(checkLeagueID, getLeagueNameDescriptionType);
 
 /// Test this
 router.route("/delete_league").post(
@@ -739,6 +727,11 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
 
     return res.status(200).json(recentExercises);
 });
+
+router.route('/update_picture').post();
+router.route('/update_name').post();
+router.route('/update_description').post();
+route
 
 
 module.exports = router;
