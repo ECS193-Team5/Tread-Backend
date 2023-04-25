@@ -86,10 +86,12 @@ describe('Testing authentication', () =>{
 
         it("createUser should throw an error when the document cannot save", async function (){
             saveStub.rejects("err");
+            let createUserSpy = sandbox.spy(createUser);
             try{
                 await createUser(userInfo);
             }
             catch(err){
+                expect(createUserSpy).to.have.thrown;
                 return;
             }
             expect(4).to.equal(5);
@@ -117,9 +119,11 @@ describe('Testing authentication', () =>{
 
         it("verify should throw correctly", async function() {
             OAuthStub.rejects(ticket);
+            let verifySpy = sandbox.spy(verify);
             try {
                 await verify(token);
             } catch {
+                expect(verifySpy).to.have.thrown;
                 return;
             }
             expect(4).to.equal(5);
@@ -242,6 +246,7 @@ describe('Testing authentication', () =>{
         describe("Testing generateLoggedInSession()", () => {
             let generateLoggedInSession;
             let hasUsernameFromDocStub;
+            let registerDeviceTokenStub;
 
             beforeEach(() => {
                 generateLoggedInSession = auth.__get__("generateLoggedInSession");
@@ -268,7 +273,7 @@ describe('Testing authentication', () =>{
                 expect(req.session.username).to.equal(null);
             });
 
-            it("generateLoggedInSession() returns status 500 if regenerate fails",
+            it("generateLoggedInSession() returns status 500 if regenerate() fails",
                 async function () {
                     req.session.regenerate = async function (inputFunction) {
                         await inputFunction("error");
@@ -282,9 +287,9 @@ describe('Testing authentication', () =>{
                     expect(registerDeviceTokenStub).to.have.not.been.called;
                     expect(res.status).to.equal(500);
                     expect(JSON.parse(res.data)).to.deep.equal("error");
-                });
+            });
 
-                it("generateLoggedInSession() returns status 200 if save fails",
+            it("generateLoggedInSession() returns status 500 if save() fails",
                 async function () {
                     req.session.regenerate = async function (inputFunction) {
                         await inputFunction();
@@ -298,9 +303,25 @@ describe('Testing authentication', () =>{
                     expect(registerDeviceTokenStub).to.have.not.been.called;
                     expect(res.status).to.equal(500);
                     expect(JSON.parse(res.data)).to.deep.equal("error");
-                });
+            });
 
-                it("generateLoggedInSession() returns correctly with username",
+            it("generateLoggedInSession() returns status 500 if save() fails",
+            async function () {
+                req.session.regenerate = async function (inputFunction) {
+                    await inputFunction();
+                };
+                req.session.save = async function (inputFunction) {
+                    await inputFunction("error");
+                };
+                hasUsernameFromDocStub.returns(true);
+                await generateLoggedInSession(req, res, next);
+                expect(hasUsernameFromDocStub).to.have.been.called;
+                expect(registerDeviceTokenStub).to.have.been.called;
+                expect(res.status).to.equal(500);
+                expect(JSON.parse(res.data)).to.deep.equal("error");
+            });
+
+            it("generateLoggedInSession() returns correctly with username",
                 async function () {
                     req.session.regenerate = async function (inputFunction) {
                         await inputFunction();
@@ -319,9 +340,9 @@ describe('Testing authentication', () =>{
                     expect(JSON.parse(res.data)).to.deep.equal({
                         hasUsername: true
                     });
-                });
+            });
 
-                it("generateLoggedInSession() returns correctly with no username",
+            it("generateLoggedInSession() returns correctly with no username",
                 async function () {
                     req.session.regenerate = async function (inputFunction) {
                         await inputFunction();
@@ -340,10 +361,87 @@ describe('Testing authentication', () =>{
                     expect(JSON.parse(res.data)).to.deep.equal({
                         hasUsername: false
                     });
-                });
+            });
+        });
 
-            describe("Testing logout()", () => {
+        describe("Testing logout()", () => {
+            let removeDeviceTokenStub;
+            let logout;
 
+            beforeEach(() => {
+                logout = auth.__get__("logout");
+                removeDeviceTokenStub = sandbox.stub();
+                auth.__set__("removeDeviceToken", removeDeviceTokenStub)
+                req.session.username = "user#2222";
+                req.session.deviceToken = "cIn_pQAWKDe7-_qUzYcF1I:APA91bGBrIU-Ldd0Le9aDPeYJXT2AaUoI3El7FImQacGJMSRsfvJOr3jBWtYVMpmfDEopu42NbGD4ZJGGqJg4cM1ODt04SPyqkjrlCWz-uvaqvf-5_dGH1QHMGi_3ClrFn6Xr_UlP83Y";
+            });
+
+            it("res.status returns 500 if save() errors", async function() {
+                req.session.save = async function(inputFunction) {
+                    await inputFunction("error");
+                };
+
+                req.session.regenerate = async function(inputFunction) {
+                    await inputFunction();
+                };
+
+                removeDeviceTokenStub.resolves();
+                await logout(req, res);
+                expect(res.status).to.equal(500);
+            });
+
+            it("throws when removeDeviceToken() rejects", async function() {
+                req.session.save = async function(inputFunction) {
+                    await inputFunction("error");
+                };
+
+                req.session.regenerate = async function(inputFunction) {
+                    await inputFunction();
+                };
+
+                let logoutSpy = sandbox.spy(logout);
+
+                removeDeviceTokenStub.rejects();
+                try {
+                    await logout(req, res);
+                } catch {
+                    expect(logoutSpy).to.have.thrown;
+                    return
+                }
+                expect(5).to.equal(4);
+            });
+
+
+            it("res.status returns 500 if regenerate() errors", async function() {
+                req.session.save = async function(inputFunction) {
+                    await inputFunction();
+                };
+
+                req.session.regenerate = async function(inputFunction) {
+                    await inputFunction("error");
+                };
+
+                removeDeviceTokenStub.resolves();
+                await logout(req, res);
+                expect(res.status).to.equal(500);
+            });
+
+            it("Outputs are null and res.status is 200 on success",
+                async function() {
+                    req.session.save = async function(inputFunction) {
+                        await inputFunction();
+                    };
+
+                    req.session.regenerate = async function(inputFunction) {
+                        await inputFunction();
+                    };
+
+                    removeDeviceTokenStub.resolves();
+                    await logout(req, res);
+                    expect(req.session.username).to.equal(null);
+                    expect(req.session.authenticationSource).to.equal(null);
+                    expect(req.session.authenticationID).to.equal(null);
+                    expect(res.status).to.equal(200);
             });
         });
 
