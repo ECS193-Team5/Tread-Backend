@@ -743,6 +743,7 @@ async function updatePicture(req, res) {
     await uploadImage(leaguePicture, "leaguePicture", leagueID);
     return res.sendStatus(200);
 }
+router.route('/update_picture').post(multer().array(), checkLeagueID, checkUserLeagueAdmin, updatePicture);
 
 async function updateName(req, res) {
     const leagueName= req.body.leagueName;
@@ -754,10 +755,11 @@ async function updateName(req, res) {
         admin: username
     },{
         leagueName: leagueName
-    })
+    });
 
     return res.sendStatus(200);
 }
+router.route('/update_name').post(checkLeagueID, updateName);
 
 async function updateDescription(req, res) {
     const leagueDescription = req.body.leagueDescription;
@@ -769,13 +771,27 @@ async function updateDescription(req, res) {
         admin: username
     },{
         leagueDescription: leagueDescription
-    })
+    });
 
     return res.sendStatus(200);
 }
-router.route('/update_picture').post(multer().array(), checkLeagueID, checkUserLeagueAdmin, updatePicture);
-router.route('/update_name').post(checkLeagueID, updateName);
 router.route('/update_description').post(checkLeagueID, updateDescription);
 
+async function updateType(req, res) {
+    const leagueType = req.body.leagueType;
+    const leagueID = req.body.leagueID;
+    const username = req.session.username;
+
+    await League.updateOne({
+        _id: leagueID,
+        admin: username
+    },{
+        leagueType: leagueType,
+        $set: {pendingRequests: []}
+    });
+
+    return res.sendStatus(200);
+}
+router.route('/update_type').post(checkLeagueID, updateType);
 
 module.exports = router;
