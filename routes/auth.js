@@ -125,7 +125,7 @@ async function logout(req, res) {
     // regenerate the session, which is good practice to help
     // guard against forms of session fixation
     req.session.regenerate(function (err) {
-      if (err) res.sendStatus(500);
+      if (err) return res.sendStatus(500);
       return res.sendStatus(200);
     })
   })
