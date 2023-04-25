@@ -788,7 +788,7 @@ async function updateType(req, res) {
     },{
         leagueType: leagueType,
         $set: {pendingRequests: []}
-    });
+    },{runValidators: true});
 
     return res.sendStatus(200);
 }
