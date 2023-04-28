@@ -1,13 +1,13 @@
-const chai = require("chai")
-const sinonChai = require("sinon-chai")
-chai.use(sinonChai)
+const chai = require("chai");
+const sinonChai = require("sinon-chai");
+chai.use(sinonChai);
 const { expect, assert } = require("chai");
 const rewire = require("rewire");
 const mongoose = require("mongoose");
 const { OAuth2Client,   LoginTicket } = require('google-auth-library');
 var sandbox = require("sinon").createSandbox();
 
-describe('Testing authentication', () =>{
+describe('Testing authentication', () => {
     let auth;
 
     beforeEach(() => {

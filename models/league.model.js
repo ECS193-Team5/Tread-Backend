@@ -35,7 +35,7 @@ const LeagueSchema = new Schema(
     leagueType: {
         type: String,
         required: true,
-        enum: ["private", "open"],
+        enum: ["private", "public"],
     },
     pendingRequests: {
         type: [String],
