@@ -249,7 +249,7 @@ router.route("/user_request_to_join").post(
             },{ "_id": 0, "leagueType": 1 }
         )
 
-        if (leagueType.leagueType === "open") {
+        if (leagueType.leagueType === "public") {
             res.locals.updates = {
                 $addToSet: { members: username}
             }
@@ -669,7 +669,7 @@ router.route('/get_leaderboard').post(checkLeagueID,
 router.route('/get_recommended').post(async (req, res, next) => {
     // find 10 recent exercises logged
     // find all league challenges in the last x time with recent exercises
-    // find at most 6 leagues that are open from that list
+    // find at most 6 leagues that are public from that list
     const NUMBER_OF_RECENT_EXERCISES = 10;
     const WEEK_IN_MILISECONDS = 604800000;
     const CHALLENGE_QUERY_TIME_LIMIT = Date.now() - WEEK_IN_MILISECONDS;
@@ -692,12 +692,12 @@ router.route('/get_recommended').post(async (req, res, next) => {
     }, {"_id": 0, "receivedUser": 1}).distinct("receivedUser").lean();
 
 
-    const openRelatedLeagues = await League.find({
+    const publicRelatedLeagues = await League.find({
         _id: {$in: relatedLeagueChallenges},
-        leagueType: "open"
+        leagueType: "public"
     }, {"leagueName": 1}).lean();
 
-    return res.status(200).json(openRelatedLeagues);
+    return res.status(200).json(publicRelatedLeagues);
 });
 
 router.route('/get_recent_activity').post(async (req, res, next) => {
@@ -743,6 +743,7 @@ async function updatePicture(req, res) {
     await uploadImage(leaguePicture, "leaguePicture", leagueID);
     return res.sendStatus(200);
 }
+router.route('/update_picture').post(multer().array(), checkLeagueID, checkUserLeagueAdmin, updatePicture);
 
 async function updateName(req, res) {
     const leagueName= req.body.leagueName;
@@ -754,10 +755,11 @@ async function updateName(req, res) {
         admin: username
     },{
         leagueName: leagueName
-    })
+    });
 
     return res.sendStatus(200);
 }
+router.route('/update_name').post(checkLeagueID, updateName);
 
 async function updateDescription(req, res) {
     const leagueDescription = req.body.leagueDescription;
@@ -769,13 +771,27 @@ async function updateDescription(req, res) {
         admin: username
     },{
         leagueDescription: leagueDescription
-    })
+    });
 
     return res.sendStatus(200);
 }
-router.route('/update_picture').post(multer().array(), checkLeagueID, checkUserLeagueAdmin, updatePicture);
-router.route('/update_name').post(checkLeagueID, updateName);
 router.route('/update_description').post(checkLeagueID, updateDescription);
 
+async function updateType(req, res) {
+    const leagueType = req.body.leagueType;
+    const leagueID = req.body.leagueID;
+    const username = req.session.username;
+
+    await League.updateOne({
+        _id: leagueID,
+        admin: username
+    },{
+        leagueType: leagueType,
+        $set: {pendingRequests: []}
+    },{runValidators: true});
+
+    return res.sendStatus(200);
+}
+router.route('/update_type').post(checkLeagueID, updateType);
 
 module.exports = router;
