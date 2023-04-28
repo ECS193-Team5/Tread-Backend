@@ -249,7 +249,7 @@ router.route("/user_request_to_join").post(
             },{ "_id": 0, "leagueType": 1 }
         )
 
-        if (leagueType.leagueType === "open") {
+        if (leagueType.leagueType === "public") {
             res.locals.updates = {
                 $addToSet: { members: username}
             }
@@ -669,7 +669,7 @@ router.route('/get_leaderboard').post(checkLeagueID,
 router.route('/get_recommended').post(async (req, res, next) => {
     // find 10 recent exercises logged
     // find all league challenges in the last x time with recent exercises
-    // find at most 6 leagues that are open from that list
+    // find at most 6 leagues that are public from that list
     const NUMBER_OF_RECENT_EXERCISES = 10;
     const WEEK_IN_MILISECONDS = 604800000;
     const CHALLENGE_QUERY_TIME_LIMIT = Date.now() - WEEK_IN_MILISECONDS;
@@ -692,12 +692,12 @@ router.route('/get_recommended').post(async (req, res, next) => {
     }, {"_id": 0, "receivedUser": 1}).distinct("receivedUser").lean();
 
 
-    const openRelatedLeagues = await League.find({
+    const publicRelatedLeagues = await League.find({
         _id: {$in: relatedLeagueChallenges},
-        leagueType: "open"
+        leagueType: "public"
     }, {"leagueName": 1}).lean();
 
-    return res.status(200).json(openRelatedLeagues);
+    return res.status(200).json(publicRelatedLeagues);
 });
 
 router.route('/get_recent_activity').post(async (req, res, next) => {
