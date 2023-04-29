@@ -38,7 +38,7 @@ async function sendMessageToDevices(message) {
 }
 
 async function sendPushNotificationToUsers (usernames, title, page) {
-    deviceTokens = await getDeviceTokens(usernames);
+    const deviceTokens = await getDeviceTokens(usernames);
 
     if (deviceTokens.length === 0) {
         return;
