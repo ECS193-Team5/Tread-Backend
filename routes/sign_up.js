@@ -73,7 +73,7 @@ router.route('/get_profile_photo').post(
       }}
     });
 
-    await Medal_progress.bulkWrite(medalsProgress);
+    await Medal_progress.bulkWrite(medalsProgress, {ordered: false});
   }
 
   router.route('/sign_up').post(multer().array(), async (req, res,) => {
