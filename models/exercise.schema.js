@@ -22,7 +22,19 @@ function convertAmount(distanceUnit, amount) {
     return amount * UNIT_CONVERSIONS[distanceUnit];
 }
 
-const exercise = new mongoose.Schema(
+function getUnitType(unit) {
+    if (TIME_UNITS.includes(unit)) {
+        return "time";
+    }
+    if (DISTANCE_UNITS.includes(unit)) {
+        return "distance";
+    }
+    if (COUNT_UNITS.includes(unit)) {
+        return "count";
+    }
+}
+
+const exercise = new Schema(
 {
     exerciseName: {
         type: String,
@@ -36,17 +48,7 @@ const exercise = new mongoose.Schema(
     unitType: {
         type: String,
         required: true,
-        default: function() {
-            if (TIME_UNITS.includes(this.unit)) {
-                return "time";
-            }
-            if (DISTANCE_UNITS.includes(this.unit)) {
-                return "distance";
-            }
-            if (COUNT_UNITS.includes(this.unit)) {
-                return "count";
-            }
-        }
+        default: getUnitType(this.unit)
     },
     amount: {
         type: Number,
@@ -67,3 +69,5 @@ const exercise = new mongoose.Schema(
 });
 
 module.exports = exercise;
+module.exports.getUnitType = getUnitType;
+module.exports.convertAmount = convertAmount;
