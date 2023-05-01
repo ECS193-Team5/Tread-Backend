@@ -2,7 +2,7 @@ const router = require("express").Router();
 const Exercise_log = require("../models/exercise_log.model");
 const Challenge_progress = require("../models/challenge_progress.model");
 
-router.route("/get_exercise_log").post(async (req, res, next) => {
+async function getExerciseLog(req, res) {
     const username = req.session.username;
 
     const exerciseLogData = await Exercise_log.find({
@@ -10,9 +10,11 @@ router.route("/get_exercise_log").post(async (req, res, next) => {
     }).sort({loggedDate: 1});
 
     return res.status(200).json(exerciseLogData);
-});
+}
 
-router.route("/get_past_challenges").post(async (req, res, next) => {
+router.route("/get_exercise_log").post(getExerciseLog);
+
+async function getPastChallenges(req, res) {
     const username = req.session.username;
 
     const exerciseLogData = await Challenge_progress.find({
@@ -21,6 +23,8 @@ router.route("/get_past_challenges").post(async (req, res, next) => {
     }).sort({dueDate: 1});
 
     return res.status(200).json(exerciseLogData);
-});
+}
+
+router.route("/get_past_challenges").post(getPastChallenges);
 
 module.exports = router;
