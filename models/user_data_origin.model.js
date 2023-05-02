@@ -26,10 +26,10 @@ const userDataOriginSchema = new Schema(
         }
     },
     {
-        collection: "User_data_origin"
+        collection: "user_data_origin"
     }
 );
 
-const UUser_data_origin = mongoose.model("User_data_origin", userDataOriginSchema);
+const User_data_origin = mongoose.model("User_data_origin", userDataOriginSchema);
 
-module.exports = UUser_data_origin;
+module.exports = User_data_origin;
