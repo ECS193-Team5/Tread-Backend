@@ -86,6 +86,7 @@ const globalChallengeRouter = require("./routes/global_challenge");
 const medalsRouter = require("./routes/medals");
 const statisticsRouter = require("./routes/statistics");
 const deleteUserRouter = require("./routes/delete_user.js");
+const dataOriginRouter = require("./routes/data_origin");
 
 app.use("/auth", authRouter);
 app.use("/sign_up", isAuthenticated, signUpRouter)
@@ -97,6 +98,7 @@ app.use("/exercise_log", isAuthenticated, hasUsername, exerciseLogRouter);
 app.use("/medals", isAuthenticated, hasUsername, medalsRouter);
 app.use("/stats", isAuthenticated, hasUsername, statisticsRouter);
 app.use("/delete_user", isAuthenticated, hasUsername, deleteUserRouter);
+app.use("/data_origin", isAuthenticated,  hasUsername, dataOriginRouter);
 // Should be in some kind of protected route
 app.use("/global_challenge", isAuthenticated, hasUsername, globalChallengeRouter);
 

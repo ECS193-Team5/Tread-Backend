@@ -4,11 +4,122 @@ const Medal_progress = require("../models/medal_progress.model");
 const Global_challenge = require("../models/global_challenge.model");
 const Global_challenge_progress = require("../models/global_challenge_progress.model");
 const Challenge_progress = require("../models/challenge_progress.model");
+const { touchDataOriginDate } = require("./data_origin.js");
 const { getUnitType, convertAmount } = require("../models/exercise.schema");
+
+async function updateChallengeProgress(username, exerciseLog) {
+    const progress =  exerciseLog.exercise.convertedAmount;
+
+    await Challenge_progress.updateMany({
+        username: username,
+        'exercise.exerciseName': exerciseLog.exercise.exerciseName,
+        'exercise.unitType' : exerciseLog.exercise.unitType,
+        issuedDate: {
+            $lte: Math.min(Date.now(), exerciseLog.loggedDate)
+        },
+        dueDate: {
+            $gte: Math.max(Date.now(), exerciseLog.loggedDate)
+        },
+    },
+    {$inc: {progress: progress}});
+}
+
+async function checkForChallengeCompletion(username, exerciseLog, model) {
+    const challengeCompletionQuery = {
+        username: username,
+        'exercise.exerciseName': exerciseLog.exercise.exerciseName,
+        'exercise.unitType' : exerciseLog.exercise.unitType,
+        completed: false,
+        issuedDate: {
+            $lte: Math.min(Date.now(), exerciseLog.loggedDate)
+        },
+        dueDate: {
+            $gte: Math.max(Date.now(), exerciseLog.loggedDate)
+        },
+        $expr: {$gte: [ "$progress" , "$exercise.convertedAmount" ]}
+    }
+
+    model.updateMany(challengeCompletionQuery, {completed: true});
+}
+
+async function updateChallenges(username, exerciseLog) {
+    await updateChallengeProgress(username, exerciseLog);
+    await checkForChallengeCompletion(username, exerciseLog, Challenge_progress);
+}
+
+async function updateGlobalChallengeProgress(username, exerciseLog) {
+    const incrementObj = {
+        progress : exerciseLog.exercise.convertedAmount
+    }
+    const needUpdatingGlobalChallenge = await Global_challenge.findOne({
+        'exercise.exerciseName' : exerciseLog.exercise.exerciseName,
+        'exercise.unitType' : exerciseLog.exercise.unitType,
+        issuedDate: {
+            $lte: Math.min(Date.now(), exerciseLog.loggedDate)
+        },
+        dueDate: {
+            $gte: Math.max(Date.now(), exerciseLog.loggedDate)
+        }
+    }).lean();
+
+    if (needUpdatingGlobalChallenge === null) {
+        return next();
+    }
+
+    await Global_challenge_progress.updateOne({
+        challengeID: needUpdatingGlobalChallenge._id,
+        username: username,
+        exercise: needUpdatingGlobalChallenge.exercise,
+        dueDate: needUpdatingGlobalChallenge.dueDate,
+        issueDate: needUpdatingGlobalChallenge.issueDate
+    },    {$inc: incrementObj}, {upsert: true});
+}
+
+async function updateGlobalChallenges(username, exerciseLog) {
+    await updateGlobalChallengeProgress(username, exerciseLog);
+    await checkForChallengeCompletion(username, exerciseLog, Global_challenge_progress);
+}
+
+
+async function updateMedalProgress(username, exercise) {
+    const incrementObj = {
+        progress : exercise.convertedAmount
+    }
+    const medalProgressQuery = {
+        username: username,
+        'exercise.exerciseName': exercise.exerciseName,
+        'exercise.unitType' : exercise.unitType,
+        completed: false,
+    }
+
+    await Medal_progress.updateMany(medalProgressQuery , {$inc: incrementObj});
+ }
+
+
+async function checkMedalCompletion(username, exercise) {
+    const medalCompletionQuery = {
+        username: username,
+        'exercise.exerciseName': exercise.exerciseName,
+        'exercise.unitType' : exercise.unitType,
+        completed: false,
+        $expr: {$gte: [ "$progress" , "$exercise.convertedAmount" ]},
+    }
+
+    await Medal_progress.updateMany(medalCompletionQuery, {
+        completed: true
+    });
+}
+
+async function updateMedalsWithExercise(username, exercise) {
+    await updateMedalProgress(username, exercise);
+    await checkMedalCompletion(username, exercise);
+}
 
 // Updating one vs many exercises use different functions to reduce latency
 // and number of database calls.
 async function addExerciseToLog(req, res, next) {
+    const username = req.session.username;
+    const dataOrigin = req.body.dataOrigin;
     const exercise = {
         exerciseName: req.body.exerciseName,
         unit: req.body.unit,
@@ -22,135 +133,22 @@ async function addExerciseToLog(req, res, next) {
 
     const newExerciseLog = new Exercise_log(exerciseLog);
     try {
-        await newExerciseLog.save();
+        Promise.all([
+            newExerciseLog.save(),
+            updateChallenges(username,  newExerciseLog),
+            updateGlobalChallenges(username, newExerciseLog),
+            updateMedalsWithExercise(username, newExerciseLog.exercise),
+            touchDataOriginDate(username, dataOrigin)
+        ]);
     } catch (err) {
         console.log(err)
         return res.status(500).json("Error: " + err);
     }
 
-    res.locals.exerciseLog = newExerciseLog;
-    next();
-}
-
-// Need to test
-async function updateChallenges(req, res, next) {
-    const loggedDate = req.body.loggedDate;
-    const username = req.session.username
-    const progress =  res.locals.exerciseLog.exercise.convertedAmount;
-
-    await Challenge_progress.updateMany({
-        username: username,
-        'exercise.exerciseName': req.body.exerciseName,
-        'exercise.unitType' : res.locals.exerciseLog.exercise.unitType,
-        issuedDate: {
-            $lte: Math.min(Date.now(), loggedDate)
-        },
-        dueDate: {
-            $gte: Math.max(Date.now(), loggedDate)
-        },
-    },
-    {$inc: {progress: progress}});
-
-    next();
-}
-
-
-async function updateGlobalChallenges(req, res, next) {
-    const loggedDate = req.body.loggedDate;
-    const incrementObj = {
-        progress : res.locals.exerciseLog.exercise.convertedAmount
-    }
-    const needUpdatingGlobalChallenge = await Global_challenge.findOne({
-        'exercise.exerciseName' : req.body.exerciseName,
-        'exercise.unitType' : res.locals.exerciseLog.exercise.unitType,
-        issuedDate: {
-            $lte: Math.min(Date.now(), loggedDate)
-        },
-        dueDate: {
-            $gte: Math.max(Date.now(), loggedDate)
-        }
-    }).lean();
-
-    if (needUpdatingGlobalChallenge === null) {
-        return next();
-    }
-
-    await Global_challenge_progress.updateOne({
-        challengeID: needUpdatingGlobalChallenge._id,
-        username: req.session.username,
-        exercise: needUpdatingGlobalChallenge.exercise,
-        dueDate: needUpdatingGlobalChallenge.dueDate,
-        issueDate: needUpdatingGlobalChallenge.issueDate
-    },    {$inc: incrementObj}, {upsert: true});
-
-    next();
-}
-
-async function checkForChallengeCompletion(req, res, next) {
-    const loggedDate = req.body.loggedDate;
-    const username = req.session.username;
-    const challengeCompletionQuery = {
-        username: username,
-        'exercise.exerciseName': req.body.exerciseName,
-        'exercise.unitType' : res.locals.exerciseLog.exercise.unitType,
-        completed: false,
-        issuedDate: {
-            $lte: Math.min(Date.now(), loggedDate)
-        },
-        dueDate: {
-            $gte: Math.max(Date.now(), loggedDate)
-        },
-        $expr: {$gte: [ "$progress" , "$exercise.convertedAmount" ]}
-    }
-    // This is very slow
-    await Promise.all([
-        Challenge_progress.updateMany(challengeCompletionQuery, {completed: true}),
-        Global_challenge_progress.updateMany(challengeCompletionQuery, {completed: true})
-    ]);
-    next();
-}
-
-async function updateMedalProgress(req, res, next) {
-    const username = req.session.username
-    const incrementObj = {
-        progress : res.locals.exerciseLog.exercise.convertedAmount
-    }
-    const medalProgressQuery = {
-        username: username,
-        'exercise.exerciseName': req.body.exerciseName,
-        'exercise.unitType' : res.locals.exerciseLog.exercise.unitType,
-        completed: false,
-    }
-
-    await Medal_progress.updateMany(medalProgressQuery , {$inc: incrementObj});
-
-    next();
- }
-
-
-async function checkMedalCompletion(req, res, next) {
-    const username = req.session.username
-    const medalCompletionQuery = {
-        username: username,
-        'exercise.exerciseName': req.body.exerciseName,
-        'exercise.unitType' : res.locals.exerciseLog.exercise.unitType,
-        completed: false,
-        $expr: {$gte: [ "$progress" , "$exercise.convertedAmount" ]},
-    }
-
-    await Medal_progress.updateMany(medalCompletionQuery, {
-        completed: true
-    });
-
     return res.sendStatus(200);
 }
 
-router.route('/add').post(addExerciseToLog,
-    updateChallenges,
-    updateGlobalChallenges,
-    checkForChallengeCompletion,
-    updateMedalProgress,
-    checkMedalCompletion);
+router.route('/add').post(addExerciseToLog);
 
 
 // Expects an array of exerciseLogs without the username field.
@@ -315,6 +313,7 @@ async function updateManyMedalProgress(username, uniqueExercises, exerciseList) 
 }
 
 async function updateDatabaseWithExerciseList(req, res, next) {
+    const dataOrigin = req.body.dataOrigin;
     const exerciseList = req.body.exerciseList;
     const uniqueExercises = req.body.uniqueExercises;
     const username = req.session.username;
@@ -323,7 +322,8 @@ async function updateDatabaseWithExerciseList(req, res, next) {
         await Promise.all([
             addExerciseListToExerciseLog(username, exerciseList),
             updateManyChallengeProgress(username, exerciseList, uniqueExercises),
-            updateManyMedalProgress(username, uniqueExercises, exerciseList)
+            updateManyMedalProgress(username, uniqueExercises, exerciseList),
+            touchDataOriginDate(username, dataOrigin)
         ])
     } catch (err) {
         console.log(err)
