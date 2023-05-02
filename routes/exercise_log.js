@@ -71,7 +71,7 @@ async function updateGlobalChallenges(req, res, next) {
         }
     }).lean();
 
-    if (needUpdatingGlobalChallenge == null) {
+    if (needUpdatingGlobalChallenge === null) {
         return next();
     }
 
@@ -81,8 +81,7 @@ async function updateGlobalChallenges(req, res, next) {
         exercise: needUpdatingGlobalChallenge.exercise,
         dueDate: needUpdatingGlobalChallenge.dueDate,
         issueDate: needUpdatingGlobalChallenge.issueDate
-    },
-    {$inc: incrementObj}, {upsert: true});
+    },    {$inc: incrementObj}, {upsert: true});
 
     next();
 }
@@ -110,7 +109,6 @@ async function checkForChallengeCompletion(req, res, next) {
     ]);
     next();
 }
-
 
 async function updateMedalProgress(req, res, next) {
     const username = req.session.username
@@ -207,7 +205,7 @@ async function updateManyChallengesAndCompletion(updateChallengeQuery, challenge
     await Challenge_progress.bulkWrite(challengeCompletionQuery, {ordered: false});
 }
 
-function getManyMissingGlobalChallengeQuery(username, uniqueExercises) {
+function getQueryForGlobalChallengesMatchingExercises(username, uniqueExercises) {
     return uniqueExercises.map((exercise) =>
         Global_challenge.findOne({
             username: username,
@@ -224,34 +222,42 @@ function getManyMissingGlobalChallengeQuery(username, uniqueExercises) {
 }
 
 
-function getInsertMissingGlobalChallengeQuery(missingGlobalChallenges) {
+function getUpdateManyGlobalChallengeProgressQuery(username, missingGlobalChallenges) {
     let insertGlobalChallengeQuery = [];
     missingGlobalChallenges.forEach(challenge => {
         if (!challenge) {
             return
         }
         insertGlobalChallengeQuery.push({
-            insertOne: {
-                document: {
+            updateOne: {
+                filter: {
                     challengeID: challenge._id,
                     username: username,
                     exercise: challenge.exercise,
                     dueDate: challenge.dueDate,
                     issueDate: challenge.issueDate
                 },
-            }
+                update: {
+                    challengeID: challenge._id,
+                    username: username,
+                    exercise: challenge.exercise,
+                    dueDate: challenge.dueDate,
+                    issueDate: challenge.issueDate
+                },
+                upsert: true
+            },
         })
     });
     return insertGlobalChallengeQuery;
 }
 
 async function insertManyMissingGlobalChallenges(username, uniqueExercises) {
-    const missingGlobalChallengesPromises = getManyMissingGlobalChallengeQuery(username, uniqueExercises);
-    const missingGlobalChallenges = await Promise.all(missingGlobalChallengesPromises);
-    if (missingGlobalChallenges.length === 0) {
-        return next();
+    const needUpdatingGlobalChallengesPromises = getQueryForGlobalChallengesMatchingExercises(username, uniqueExercises);
+    const needUpdatingGlobalChallenges = await Promise.all(needUpdatingGlobalChallengesPromises);
+    const insertGlobalChallengeQuery = getUpdateManyGlobalChallengeProgressQuery(username, needUpdatingGlobalChallenges);
+    if (insertGlobalChallengeQuery.length === 0) {
+        return;
     }
-    const insertGlobalChallengeQuery = getInsertMissingGlobalChallengeQuery(missingGlobalChallenges);
     await Global_challenge_progress.bulkWrite(insertGlobalChallengeQuery, {ordered: false});
 }
 
@@ -315,9 +321,9 @@ async function updateDatabaseWithExerciseList(req, res, next) {
 
     try {
         await Promise.all([
-            //addExerciseListToExerciseLog(username, exerciseList),
+            addExerciseListToExerciseLog(username, exerciseList),
             updateManyChallengeProgress(username, exerciseList, uniqueExercises),
-            //updateManyMedalProgress(username, uniqueExercises, exerciseList)
+            updateManyMedalProgress(username, uniqueExercises, exerciseList)
         ])
     } catch (err) {
         console.log(err)

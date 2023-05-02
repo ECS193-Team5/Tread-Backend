@@ -15,7 +15,7 @@ const UNIT_CONVERSIONS = {
     "sec" : 1/60,
     "min" : 1,
     "hr" : 60,
-
+    "ct" : 1
 }
 
 function convertAmount(distanceUnit, amount) {
@@ -48,7 +48,9 @@ const exercise = new Schema(
     unitType: {
         type: String,
         required: true,
-        default: getUnitType(this.unit)
+        default: function() {
+            return getUnitType(this.unit)
+        }
     },
     amount: {
         type: Number,
