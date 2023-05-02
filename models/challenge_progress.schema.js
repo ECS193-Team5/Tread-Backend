@@ -12,6 +12,7 @@ const challengeProgress = new Schema(
     challengeID: {
       type: ObjectId,
       required: true,
+      index: true
     },
     issueDate: {
         type: Date,
@@ -61,6 +62,18 @@ const challengeProgress = new Schema(
 challengeProgress.index({
   username: 1, challengeID : 1
 }, {unique: true});
+
+challengeProgress.index({
+  progress: -1, challengeID : 1
+});
+
+challengeProgress.index({
+  username: 1,
+  'exercise.exerciseName': 1,
+  'exercise.unitType' : 1,
+  issuedDate: -1,
+  dueDate: -1
+});
 
 
 module.exports = challengeProgress;

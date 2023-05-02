@@ -108,7 +108,7 @@ async function removeFriend(username, friendName) {
                 }
             }
         }
-    ]);
+    ], {ordered: false});
 
 }
 
@@ -176,7 +176,7 @@ async function createFriendConnection(username, friendName) {
                 }
             }
         },
-    ]);
+    ], {ordered: false});
 }
 
 async function acceptFriendRequest(username, friendName) {
@@ -286,7 +286,7 @@ async function removeRequest(sender, receiver) {
                 }
             }
         },
-    ])
+    ], {ordered: false})
 }
 
 async function removeSentRequest(username, receiver) {
@@ -355,7 +355,7 @@ async function blockUser(username, target) {
                     }
                 }
             },
-        ]),
+        ], {ordered: false}),
 
         removeFriend(username, target)
     ]);

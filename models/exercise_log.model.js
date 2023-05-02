@@ -7,7 +7,8 @@ const exerciseLogSchema = new Schema(
 {
     username: {
         type: String,
-        required: true
+        required: true,
+        index:true
     },
     postedDate: {
         type: Date,

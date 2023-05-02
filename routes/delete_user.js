@@ -40,8 +40,8 @@ async function deleteUserFriendList(username) {
     friendConnectionQueries.push(createQueryToDeleteMany({ username: username }));
     friendConnectionQueries.push(createQueryToDeleteMany({ friendName: username }));
     return Promise.all([
-        User_inbox.bulkWrite(userInboxQueries),
-        Friend_connection.bulkWrite(friendConnectionQueries),
+        User_inbox.bulkWrite(userInboxQueries, {ordered: false}),
+        Friend_connection.bulkWrite(friendConnectionQueries, {ordered: false}),
         User_inbox.findOneAndDelete({ username: username }),
     ]);
 }
@@ -52,7 +52,7 @@ async function deleteUserChallenges(username) {
     challengeQueries.push(createQueryToDeleteMany({ sentUser: username, challengeType: "self" }));
     challengeQueries.push(createQueryToDeleteMany({ sentUser: username, status: "pending" }));
     challengeQueries.push(createQueryToDeleteMany({ recievedUser: username, status: "pending" }));
-    return Challenge.bulkWrite(challengeQueries);
+    return Challenge.bulkWrite(challengeQueries, {ordered: false});
 }
 
 async function removeUserFromLeagues(username) {
@@ -63,7 +63,7 @@ async function removeUserFromLeagues(username) {
     leagueQueries.push(createQueryToPullFieldFromMany({ sentRequests: username }));
     leagueQueries.push(createQueryToPullFieldFromMany({ pendingRequests: username }));
     leagueQueries.push(createQueryToPullFieldFromMany({ bannedUsers: username }));
-    return League.bulkWrite(leagueQueries);
+    return League.bulkWrite(leagueQueries, {ordered: false});
 }
 // maybe add error handling middleware.
 router.delete('/', async (req, res, next) => {
