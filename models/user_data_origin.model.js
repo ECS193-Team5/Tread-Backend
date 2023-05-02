@@ -19,7 +19,7 @@ const userDataOriginSchema = new Schema(
             required: true,
             default: Date.now
         },
-        healthConnnectLastPostedDate: {
+        healthConnectLastPostedDate: {
             type: Date,
             required: true,
             default: Date.now
