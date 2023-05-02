@@ -61,7 +61,7 @@ async function addChallengeProgress(req, res, next) {
     participants.forEach((member) =>
     challengeProgress.push(createChallengeProgressDocumentQuery(member, documentTemplate)));
     try {
-        await Challenge_progress.bulkWrite(challengeProgress);
+        await Challenge_progress.bulkWrite(challengeProgress, {ordered: false});
     } catch (err) {
         return res.status(500).json("Error: " + err);
     }
@@ -79,7 +79,7 @@ async function notifyNewChallenge(req, res, next) {
         participants.splice(index, 1); // 2nd parameter means remove one item only
     }
 
-    sendPushNotificationToUsers(
+    await sendPushNotificationToUsers(
         participants,
         "New challenge from " + sentUser + ".",
         "currentChallengePage"
