@@ -59,7 +59,7 @@ async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
             (objectID1) => !userGlobalChallengeProgress.some((objectID2) => objectID1["_id"].equals(objectID2)));
 
         missingChallenges.forEach((missingChallenge) => {
-            newGlobalChallenge = {
+            let newGlobalChallenge = {
                 challengeID: missingChallenge._id,
                 username: req.session.username,
                 exercise: missingChallenge.exercise,
