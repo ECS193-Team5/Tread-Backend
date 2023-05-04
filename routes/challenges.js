@@ -198,7 +198,10 @@ router.route('/accepted_challenges').post(async (req, res) => {
 
     const challenges = await Challenge.find({
         participants: username,
-        status: 'accepted'
+        status: 'accepted',
+        dueDate: {
+            $gte: Date.now()
+        },
         }).lean();
 
     const completeInformation = await getCompleteChallengeToProgressInfo(challenges, username);
