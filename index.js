@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 var session = require('express-session');
 const MongoStore = require('connect-mongo');
 const initializeFirebaseSDK = require("./firebase_startup");
-const initializeCloudinarySDK = require("./cloudinary_startup")
+const initializeCloudinarySDK = require("./cloudinary_startup");
+const {isAuthenticated, hasUsername} = require("./auth-middleware");
 
 const cors = require("cors");
 require('dotenv').config();
@@ -64,17 +65,6 @@ app.use(session(sess))
 initializeCloudinarySDK();
 initializeFirebaseSDK();
 
-function isAuthenticated(req, res, next) {
-  if (req.session.authenticationSource && req.session.authenticationID) next();
-      // Needs to be changed to the prod login page.
-  else res.status(401).json("Not signed in");
-}
-
-function hasUsername(req, res, next) {
-  if (req.session.username && req.session.username !== null) next();
-  else res.status(401).json("No username set");
-}
-
 const authRouter = require("./routes/auth");
 const signUpRouter = require("./routes/sign_up")
 const userRouter = require("./routes/user");
@@ -106,3 +96,5 @@ const port = parseInt(process.env.PORT) || 8080;
 app.listen(port, () => {
   console.log(`Server Started at ${port}`)
 });
+
+module.exports = app;
