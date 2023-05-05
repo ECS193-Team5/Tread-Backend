@@ -7,7 +7,8 @@ const Global_challenge_progress = require("../models/global_challenge_progress.m
 const Medal_progress = require("../models/medal_progress.model");
 const User_devices = require("../models/user_devices.model")
 const League = require("../models/league.model");
-const Exercise_log = require("../models/exercise_log.model")
+const Exercise_log = require("../models/exercise_log.model");
+const User_data_origin = require("../models/user_data_origin.model");
 const { logout } = require("./auth.js");
 const { deleteImage } = require("./cloudinary.js")
 
@@ -78,7 +79,8 @@ router.delete('/', async (req, res, next) => {
             Medal_progress.deleteMany({ username: username }),
             User_devices.deleteMany({ username: username }),
             Exercise_log.deleteMany({ username: username }),
-            deleteImage(username.replace('#', '_'))
+            deleteImage(username.replace('#', '_')),
+            User_data_origin.deleteOne({ username: username })
         ]);
         // Remove from league
 
