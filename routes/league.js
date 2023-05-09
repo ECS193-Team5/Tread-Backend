@@ -323,11 +323,12 @@ router.route("/user_undo_request").post(
 router.route("/accept_join_request").post(
     checkLeagueID,
     async (req, res, next) => {
+    const username = req.session.username;
     const recipient = req.body.recipient;
 
     res.locals.filter = {
         _id : ObjectId(req.body.leagueID),
-        admin : req.session.username,
+        admin : username,
         pendingRequests: recipient
     }
 
