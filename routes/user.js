@@ -25,7 +25,7 @@ router.route('/get_username').post(async (req, res) => {
 });
 
 async function updateProfileField(username, updates) {
-  User.findOneAndUpdate(
+  return User.findOneAndUpdate(
     {username: username},
     updates, {runValidators: true}
   );
