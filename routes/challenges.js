@@ -288,7 +288,6 @@ router.route('/accept_friend_challenge').post(async (req, res) => {
 
     await notifyAcceptedChallenge(challenge.sentUser, username);
 
-
     return res.sendStatus(200);
 });
 
@@ -299,7 +298,7 @@ router.route('/decline_friend_challenge').post(async (req, res) => {
     const updateReport = await updatePendingChallengeStatusByID(
         challengeID, username, 'declined')
 
-    if (updateReport.matchedCount == 0) {
+    if (!updateReport) {
         return res.sendStatus(404);
     }
 

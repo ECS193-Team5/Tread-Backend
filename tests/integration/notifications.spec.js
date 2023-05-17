@@ -7,13 +7,13 @@ const app = require("../../index");
 var helpers = require("./helperFunc");
 
 let user1 = {
-    "sub": "20",
+    "sub": "notification1",
     "given_name": "Howard",
     "family_name": "Wang",
 }
 
 let user2 = {
-    "sub": "21",
+    "sub": "notification2",
     "given_name": "Rebekah",
     "family_name": "Grace",
 }
@@ -194,14 +194,14 @@ describe('Testing notifications', () => {
 
             it("Test receiving a challenge sends a notification", async () => {
                 cookieUser2 = await  helpers.loginUser(user2);
-                helpers.sendChallenge(cookieUser2, username1);
+                helpers.sendFriendChallenge(cookieUser2, username1);
                 cookieUser1 = await helpers.loginUser(user1);
                 await helpers.checkMostRecentNotification(cookieUser1, username2 + " sent you a challenge.");
             });
 
             it("Test someone accepting a challenge gives a notification", async () => {
                 cookieUser1 = await helpers.loginUser(user1);
-                helpers.sendChallenge(cookieUser1, username2);
+                helpers.sendFriendChallenge(cookieUser1, username2);
                 cookieUser2 = await helpers.loginUser(user2);
                 helpers.acceptChallenge(cookieUser2, username1);
                 cookieUser1 = await helpers.loginUser(user1);

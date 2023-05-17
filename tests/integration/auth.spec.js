@@ -7,15 +7,16 @@ const app = require("../../index");
 const { loginUser, createUser, getUsername, deleteUser } = require("./helperFunc");
 const googleauth = require('google-auth-library');
 //var helpers = require("./helperFunc");
-const { expect, assert } = require("chai");
+const { expect} = require("chai");
+
 let user1 = {
-    "sub": "0",
+    "sub": "auth1",
     "given_name": "Clark",
     "family_name": "Kent",
 }
 
 let user2 = {
-    "sub": "1",
+    "sub": "auth2",
     "given_name": "Bruce",
     "family_name": "Wayne",
 }

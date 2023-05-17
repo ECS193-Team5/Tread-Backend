@@ -138,6 +138,29 @@ async function acceptFriendRequest(cookie, friendName){
     .then(res => {})
 }
 
+async function getSentChallenges(cookie){
+    let results = [];
+    await request.post("/challenges/sent_challenges")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+async function getReceivedChallenges(cookie){
+    let results = [];
+    await request.post("/challenges/received_challenges")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+
 async function inviteLeague(cookie, leagueID, recipient){
     await request.post("/league/invite_to_join")
     .set("Cookie", cookie)
@@ -162,7 +185,7 @@ function getDueDate(){
     // The next day, in ms
     return Date.now() + 24*60*60*1000;
 }
-async function sendChallenge(cookie, recipient){
+async function sendFriendChallenge(cookie, recipient){
     let inputData = {
         receivedUser: recipient,
         issueDate: getIssueDate(),
@@ -171,7 +194,7 @@ async function sendChallenge(cookie, recipient){
         amount: 10,
         exerciseName: "Badminton"
     }
-    await request.post("/challenge/add_friend_challenge")
+    await request.post("/challenges/add_friend_challenge")
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
     .send(inputData)
@@ -180,26 +203,99 @@ async function sendChallenge(cookie, recipient){
 
 async function acceptChallenge(cookie, sender){
     let challengeID = "";
-    await request.post("/challenge/received_challenges")
+    await request.post("/challenges/received_challenges")
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
-    .send(inputData)
     .then(res => {
         let results = res._body;
-
-        for (let i = 0; i < results.length; i++){
-            if (results[0].sentUser === sender){
-                challengeID = results[0]._id;
-            }
+    
+        if (results.length != 1){
+            throw "Some test is wrong, not revoking its challenge";
         }
+
+        challengeID = results[0]._id;
     })
 
-    await request.post("/challenge/accept_friend_challenge")
+    await request.post("/challenges/accept_friend_challenge")
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
     .send({challengeID:challengeID})
     .then(res => {})
 }
+
+async function revokeAllChallenges(cookie, sentChallenges){
+    sentChallenges.forEach(async (result) => {
+        await request.post("/challenges/delete_friend_challenge")
+        .set("Cookie", cookie)
+        .set('Accept', 'application/json')
+        .send({challengeID : result._id})}
+    );
+}
+
+async function getIssuedChallenges(cookie){
+    let results = [];
+    await request.post("/challenges/accepted_challenges")
+        .set("Cookie", cookie)
+        .set('Accept', 'application/json')
+        .then(res =>{
+            results = res._body;
+        })
+        return results;
+}
+
+async function getIssuedChallengesByLeague(cookie, leagueID){
+    let results = [];
+    await request.post("/challenges/league_challenges")
+        .set("Cookie", cookie)
+        .set('Accept', 'application/json')
+        .send({leagueID: leagueID})
+        .then(res =>{
+            results = res._body;
+        })
+        return results;
+}
+
+async function declineAllChallenges(cookie, receivedChallenges){
+    receivedChallenges.forEach(async (result) => {
+        await request.post("/challenges/decline_friend_challenge")
+        .set("Cookie", cookie)
+        .set('Accept', 'application/json')
+        .send({challengeID : result._id})}
+    );
+}
+
+async function sendSelfChallenge(cookie){
+    let inputData = {
+        receivedUser: "self",
+        issueDate: getIssueDate(),
+        dueDate: getDueDate(),
+        unit: "m",
+        amount: 10,
+        exerciseName: "Badminton"
+    }
+    await request.post("/challenges/add_self_challenge")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send(inputData)
+    .then(res => {})
+}
+
+async function sendLeagueChallenge(cookie, leagueID){
+    let inputData = {
+        receivedUser: leagueID,
+        issueDate: getIssueDate(),
+        dueDate: getDueDate(),
+        unit: "m",
+        amount: 10,
+        exerciseName: "Badminton"
+    }
+    await request.post("/challenges/add_league_challenge")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send(inputData)
+    .then(res => {})
+}
+
 
 module.exports = {
     createUser: createUser,
@@ -207,6 +303,8 @@ module.exports = {
     loginUser: loginUser,
     getUsername: getUsername,
     createLeague: createLeague,
+    getSentChallenges: getSentChallenges,
+    getReceivedChallenges: getReceivedChallenges,
     joinLeague: joinLeague,
     deleteLeague: deleteLeague,
     checkMostRecentNotification: checkMostRecentNotification,
@@ -216,6 +314,15 @@ module.exports = {
     acceptFriendRequest: acceptFriendRequest,
     inviteLeague: inviteLeague,
     acceptLeague: acceptLeague,
-    sendChallenge: sendChallenge,
-    acceptChallenge: acceptChallenge
+    getIssueDate: getIssueDate,
+    getDueDate: getDueDate,
+    sendFriendChallenge: sendFriendChallenge,
+    acceptChallenge: acceptChallenge,
+    declineAllChallenges: declineAllChallenges,
+    revokeAllChallenges: revokeAllChallenges,
+    sendSelfChallenge: sendSelfChallenge,
+    sendLeagueChallenge: sendLeagueChallenge,
+    getIssuedChallenges: getIssuedChallenges,
+    getIssuedChallengesByLeague: getIssuedChallengesByLeague
+
 }
