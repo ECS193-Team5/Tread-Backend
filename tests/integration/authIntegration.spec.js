@@ -23,7 +23,7 @@ let user2 = {
 
 request = request(app);
 
-describe('Testing authentication', () => {
+describe('Testing authentication routes', () => {
     let cookieUser1 = "";
     let cookieUser2 = "";
     let username1 = "";
