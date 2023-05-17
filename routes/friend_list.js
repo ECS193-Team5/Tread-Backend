@@ -6,18 +6,6 @@ const Exercise_log = require("../models/exercise_log.model");
 const {isExistingUser} = require("./user.js");
 const {sendPushNotificationToUsers} = require("./user_devices.js");
 const {getSortedFieldFrequency} = require("./helpers.js");
-/*
-router.route("/").get((req, res) => {
-    User_inbox.find()
-      .then(function (data) {
-        res.send({ data });
-      })
-      .catch(function (err) {
-        res.status(400).json("Error from the router" + err);
-      });
-
-});
-*/
 
 async function getPropertyOfFriendList(username, property) {
     return User_inbox.findOne({username: username }, property).lean();

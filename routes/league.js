@@ -500,7 +500,7 @@ async function getLeagueNameDescriptionType(req, res, next) {
         {_id: leagueID},
         {"_id": 0, "leagueName": 1, "leagueDescription": 1, "leagueType": 1}).lean();
 
-    return res.status(200).json(leagueDescription);
+        return res.status(200).json(leagueDescription);
 };
 router.route("/get_league_name_description_type").post(checkLeagueID, getLeagueNameDescriptionType);
 
