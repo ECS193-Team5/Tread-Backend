@@ -1,6 +1,7 @@
 var request = require("supertest");
 var sandbox = require("sinon").createSandbox();
 require('dotenv').config();
+const mongoose = require("mongoose");
 process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
 const app = require("../../index");
 const { expect} = require("chai");
@@ -54,7 +55,7 @@ describe('Testing challenges', () => {
         await helpers.deleteUser(cookieUser3);
     })
 
-    /*describe("Test adding challenges", async () => {
+    describe("Test adding challenges", async () => {
         before(async() => {
             cookieUser1 = await helpers.loginUser(user1, sandbox);
         })
@@ -256,12 +257,11 @@ describe('Testing challenges', () => {
             await helpers.deleteLeague(cookieUser3, leagueInfo.leagueID);
         });
     })
-*/
+
     describe("Test mongoose fails", async () => {
         it("Test invalid save", async () => {
-            sandbox.stub(mongoose.Model.prototype, 'save').throws("error - cannot save");
-
             cookieUser1 = await helpers.loginUser(user1, sandbox);
+            sandbox.stub(mongoose.Model.prototype, 'save').throws("error - cannot save");
             let inputData = {
                 receivedUser: username2,
                 issueDate: helpers.getIssueDate(),
@@ -275,12 +275,14 @@ describe('Testing challenges', () => {
             .set('Accept', 'application/json')
             .send(inputData)
             .expect(500)
+
+            sandbox.restore();
         })
 
         it("Test invalid bulkWrite", async () => {
-            sandbox.stub(mongoose.Model.prototype, 'bulkwrite').throws("error - cannot save");
-
             cookieUser1 = await helpers.loginUser(user1, sandbox);
+            sandbox.stub(mongoose.Model, 'bulkWrite').throws("error - cannot save");
+
             let inputData = {
                 receivedUser: username2,
                 issueDate: helpers.getIssueDate(),
@@ -294,10 +296,12 @@ describe('Testing challenges', () => {
             .set('Accept', 'application/json')
             .send(inputData)
             .expect(500)
-        })
+
+            sandbox.restore();
+        });
     });
 
-    /*describe("Test failed user inputs", async () => {
+    describe("Test failed user inputs", async () => {
         it("Test receivedUser does not exist", async () => {
             cookieUser1 = await helpers.loginUser(user1, sandbox);
             let inputData = {
@@ -354,6 +358,6 @@ describe('Testing challenges', () => {
             .send({challengeID: 0})
             .expect(404);
         });
-    });*/
+    });
 
 });
