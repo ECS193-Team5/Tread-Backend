@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha ./tests/*.spec.js --exit",
-    "bekahTest": "mocha ./tests/medalsIntegration.spec.js --exit",
+    "integration_test": "mocha ./tests/integration/*.spec.js --exit --timeout 6000",
+    "bekah_test": "nyc mocha ./tests/integration/authIntegration.spec.js --exit --timeout 6000",
     "start": "node index.js",
     "start-dev": "nodemon index.js",
     "coverage": "nyc --reporter=text npm test"

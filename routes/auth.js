@@ -112,7 +112,7 @@ async function logout(req, res) {
   // logout logic
 
   await removeDeviceToken(req.session.username, req.body.deviceToken);
-
+ 
   // clear the user from the session object and save.
   // this will ensure that re-using the old session id
   // does not have a logged in user
