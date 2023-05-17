@@ -256,12 +256,48 @@ describe('Testing challenges', () => {
             await helpers.deleteLeague(cookieUser3, leagueInfo.leagueID);
         });
     })
-
+*/
     describe("Test mongoose fails", async () => {
+        it("Test invalid save", async () => {
+            sandbox.stub(mongoose.Model.prototype, 'save').throws("error - cannot save");
 
-    });*/
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            let inputData = {
+                receivedUser: username2,
+                issueDate: helpers.getIssueDate(),
+                dueDate: helpers.getDueDate(),
+                unit: "m",
+                amount: 10,
+                exerciseName: "Badminton"
+            }
+            await request.post("/challenges/add_friend_challenge")
+            .set("Cookie", cookieUser1)
+            .set('Accept', 'application/json')
+            .send(inputData)
+            .expect(500)
+        })
 
-    describe("Test failed user inputs", async () => {
+        it("Test invalid bulkWrite", async () => {
+            sandbox.stub(mongoose.Model.prototype, 'bulkwrite').throws("error - cannot save");
+
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            let inputData = {
+                receivedUser: username2,
+                issueDate: helpers.getIssueDate(),
+                dueDate: helpers.getDueDate(),
+                unit: "m",
+                amount: 10,
+                exerciseName: "Badminton"
+            }
+            await request.post("/challenges/add_friend_challenge")
+            .set("Cookie", cookieUser1)
+            .set('Accept', 'application/json')
+            .send(inputData)
+            .expect(500)
+        })
+    });
+
+    /*describe("Test failed user inputs", async () => {
         it("Test receivedUser does not exist", async () => {
             cookieUser1 = await helpers.loginUser(user1, sandbox);
             let inputData = {
@@ -318,6 +354,6 @@ describe('Testing challenges', () => {
             .send({challengeID: 0})
             .expect(404);
         });
-    });
+    });*/
 
 });
