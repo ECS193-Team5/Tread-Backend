@@ -166,7 +166,6 @@ router.post("/kick_member", checkLeagueID,
 router.post("/leave_league", checkLeagueID,
     async (req, res, next) => {
     const username = req.session.username;
-
     res.locals.filter = {
         _id : ObjectId(req.body.leagueID),
         members: username,
@@ -186,6 +185,7 @@ async function notifyPendingMember(username, memberName, actionMessage) {
 router.route("/invite_to_join").post(
     checkLeagueID, verifyRecipientUserExists,
     async (req, res, next) => {
+
         const username = req.session.username;
         const recipient = req.body.recipient;
         const leagueID = req.body.leagueID;
@@ -528,6 +528,7 @@ function getRole(username, league) {
     if (league["members"].includes(username)) {
         return "participant";
     }
+    return "none";
 }
 
 
@@ -541,7 +542,7 @@ async function getMyRole(req, res, next) {
     }).lean();
 
     if (leagueInfo === null) {
-        return res.sendStatus(404);
+        return res.status(200).json("none");
     }
     return res.status(200).json(getRole(username, leagueInfo))
 }

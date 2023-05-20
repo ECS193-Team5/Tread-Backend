@@ -3,6 +3,7 @@ process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
 const app = require("../../index");
 request = request(app);
 const googleauth = require('google-auth-library');
+const { expect } = require("chai");
 
 async function createUser(user, sandbox) {
     let cookie = await loginUser(user, sandbox);
@@ -90,6 +91,17 @@ async function joinLeague(cookie, leagueID){
     })
 }
 
+async function getRole(cookie, leagueID){
+    let role = "";
+    await request.post("/league/get_role")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({leagueID: leagueID})
+    .then(res => {
+        role = res._body;
+    })
+    return role;
+}
 async function deleteLeague(cookie, leagueID){
     await request.post("/league/delete_league")
         .set("Cookie", cookie)
@@ -143,6 +155,79 @@ async function getSentChallenges(cookie){
     await request.post("/challenges/sent_challenges")
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+
+async function getSentLeagues(cookie, leagueID){
+    let results = [];
+    await request.post("/league/get_requested_leagues")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({leagueID:leagueID})
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+async function getInvitedLeagues(cookie, leagueID){
+    let results = [];
+    await request.post("/league/get_invited_leagues")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({leagueID:leagueID})
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+async function getAcceptedLeagues(cookie, leagueID){
+    let results = [];
+    await request.post("/league/get_leagues")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({leagueID:leagueID})
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+async function getOwnedLeagues(cookie, leagueID){
+    let results = [];
+    await request.post("/league/get_owned_leagues")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({leagueID:leagueID})
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+async function getAdminLeaguesCount(cookie, leagueID){
+    let results = [];
+    await request.post("/league/get_admin_leagues_with_challenge_count")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({leagueID:leagueID})
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+async function getAdminLeagues(cookie, leagueID){
+    let results = [];
+    await request.post("/league/get_admin_leagues")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({leagueID:leagueID})
     .then(res => {
         results = res._body;
     })
@@ -296,7 +381,6 @@ async function sendLeagueChallenge(cookie, leagueID){
     .then(res => {})
 }
 
-
 module.exports = {
     createUser: createUser,
     deleteUser: deleteUser,
@@ -323,6 +407,12 @@ module.exports = {
     sendSelfChallenge: sendSelfChallenge,
     sendLeagueChallenge: sendLeagueChallenge,
     getIssuedChallenges: getIssuedChallenges,
-    getIssuedChallengesByLeague: getIssuedChallengesByLeague
-
+    getIssuedChallengesByLeague: getIssuedChallengesByLeague,
+    getRole: getRole,
+    getSentLeagues: getSentLeagues,
+    getInvitedLeagues: getInvitedLeagues,
+    getAcceptedLeagues: getAcceptedLeagues,
+    getOwnedLeagues: getOwnedLeagues,
+    getAdminLeagues: getAdminLeagues,
+    getAdminLeaguesCount: getAdminLeaguesCount,
 }

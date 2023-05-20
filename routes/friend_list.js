@@ -213,7 +213,7 @@ router.route('/send_friend_request').post(
     const username = req.session.username
     const friendName = req.body.friendName
 
-    userFriendDocument = await getUserFriendDocument(username);
+    const userFriendDocument = await getUserFriendDocument(username);
 
     if (isRequestSentAlready(userFriendDocument, friendName)) {
         return res.json("Already sent");

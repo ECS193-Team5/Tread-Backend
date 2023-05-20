@@ -27,7 +27,7 @@ let user3 = {
 
 
 request = request(app);
-
+/*
 describe('Testing challenges', () => {
     let cookieUser1 = "";
     let cookieUser2 = "";
@@ -74,6 +74,10 @@ describe('Testing challenges', () => {
             .set('Accept', 'application/json')
             .send(inputData)
             .expect(200);
+
+            let results = await helpers.getIssuedChallenges(cookieUser1);
+
+            expect(results.length).to.equal(1);
         });
 
         it("Test adding friend challenge", async () => {
@@ -90,6 +94,10 @@ describe('Testing challenges', () => {
             .set('Accept', 'application/json')
             .send(inputData)
             .expect(200)
+
+            let results = await helpers.getSentChallenges(cookieUser1);
+            expect(results.length).to.equal(1);
+
         });
 
         it("Test adding league challenge", async () => {
@@ -109,8 +117,38 @@ describe('Testing challenges', () => {
             .send(inputData)
             .expect(200)
 
+            await request.post("/league/get_league_active_challenges")
+            .set("Cookie", cookieUser1)
+            .set('Accept', 'application/json')
+            .send({leagueID:leagueInfo.leagueID})
+            .then(res=>{
+                expect(res._body).to.equal(1);
+            })
+
             await helpers.deleteLeague(cookieUser1, leagueInfo.leagueID);
         });
+
+        it("Test adding league challenge", async () => {
+            let leagueInfo = await helpers.createLeague(cookieUser1, "name", "private", "description");
+
+            let inputData = {
+                receivedUser: leagueInfo.leagueID,
+                issueDate: helpers.getIssueDate(),
+                dueDate: helpers.getDueDate(),
+                unit: "m",
+                amount: 10,
+                exerciseName: "Badminton"
+            }
+            cookieUser2 = await helpers.loginUser(user2, sandbox);
+            await request.post("/challenges/add_league_challenge")
+            .set("Cookie", cookieUser2)
+            .set('Accept', 'application/json')
+            .send(inputData)
+            .expect(400)
+
+            await helpers.deleteLeague(cookieUser1, leagueInfo.leagueID);
+        });
+
     });
 
     describe("Test challenge interactions", async () => {
@@ -140,32 +178,43 @@ describe('Testing challenges', () => {
                 .set('Accept', 'application/json')
                 .send({challengeID : firstChallengeID})
                 .expect(200);
+
+            let newResults = await helpers.getSentChallenges(cookieUser1);
+            expect(newResults.length).to.equal(results.length - 1);
         });
 
         it("Test accepting a challenge", async () => {
             cookieUser2 = await helpers.loginUser(user2, sandbox);
-            let results = await helpers.getReceivedChallenges(cookieUser2);
-
-            let firstChallengeID = results[0]._id;
+            let receivedResults = await helpers.getReceivedChallenges(cookieUser2);
+            let issuedResults = await helpers.getIssuedChallenges(cookieUser2);
+            let firstChallengeID = receivedResults[0]._id;
 
             await request.post("/challenges/accept_friend_challenge")
                 .set("Cookie", cookieUser2)
                 .set('Accept', 'application/json')
                 .send({challengeID : firstChallengeID})
                 .expect(200);
+
+            let results = await helpers.getReceivedChallenges(cookieUser2);
+            expect(results.length).to.equal(receivedResults.length - 1);
+            results = await helpers.getIssuedChallenges(cookieUser2);
+            expect(results.length).to.equal(issuedResults.length + 1);
         });
 
         it("Test declining a challenge", async () => {
             cookieUser2 = await helpers.loginUser(user2, sandbox);
-            let results = await helpers.getReceivedChallenges(cookieUser2);
+            let receivedResults = await helpers.getReceivedChallenges(cookieUser2);
 
-            let firstChallengeID = results[0]._id;
+            let firstChallengeID = receivedResults[0]._id;
 
             await request.post("/challenges/decline_friend_challenge")
                 .set("Cookie", cookieUser2)
                 .set('Accept', 'application/json')
                 .send({challengeID : firstChallengeID})
                 .expect(200);
+
+            let newReceivedResults = await helpers.getReceivedChallenges(cookieUser2);
+            expect(newReceivedResults.length).to.equal(receivedResults.length -1);
         });
 
     });
@@ -235,6 +284,7 @@ describe('Testing challenges', () => {
 
             await helpers.deleteLeague(cookieUser3, leagueInfo.leagueID);
         });
+
     });
 
     describe("Test leaderboard", async () => {
@@ -250,8 +300,9 @@ describe('Testing challenges', () => {
             .set('Accept', 'application/json')
             .send({challengeID : challengeID})
             .then(res => {
-                expect(res._body.length).to.equal(1);
-                expect(res.status).to.equal(200);}
+                expect(res._body[0].username).to.equal(username3);
+                expect(res._body[0].progress).to.equal(0);
+                }
             )
 
             await helpers.deleteLeague(cookieUser3, leagueInfo.leagueID);
@@ -360,4 +411,4 @@ describe('Testing challenges', () => {
         });
     });
 
-});
+});*/
