@@ -7,23 +7,6 @@ const Challenge_progress = require("../models/challenge_progress.model");
 const { touchDataOriginDate } = require("./data_origin.js");
 const { getUnitType, convertAmount } = require("../models/exercise.schema");
 
-async function updateChallengeProgress(username, exerciseLog) {
-    const progress =  exerciseLog.exercise.convertedAmount;
-
-    await Challenge_progress.updateMany({
-        username: username,
-        'exercise.exerciseName': exerciseLog.exercise.exerciseName,
-        'exercise.unitType' : exerciseLog.exercise.unitType,
-        issuedDate: {
-            $lte: Math.min(Date.now(), exerciseLog.loggedDate)
-        },
-        dueDate: {
-            $gte: Math.max(Date.now(), exerciseLog.loggedDate)
-        },
-    },
-    {$inc: {progress: progress}});
-}
-
 async function checkForChallengeCompletion(username, exerciseLog, model) {
     const challengeCompletionQuery = {
         username: username,
@@ -43,11 +26,28 @@ async function checkForChallengeCompletion(username, exerciseLog, model) {
 }
 
 async function updateChallenges(username, exerciseLog) {
-    await updateChallengeProgress(username, exerciseLog);
+    const progress =  exerciseLog.exercise.convertedAmount;
+
+    const updateResult = await Challenge_progress.updateMany({
+        username: username,
+        'exercise.exerciseName': exerciseLog.exercise.exerciseName,
+        'exercise.unitType' : exerciseLog.exercise.unitType,
+        issuedDate: {
+            $lte: Math.min(Date.now(), exerciseLog.loggedDate)
+        },
+        dueDate: {
+            $gte: Math.max(Date.now(), exerciseLog.loggedDate)
+        },
+    },
+    {$inc: {progress: progress}});
+
+    if (updateResult.matchedCount === 0) {
+       return
+    }
     await checkForChallengeCompletion(username, exerciseLog, Challenge_progress);
 }
 
-async function updateGlobalChallengeProgress(username, exerciseLog) {
+async function updateGlobalChallenges(username, exerciseLog) {
     const incrementObj = {
         progress : exerciseLog.exercise.convertedAmount
     }
@@ -63,7 +63,7 @@ async function updateGlobalChallengeProgress(username, exerciseLog) {
     }).lean();
 
     if (needUpdatingGlobalChallenge === null) {
-        return next();
+        return
     }
 
     await Global_challenge_progress.updateOne({
@@ -73,28 +73,9 @@ async function updateGlobalChallengeProgress(username, exerciseLog) {
         dueDate: needUpdatingGlobalChallenge.dueDate,
         issueDate: needUpdatingGlobalChallenge.issueDate
     },    {$inc: incrementObj}, {upsert: true});
-}
 
-async function updateGlobalChallenges(username, exerciseLog) {
-    await updateGlobalChallengeProgress(username, exerciseLog);
     await checkForChallengeCompletion(username, exerciseLog, Global_challenge_progress);
 }
-
-
-async function updateMedalProgress(username, exercise) {
-    const incrementObj = {
-        progress : exercise.convertedAmount
-    }
-    const medalProgressQuery = {
-        username: username,
-        'exercise.exerciseName': exercise.exerciseName,
-        'exercise.unitType' : exercise.unitType,
-        completed: false,
-    }
-
-    await Medal_progress.updateMany(medalProgressQuery , {$inc: incrementObj});
- }
-
 
 async function checkMedalCompletion(username, exercise) {
     const medalCompletionQuery = {
@@ -111,9 +92,23 @@ async function checkMedalCompletion(username, exercise) {
 }
 
 async function updateMedalsWithExercise(username, exercise) {
-    await updateMedalProgress(username, exercise);
+    const incrementObj = {
+        progress : exercise.convertedAmount
+    }
+    const medalProgressQuery = {
+        username: username,
+        'exercise.exerciseName': exercise.exerciseName,
+        'exercise.unitType' : exercise.unitType,
+        completed: false,
+    }
+
+    const updateResult = await Medal_progress.updateMany(medalProgressQuery , {$inc: incrementObj});
+
+    if(updateResult.matchedCount === 0) {
+        return
+    }
     await checkMedalCompletion(username, exercise);
-}
+ }
 
 // Updating one vs many exercises use different functions to reduce latency
 // and number of database calls.
@@ -199,7 +194,10 @@ function getManyChallengeCompletionQuery(username, uniqueExercises) {
 }
 
 async function updateManyChallengesAndCompletion(updateChallengeQuery, challengeCompletionQuery) {
-    await Challenge_progress.bulkWrite(updateChallengeQuery, {ordered: false});
+    const updateResults = await Challenge_progress.bulkWrite(updateChallengeQuery, {ordered: false});
+    if(updateResults.modifiedCount === 0){
+        return
+    }
     await Challenge_progress.bulkWrite(challengeCompletionQuery, {ordered: false});
 }
 
@@ -220,7 +218,7 @@ function getQueryForGlobalChallengesMatchingExercises(username, uniqueExercises)
 }
 
 
-function getUpdateManyGlobalChallengeProgressQuery(username, missingGlobalChallenges) {
+function getQueryForInsertingGlobalChallengesIfMissing(username, missingGlobalChallenges) {
     let insertGlobalChallengeQuery = [];
     missingGlobalChallenges.forEach(challenge => {
         if (!challenge) {
@@ -249,18 +247,15 @@ function getUpdateManyGlobalChallengeProgressQuery(username, missingGlobalChalle
     return insertGlobalChallengeQuery;
 }
 
-async function insertManyMissingGlobalChallenges(username, uniqueExercises) {
-    const needUpdatingGlobalChallengesPromises = getQueryForGlobalChallengesMatchingExercises(username, uniqueExercises);
-    const needUpdatingGlobalChallenges = await Promise.all(needUpdatingGlobalChallengesPromises);
-    const insertGlobalChallengeQuery = getUpdateManyGlobalChallengeProgressQuery(username, needUpdatingGlobalChallenges);
+async function updateManyGlobalChallengesAndCompletion(username, uniqueExercises, updateGlobalChallengeQuery, challengeCompletionQuery) {
+    const needUpdatingGlobalChallengePromises = getQueryForGlobalChallengesMatchingExercises(username, uniqueExercises);
+    const globalChallengesThatMatchExercises = await Promise.all(needUpdatingGlobalChallengePromises);
+    const insertGlobalChallengeQuery = getQueryForInsertingGlobalChallengesIfMissing(username, globalChallengesThatMatchExercises);
+
     if (insertGlobalChallengeQuery.length === 0) {
         return;
     }
     await Global_challenge_progress.bulkWrite(insertGlobalChallengeQuery, {ordered: false});
-}
-
-async function updateManyGlobalChallengesAndCompletion(username, uniqueExercises, updateGlobalChallengeQuery, challengeCompletionQuery) {
-    await insertManyMissingGlobalChallenges(username, uniqueExercises);
     await Global_challenge_progress.bulkWrite(updateGlobalChallengeQuery, {ordered: false});
     await Global_challenge_progress.bulkWrite(challengeCompletionQuery, {ordered: false});
 }
@@ -306,7 +301,11 @@ function getManyMedalCompletionQuery(username, uniqueExercises) {
 
 async function updateManyMedalProgress(username, uniqueExercises, exerciseList) {
     const updateMedalProgressQuery = getManyUpdateMedalProgressQuery(username, exerciseList);
-    await Medal_progress.bulkWrite(updateMedalProgressQuery, {ordered: false});
+    const updateResult = await Medal_progress.bulkWrite(updateMedalProgressQuery, {ordered: false});
+
+    if(updateResult.modifiedCount === 0) {
+        return
+    }
 
     const medalCompletionQuery = getManyMedalCompletionQuery(username, uniqueExercises);
     await Medal_progress.bulkWrite(medalCompletionQuery, {ordered: false});
