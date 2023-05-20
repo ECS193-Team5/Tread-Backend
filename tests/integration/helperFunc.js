@@ -116,7 +116,7 @@ async function checkMostRecentNotification(cookie, message){
     .set('Accept', 'application/json')
     .then(res => {
         let result = res._body[0]
-        expect(result.message).toBe(message);
+        expect(result.message).to.equal(message);
     })
 }
 

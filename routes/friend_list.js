@@ -4,7 +4,7 @@ const User_inbox = require("../models/user_inbox.model");
 const Friend_connection = require("../models/friend_connection.model");
 const Exercise_log = require("../models/exercise_log.model");
 const {isExistingUser} = require("./user.js");
-const {sendPushNotificationToUsers} = require("./user_devices.js");
+const {sendNotificationToUsers} = require("./notifications.js");
 const {getSortedFieldFrequency} = require("./helpers.js");
 
 async function getPropertyOfFriendList(username, property) {
@@ -203,7 +203,7 @@ async function verifyFriendExists(req, res, next) {
 }
 
 async function notifyFriend(username, friendName, actionMessage) {
-    sendPushNotificationToUsers([friendName], username + actionMessage , "socialFriendPage");
+    sendNotificationToUsers([friendName], username + actionMessage , "socialFriendPage");
 }
 
 router.route('/send_friend_request').post(
@@ -238,7 +238,7 @@ router.route('/send_friend_request').post(
 
     sendRequest(username, friendName);
 
-    await notifyFriend(username, friendName, " sent an friend request.")
+    await notifyFriend(username, friendName, " sent you a friend request.")
 
     return res.sendStatus(200);
 });

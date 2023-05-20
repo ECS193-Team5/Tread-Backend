@@ -4,7 +4,7 @@ let User = require("../models/user.model");
 let User_inbox = require("../models/user_inbox.model");
 const Medals = require("../models/medals.model");
 const Medal_progress = require("../models/medal_progress.model");
-const { registerDeviceToken } = require("./user_devices.js");
+const { registerDeviceToken } = require("./notifications.js");
 const {uploadImage} = require('./cloudinary.js');
 
 router.route('/get_profile_photo').post(

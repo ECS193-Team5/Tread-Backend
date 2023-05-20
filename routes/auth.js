@@ -1,6 +1,6 @@
 const router = require("express").Router();
 let User = require("../models/user.model");
-const { registerDeviceToken, removeDeviceToken } = require("./user_devices.js");
+const { registerDeviceToken, removeDeviceToken } = require("./notifications.js");
 const { OAuth2Client } = require('google-auth-library');
 const CLIENT_ID = process.env.CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
@@ -112,7 +112,7 @@ async function logout(req, res) {
   // logout logic
 
   await removeDeviceToken(req.session.username, req.body.deviceToken);
- 
+
   // clear the user from the session object and save.
   // this will ensure that re-using the old session id
   // does not have a logged in user

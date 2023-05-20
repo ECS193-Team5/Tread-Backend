@@ -3,7 +3,7 @@ var ObjectId = require('mongoose').Types.ObjectId;
 const Challenge = require("../models/challenge.model");
 const Challenge_progress = require("../models/challenge_progress.model");
 const League = require("../models/league.model");
-const {sendPushNotificationToUsers} = require("./user_devices.js")
+const {sendNotificationToUsers} = require("./notifications.js")
 const {isExistingUser} = require("./user.js");
 
 
@@ -79,9 +79,9 @@ async function notifyNewChallenge(req, res, next) {
         participants.splice(index, 1); // 2nd parameter means remove one item only
     }
 
-    await sendPushNotificationToUsers(
+    await sendNotificationToUsers(
         participants,
-        "New challenge from " + sentUser + ".",
+        sentUser + " sent you a challenge.",
         "currentChallengePage"
     );
     return res.sendStatus(200);
@@ -268,9 +268,9 @@ async function updatePendingChallengeStatusByID(challengeID, username, newStatus
 }
 
 async function notifyAcceptedChallenge(challengerUsername, user) {
-    sendPushNotificationToUsers(
+    sendNotificationToUsers(
         [challengerUsername],
-        user + " accepted your challenge",
+        user + " accepted your challenge.",
         "currentChallengePage"
     );
 }
