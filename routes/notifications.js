@@ -1,4 +1,6 @@
+const router = require("express").Router();
 const User_devices = require("../models/user_devices.model");
+const Notifications = require("../models/notifications.model");
 const firebase = require("firebase-admin");
 
 async function registerDeviceToken(username, deviceToken) {
@@ -37,7 +39,7 @@ async function sendMessageToDevices(message) {
     }
 }
 
-async function sendPushNotificationToUsers (usernames, title, page) {
+async function sendPushNotificationToUsers(usernames, title, page) {
     const deviceTokens = await getDeviceTokens(usernames);
 
     if (deviceTokens.length === 0) {
@@ -55,7 +57,56 @@ async function sendPushNotificationToUsers (usernames, title, page) {
     }
     await sendMessageToDevices(message);
 }
+async function updateNotificationLog(usernames, message) {
+    const notificationLogs = usernames.map(username => ({
+        username: username,
+        message: message
+    }));
+    try {
+        await Notifications.insertMany(notificationLogs, {ordered: false});
+    } catch(err){
+        console.log(err);
+    }
+}
 
+async function sendNotificationToUsers(usernames, message, page) {
+    await Promise.all([
+        sendPushNotificationToUsers(usernames, message, page),
+        updateNotificationLog(usernames, message)
+    ])
+}
+
+async function getNotifications(req, res) {
+    const username = req.session.username;
+    try {
+        const notifications = await Notifications.find({
+            username: username,
+        }, {message : 1}).sort({date: -1}).lean();
+        return res.status(200).json(notifications);
+    } catch(err) {
+        console.log(err);
+        return res.sendStatus(500);
+    }
+}
+
+router.route('/get_notifications').post(getNotifications);
+
+async function deleteNotification(req, res){
+    const username = req.session.username;
+    const notificationID = req.body.notificationID;
+    try {
+        await Notifications.deleteOne({
+            _id: notificationID, username: username
+        }).lean();
+        return res.sendStatus(200);
+    } catch (err) {
+        return res.sendStatus(500);
+    }
+}
+
+router.route('/delete_notification').post(deleteNotification);
+
+module.exports = router;
 module.exports.registerDeviceToken = registerDeviceToken;
 module.exports.removeDeviceToken = removeDeviceToken;
-module.exports.sendPushNotificationToUsers = sendPushNotificationToUsers;
+module.exports.sendNotificationToUsers = sendNotificationToUsers;
