@@ -106,6 +106,7 @@ async function createLeague(cookie, leagueName, leagueType, leagueDescription) {
 }
 
 async function joinLeague(cookie, leagueID){
+    console.log("Join, ", cookie, leagueID);
     await request.post("/league/user_request_to_join")
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
@@ -186,72 +187,66 @@ async function getSentChallenges(cookie){
 }
 
 
-async function getSentLeagues(cookie, leagueID){
+async function getSentLeagues(cookie){
     let results = [];
     await request.post("/league/get_requested_leagues")
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
-    .send({leagueID:leagueID})
     .then(res => {
         results = res._body;
     })
     return results;
 }
 
-async function getInvitedLeagues(cookie, leagueID){
+async function getInvitedLeagues(cookie){
     let results = [];
     await request.post("/league/get_invited_leagues")
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
-    .send({leagueID:leagueID})
     .then(res => {
         results = res._body;
     })
     return results;
 }
 
-async function getAcceptedLeagues(cookie, leagueID){
+async function getAcceptedLeagues(cookie){
     let results = [];
     await request.post("/league/get_leagues")
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
-    .send({leagueID:leagueID})
     .then(res => {
         results = res._body;
     })
     return results;
 }
 
-async function getOwnedLeagues(cookie, leagueID){
+async function getOwnedLeagues(cookie){
     let results = [];
     await request.post("/league/get_owned_leagues")
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
-    .send({leagueID:leagueID})
     .then(res => {
         results = res._body;
     })
     return results;
 }
 
-async function getAdminLeaguesCount(cookie, leagueID){
+async function getAdminLeaguesCount(cookie){
     let results = [];
     await request.post("/league/get_admin_leagues_with_challenge_count")
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
-    .send({leagueID:leagueID})
     .then(res => {
         results = res._body;
     })
     return results;
 }
 
-async function getAdminLeagues(cookie, leagueID){
+async function getAdminLeagues(cookie){
     let results = [];
     await request.post("/league/get_admin_leagues")
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
-    .send({leagueID:leagueID})
     .then(res => {
         results = res._body;
     })
@@ -280,6 +275,14 @@ async function inviteLeague(cookie, leagueID, recipient){
 
 async function acceptLeague(cookie, leagueID, recipient){
     await request.post("/league/accept_join_request")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({recipient: recipient, leagueID: leagueID})
+    .then(res => {})
+}
+
+async function addAdmin(cookie, leagueID, recipient){
+    await request.post("/league/add_admin")
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
     .send({recipient: recipient, leagueID: leagueID})
@@ -440,4 +443,5 @@ module.exports = {
     getOwnedLeagues: getOwnedLeagues,
     getAdminLeagues: getAdminLeagues,
     getAdminLeaguesCount: getAdminLeaguesCount,
+    addAdmin: addAdmin
 }

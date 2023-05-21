@@ -212,7 +212,7 @@ describe('Testing notifications', () => {
                 cookieUser1 = await helpers.loginUser(user1, sandbox);
                 await helpers.checkMostRecentNotification(cookieUser1, username2 + " accepted your challenge.");
             });
-        
+
         });
     });
 
@@ -246,6 +246,41 @@ describe('Testing notifications', () => {
             .then(res => {
                 results = res._body;
                 expect(results.length).to.equal(lengthResults - 1);
+            })
+        })
+    });
+
+    describe("Test delete notification", () => {
+        it("Test that the user can delete all notifications", async () => {
+            let results = [];
+
+            cookieUser2 = await helpers.loginUser(user2, sandbox);
+            helpers.sendFriendRequest(cookieUser2, username1);
+            leagueInfo = await helpers.createLeague(cookieUser2, "n", "public", "desc");
+            await helpers.inviteLeague(cookieUser2, leagueInfo.leagueID, username1);
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+
+            await request.post("/notifications/get_notifications")
+            .set("Cookie", cookieUser1)
+            .set('Accept', 'application/json')
+            .then(res => {
+                results = res._body;
+            })
+
+
+            expect(results.length).to.be.greaterThanOrEqual(2);
+
+            await request.post("/notifications/delete_all_notifications")
+            .set("Cookie", cookieUser1)
+            .set('Accept', 'application/json')
+            .then(res => {})
+
+            await request.post("/notifications/get_notifications")
+            .set("Cookie", cookieUser1)
+            .set('Accept', 'application/json')
+            .then(res => {
+                results = res._body;
+                expect(results.length).to.equal(0);
             })
         })
     });
