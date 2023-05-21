@@ -249,6 +249,7 @@ describe('Testing notifications', () => {
             })
         })
     });
+
     describe("Test delete notification", () => {
         it("Test that the user can delete all notifications", async () => {
             let results = [];

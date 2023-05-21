@@ -233,14 +233,14 @@ router.route('/send_friend_request').post(
 
     if (isRequestReceived(userFriendDocument, friendName)) {
         await acceptFriendRequest(username, friendName);
-        return res.sendStatus(200);
+        return res.status(200).json("Accepted a received friend request.");
     }
 
     sendRequest(username, friendName);
 
     await notifyFriend(username, friendName, " sent you a friend request.")
 
-    return res.sendStatus(200);
+    return res.status(200).json("Sent friend request.");
 });
 
 router.route('/accept_received_request').post(
