@@ -3,8 +3,12 @@ const User_devices = require("../models/user_devices.model");
 const Notifications = require("../models/notifications.model");
 const firebase = require("firebase-admin");
 
+
 async function registerDeviceToken(username, deviceToken) {
-    const twoMonthsInMiliSeconds = 1000*60*60*24*60;4444
+    const twoMonthsInMiliSeconds = 1000*60*60*24*60;
+    if (!deviceToken || !username) {
+        return
+    }
     await User_devices.updateOne({
         deviceToken: deviceToken,
     }, {username: username, expires: Date.now() + twoMonthsInMiliSeconds},
@@ -39,7 +43,7 @@ async function sendMessageToDevices(message) {
     }
 }
 
-async function sendPushNotificationToUsers(usernames, title, page) {
+async function sendPushNotificationToUsers(usernames, messageBody, page) {
     const deviceTokens = await getDeviceTokens(usernames);
 
     if (deviceTokens.length === 0) {
@@ -48,8 +52,8 @@ async function sendPushNotificationToUsers(usernames, title, page) {
     const message = {
         tokens: deviceTokens,
         notification:{
-            title: title,
-            body: ""
+            title: "Tread",
+            body: messageBody
         },
         data: {
             page: page
@@ -81,7 +85,7 @@ async function getNotifications(req, res) {
     try {
         const notifications = await Notifications.find({
             username: username,
-        }, {message : 1}).sort({date: -1}).lean();
+        }).sort({date: -1}).lean();
         return res.status(200).json(notifications);
     } catch(err) {
         console.log(err);
@@ -91,7 +95,7 @@ async function getNotifications(req, res) {
 
 router.route('/get_notifications').post(getNotifications);
 
-async function deleteNotification(req, res){
+async function deleteNotification(req, res) {
     const username = req.session.username;
     const notificationID = req.body.notificationID;
     try {
@@ -105,6 +109,20 @@ async function deleteNotification(req, res){
 }
 
 router.route('/delete_notification').post(deleteNotification);
+
+async function deleteAllNotifications(req, res) {
+    const username = req.session.username;
+    try {
+        await Notifications.deleteMany({
+            username: username
+        }).lean();
+        return res.sendStatus(200);
+    } catch (err) {
+        return res.sendStatus(500);
+    }
+}
+
+router.route('/delete_all_notifications').post(deleteAllNotifications);
 
 module.exports = router;
 module.exports.registerDeviceToken = registerDeviceToken;
