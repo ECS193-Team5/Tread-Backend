@@ -4,6 +4,29 @@ const app = require("../../index");
 request = request(app);
 const googleauth = require('google-auth-library');
 const { expect } = require("chai");
+const mongoose = require('mongoose');
+const Challenge = require("../../models/challenge.model");
+const Challenge_progress = require("../../models/challenge_progress.model");
+const uri = process.env.TEST_ATLAS_URI;
+
+async function clearChallengesAndSession() {
+    mongoose.connect(uri);
+    const connection = mongoose.connection;
+    connection.once("open", () => {
+        console.log("MongoDB database connection established successfully");
+    });
+
+    await Challenge.deleteMany({});
+    await Challenge_progress.deleteMany({});
+    await connection.dropCollection('sessions');
+    await mongoose.disconnect();
+}
+
+after(async () => {
+    const mongoose = require("mongoose");
+    await mongoose.disconnect();
+    app.close();
+})
 
 async function createUser(user, sandbox) {
     let cookie = await loginUser(user, sandbox);
@@ -21,6 +44,7 @@ async function deleteUser(cookie) {
         .set('Cookie', cookie)
         .then(res => {
         });
+
     return;
 }
 
@@ -382,6 +406,7 @@ async function sendLeagueChallenge(cookie, leagueID){
 }
 
 module.exports = {
+    clearChallengesAndSession: clearChallengesAndSession,
     createUser: createUser,
     deleteUser: deleteUser,
     loginUser: loginUser,

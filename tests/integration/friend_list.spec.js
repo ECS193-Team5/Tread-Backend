@@ -59,6 +59,10 @@ describe('Testing friend_list routes', () => {
         await helpers.deleteUser(cookieUser1);
         cookieUser2 = await helpers.loginUser(user2, sandbox);
         await helpers.deleteUser(cookieUser2);
+        cookieUser3 = await helpers.loginUser(user3, sandbox);
+        await helpers.deleteUser(cookieUser3);
+        cookieUser4 = await helpers.loginUser(user4, sandbox);
+        await helpers.deleteUser(cookieUser4);
     });
 
 

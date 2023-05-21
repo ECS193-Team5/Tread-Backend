@@ -95,8 +95,15 @@ app.use("/notifications", isAuthenticated,  hasUsername, notificationsRouter);
 app.use("/global_challenge", isAuthenticated, hasUsername, globalChallengeRouter);
 
 const port = parseInt(process.env.PORT) || 8080;
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Server Started at ${port}`)
 });
 
-module.exports = app;
+async function gracefulExit(){
+  await mongoose.disconnect();
+  console.log("Connection to MongoDB is disconnected through app termination.")
+  process.exit(0);
+}
+
+process.on('SIGINT', gracefulExit).on('SIGTERM', gracefulExit);
+module.exports = server;

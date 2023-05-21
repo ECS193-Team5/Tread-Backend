@@ -5,7 +5,6 @@ process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
 const app = require("../../index");
 var {expect} = require("chai");
 var helpers = require("./helperFunc");
-
 let user1 = {
     "sub": "notification1",
     "given_name": "Howard",
