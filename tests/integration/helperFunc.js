@@ -24,7 +24,6 @@ async function clearChallengesAndSession() {
 
 after(async () => {
     const mongoose = require("mongoose");
-    await helpers.clearChallengesAndSession();
     await mongoose.disconnect();
     app.close();
 })
