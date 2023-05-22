@@ -6,7 +6,10 @@ process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
 const app = require("../../index");
 const googleauth = require('google-auth-library');
 var helpers = require("./helperFunc");
-const { expect } = require("chai");
+const chai = require("chai");
+const deepEqualInAnyOrder = require('deep-equal-in-any-order');
+chai.use(deepEqualInAnyOrder);
+const {expect} = chai;
 
 let user1 = {
     "sub": "league1",
@@ -32,6 +35,18 @@ let user4 = {
     "family_name": "Xavier",
 }
 
+let user5 = {
+    "sub": "league5",
+    "given_name": "Tony",
+    "family_name": "Stark",
+}
+
+let user6 = {
+    "sub": "league6",
+    "given_name": "Pepper",
+    "family_name": "Pots",
+}
+
 request = request(app);
 
 describe('Testing league routes', () => {
@@ -39,10 +54,14 @@ describe('Testing league routes', () => {
     let cookieUser2 = "";
     let cookieUser3 = "";
     let cookieUser4 = "";
+    let cookieUser5 = "";
+    let cookieUser6 = "";
     let username1 = "";
     let username2 = "";
     let username3 = "";
     let username4 = "";
+    let username5 = "";
+    let username6 = "";
 
     before(async () => {
         cookieUser1 = await helpers.createUser(user1, sandbox);
@@ -53,6 +72,10 @@ describe('Testing league routes', () => {
         username3 = await helpers.getUsername(cookieUser3);
         cookieUser4 = await helpers.createUser(user4, sandbox);
         username4 = await helpers.getUsername(cookieUser4);
+        cookieUser5 = await helpers.createUser(user5, sandbox);
+        username5 = await helpers.getUsername(cookieUser5);
+        cookieUser6 = await helpers.createUser(user6, sandbox);
+        username6 = await helpers.getUsername(cookieUser6);
     });
 
     after(async () => {
@@ -60,9 +83,16 @@ describe('Testing league routes', () => {
         await helpers.deleteUser(cookieUser1);
         cookieUser2 = await helpers.loginUser(user2, sandbox);
         await helpers.deleteUser(cookieUser2);
+        cookieUser3 = await helpers.loginUser(user3, sandbox);
+        await helpers.deleteUser(cookieUser3);
+        cookieUser4 = await helpers.loginUser(user4, sandbox);
+        await helpers.deleteUser(cookieUser4);
+        cookieUser5 = await helpers.loginUser(user5, sandbox);
+        await helpers.deleteUser(cookieUser5);
+        cookieUser6 = await helpers.loginUser(user6, sandbox);
+        await helpers.deleteUser(cookieUser6);
     });
 
-    /*
     describe("Testing league formation", async () => {
 
         it("Test create league", async () => {
@@ -738,7 +768,7 @@ describe('Testing league routes', () => {
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .then(res=>{
-                expect(res._body).to.deep.equal(
+                expect(res._body).to.deep.equalInAnyOrder(
                     [
                         { username: username3, displayName: 'Diana', role: 'participant' },
                         { username: username1, displayName: 'Clark', role: 'admin' },
@@ -747,132 +777,274 @@ describe('Testing league routes', () => {
                 )
             })
         });
-    });*/
+    });
 
     describe("Test get sections of leagues", async () => {
         let leagueInfo;
         before(async function (){
             // Owner: Username 1
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            leagueInfo = await helpers.createLeague(cookieUser1, "n", "private", "desc");
+
             // Admin: Username 2
+            await helpers.inviteLeague(cookieUser1, leagueInfo.leagueID, username2);
+            cookieUser2 = await helpers.loginUser(user2, sandbox);
+            await helpers.acceptLeagueInvite(cookieUser2, leagueInfo.leagueID);
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            await helpers.addAdmin(cookieUser1, leagueInfo.leagueID, username2);
+
             // Participant: Username 3
+            await helpers.inviteLeague(cookieUser1, leagueInfo.leagueID, username3);
+            cookieUser3 = await helpers.loginUser(user3, sandbox);
+            await helpers.acceptLeagueInvite(cookieUser3, leagueInfo.leagueID);
+
             // Invited: Username 4
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            await helpers.inviteLeague(cookieUser1, leagueInfo.leagueID, username4);
+
             // Pending: Username 5
+            cookieUser5 = await helpers.loginUser(user5, sandbox);
+            await helpers.joinLeague(cookieUser5, leagueInfo.leagueID);
 
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            leagueInfo = await helpers.createLeague(cookieUser2, "n", "private", "desc");
-
-            await helpers.inviteLeague(cookieUser2, leagueInfo.leagueID, username1);
-            await helpers.inviteLeague(cookieUser2, leagueInfo.leagueID, username3);
-
+            // Banned : Username 6
             cookieUser1 = await helpers.loginUser(user1, sandbox);
-            await helpers.acceptLeague(cookieUser1, leagueInfo.leagueID);
-
-            await helpers.joinLeague(cookieUser1, leagues[1].leagueID);
-            leagues.push(await helpers.createLeague(cookieUser1, "n3", "public", "desc"));
-
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            await helpers.joinLeague(cookieUser2, leagues[2].leagueID);
-            await helpers.addAdmin(cookieUser2, leagues[2].leagueID, username1);
-
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
-            await helpers.addAdmin(cookieUser1, leagues[2].leagueID, username2);
-            console.log(leagues);
-
+            await helpers.banUser(cookieUser1, leagueInfo.leagueID, username6)
         });
 
         after(async function () {
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            await helpers.deleteLeague(cookieUser2, leagueInfo.leagueID);
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            await helpers.deleteLeague(cookieUser1, leagueInfo.leagueID);
         })
+
         it("Test owner list of leagues", async function () {
-            let results = await helpers.getOwnedLeagues(cookieUser2);
-
-            
-            /*expect(results).to.deep.equal([
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            let results = await helpers.getOwnedLeagues(cookieUser1);
+            expect(results).to.deep.equal([
                 {
-                  _id: leagues[0].leagueID,
-                  leagueName: leagues[0].leagueName,
-                  members: [ username2, username1 ],
-                  activeChallenges: 0
-                },
-                {
-                    _id: leagues[1].leagueID,
-                    leagueName: leagues[1].leagueName,
-                  members: [ username2, username1],
+                  _id: leagueInfo.leagueID,
+                  leagueName: leagueInfo.leagueName,
+                  members: [ username1, username2, username3 ],
                   activeChallenges: 0
                 }
-              ])*/
+            ])
 
-              /*results = await helpers.getOwnedLeagues(cookieUser1);
-
-              expect(results).to.deep.equal([
-                {
-                  _id: leagues[2].leagueID,
-                  leagueName: leagues[2].leagueName,
-                  members: [ username1, username2 ],
-                  activeChallenges: 0
-                }
-              ])*/
-
+            cookieUser2 = await helpers.loginUser(user2, sandbox);
+            results = await helpers.getOwnedLeagues(cookieUser2);
+            expect(results.length).to.equal(0);
         });
 
-        /*it("Test admin list of leagues", async function () {
+        it("Test admin list of leagues", async function () {
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            let results = await helpers.getAdminLeagues(cookieUser1);
+            delete results[0].dateCreated;
+            expect(results).to.deep.equalInAnyOrder([
+                {
+                    _id: leagueInfo.leagueID,
+                    owner: username1,
+                    leagueDescription: 'desc',
+                    leagueName: 'n',
+                    leagueType: 'private',
+                    pendingRequests: [ username5 ],
+                    sentRequests: [ username4 ],
+                    bannedUsers: [ username6 ],
+                    admin: [ username1, username2 ],
+                    members: [ username1, username2, username3 ],
+                    __v: 0
+                }
+            ])
+
             cookieUser2 = await helpers.loginUser(user2, sandbox);
-            let results = await helpers.getAdminLeagues(cookieUser2);
+            results = await helpers.getAdminLeagues(cookieUser2);
+            delete results[0].dateCreated;
 
+            expect(results).to.deep.equal([
+                {
+                    _id: leagueInfo.leagueID,
+                    owner: username1,
+                    leagueDescription: 'desc',
+                    leagueName: 'n',
+                    leagueType: 'private',
+                    pendingRequests: [ username5 ],
+                    sentRequests: [ username4 ],
+                    bannedUsers: [],
+                    admin: [ username1, username2 ],
+                    members: [ username1, username2, username3 ],
+                    __v: 0
+                }
+            ])
 
-            console.log(results);
+            cookieUser3 = await helpers.loginUser(user3, sandbox);
+            results = await helpers.getAdminLeagues(cookieUser3);
+            expect(results.length).to.equal(0);
         });
 
         it("Test admin list of leagues with counts",async function () {
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            let results = await helpers.getAdminLeaguesCount(cookieUser1);
+            expect(results).to.deep.equal([
+                {
+                  _id: leagueInfo.leagueID,
+                  leagueName: leagueInfo.leagueName,
+                  members: [ username1, username2, username3 ],
+                  activeChallenges: 0
+                }
+            ])
+
             cookieUser2 = await helpers.loginUser(user2, sandbox);
-            let results = await helpers.getAdminLeaguesCounts(cookieUser2);
+            results = await helpers.getAdminLeaguesCount(cookieUser2);
+            expect(results).to.deep.equal([
+                {
+                  _id: leagueInfo.leagueID,
+                  leagueName: leagueInfo.leagueName,
+                  members: [ username1, username2, username3 ],
+                  activeChallenges: 0
+                }
+            ])
 
-            console.log(results);
-        });*/
+            cookieUser3 = await helpers.loginUser(user3, sandbox);
+            results = await helpers.getAdminLeaguesCount(cookieUser3);
+            expect(results.length).to.equal(0);
+        });
 
-        it("Test pending list of leagues", async function () {
+        it("Test sent list of leagues", async function () {
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            let results = await helpers.getSentLeagues(cookieUser1);
+            expect(results.length).to.equal(0);
 
+            cookieUser5 = await helpers.loginUser(user5, sandbox);
+            results = await helpers.getSentLeagues(cookieUser5);
+            expect(results).to.deep.equal([
+                {
+                  _id: leagueInfo.leagueID,
+                  leagueName: leagueInfo.leagueName,
+                  members: [ username1, username2, username3 ],
+                  activeChallenges: 0
+                }
+            ])
         });
 
         it("Test invited list of leagues", async function () {
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            let results = await helpers.getInvitedLeagues(cookieUser1);
+            expect(results.length).to.equal(0);
 
+            cookieUser4 = await helpers.loginUser(user4, sandbox);
+            results = await helpers.getInvitedLeagues(cookieUser4);
+            expect(results).to.deep.equal([
+                {
+                  _id: leagueInfo.leagueID,
+                  leagueName: leagueInfo.leagueName,
+                  members: [ username1, username2, username3 ],
+                  activeChallenges: 0
+                }
+            ])
         });
 
         it("Test joined leagues", async function () {
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
             let results = await helpers.getAcceptedLeagues(cookieUser1);
-            console.log("Accepted leagues, user1", results);
+            expect(results).to.deep.equal([
+                {
+                  _id: leagueInfo.leagueID,
+                  leagueName: leagueInfo.leagueName,
+                  members: [ username1, username2, username3 ],
+                  activeChallenges: 0
+                }
+            ])
+
+            cookieUser3= await helpers.loginUser(user3, sandbox);
+            results = await helpers.getAcceptedLeagues(cookieUser3);
+            expect(results).to.deep.equal([
+                {
+                  _id: leagueInfo.leagueID,
+                  leagueName: leagueInfo.leagueName,
+                  members: [ username1, username2, username3 ],
+                  activeChallenges: 0
+                }
+            ])
+
+            cookieUser4 = await helpers.loginUser(user4, sandbox);
+            results = await helpers.getAcceptedLeagues(cookieUser4);
+            expect(results.length).to.equal(0);
         });
 
-    });
-
-    /*describe("Test get league member information", async function () {
         it("Test get all members", async function () {
-
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            let members = await helpers.getMemberListLeague(cookieUser1, leagueInfo.leagueID);
+            expect(members).to.deep.equalInAnyOrder([
+                { username: username1, displayName: user1.given_name, role: 'owner' },
+                { username: username2, displayName: user2.given_name, role: 'admin' },
+                { username: username3, displayName: user3.given_name, role: 'participant' }
+            ])
         });
 
         it("Test get banned list", async function () {
-
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            let members = await helpers.getBannedListLeague(cookieUser1, leagueInfo.leagueID);
+            expect(members).to.deep.equalInAnyOrder([
+                { username: username6, displayName: user6.given_name}
+            ])
         });
 
         it("Test get invited lists", async function () {
-
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            let members = await helpers.getSentInviteListLeague(cookieUser1, leagueInfo.leagueID);
+            expect(members).to.deep.equalInAnyOrder([
+                { username: username4, displayName: user4.given_name}
+            ])
         });
 
         it("Test get sent lists", async function () {
-
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            let members = await helpers.getReceivedInviteListLeague(cookieUser1, leagueInfo.leagueID);
+            expect(members).to.deep.equalInAnyOrder([
+                { username: username5, displayName: user5.given_name}
+            ])
         });
-    });*/
 
-    /*describe("Test get league active challenges", async function () {
+        it("Test banned user cannot appear in invite list", async function () {
+            cookieUser6 = await helpers.loginUser(user6, sandbox);
+            await helpers.joinLeague(cookieUser6, leagueInfo.leagueID);
+            let members = await helpers.getReceivedInviteListLeague(cookieUser1, leagueInfo.leagueID);
+            expect(members.length).to.equal(1);
+        });
+
+        it("Test unban user when send invite", async function () {
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            await helpers.inviteLeague(cookieUser1, leagueInfo.leagueID, username6);
+
+            let members = await helpers.getReceivedInviteListLeague(cookieUser1, leagueInfo.leagueID);
+            expect(members.length).to.equal(2);
+
+            let bannedMembers = await helpers.getBannedListLeague(cookieUser1, leagueInfo.leagueID);
+            expect(bannedMembers.length).to.equal(0);
+        });
+    });
+
+    describe("Test get league active challenges", async function () {
+        let leagueInfo;
+
+        before(async function (){
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            leagueInfo = await helpers.createLeague(cookieUser1, "n", "private", "desc");
+        })
+
+        after(async function(){
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            await helpers.deleteLeague(cookieUser1, leagueInfo.leagueID);
+        })
         it("Test no active challenges", async function () {
-
+            let results = await helpers.getActiveChallengesLeague(cookieUser1, leagueInfo.leagueID);
+            expect(results).to.equal(0);
         });
 
         it("Test multiple active challenges", async function () {
-
+            await helpers.sendLeagueChallenge(cookieUser1, leagueInfo.leagueID);
+            await helpers.sendLeagueChallenge(cookieUser1, leagueInfo.leagueID);
+            let results = await helpers.getActiveChallengesLeague(cookieUser1, leagueInfo.leagueID);
+            expect(results).to.equal(2);
         });
-    });*/
+    });
 
     /*describe("Test get league leaderboard", async function () {
         it("Test no completed challenges", async function () {
@@ -886,9 +1058,9 @@ describe('Testing league routes', () => {
         it("Test everyone completed challenges", async function () {
 
         });
-    });
+    });*/
 
-    describe("Test League Recent Activity", async function () {
+    /*describe("Test League Recent Activity", async function () {
         it("More than 5 Recent Activites", async function () {
 
         });
@@ -900,9 +1072,9 @@ describe('Testing league routes', () => {
         it("Exactly 5 Recent Activities", async function () {
 
         });
-    });
+    });*/
 
-    describe("Test Recommended Leagues", async function () {
+    /*describe("Test Recommended Leagues", async function () {
         it("Test Situation with No Recommneded Leagues", async function () {
 
         });

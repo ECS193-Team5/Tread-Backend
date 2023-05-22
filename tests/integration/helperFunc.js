@@ -33,7 +33,7 @@ async function createUser(user, sandbox) {
     await request.post("/sign_up/sign_up")
         .set('Accept', 'application/json')
         .set('Cookie', cookie)
-        .send({ "username": user.given_name, "displayName": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
+        .send({"username": user.given_name, "displayName": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
         .then(res => {
         })
     return cookie;
@@ -106,7 +106,6 @@ async function createLeague(cookie, leagueName, leagueType, leagueDescription) {
 }
 
 async function joinLeague(cookie, leagueID){
-    console.log("Join, ", cookie, leagueID);
     await request.post("/league/user_request_to_join")
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
@@ -114,6 +113,66 @@ async function joinLeague(cookie, leagueID){
     .then(res => {
        return res._body;
     })
+}
+
+async function getMemberListLeague(cookie, leagueID){
+    let results = "";
+    await request.post("/league/get_member_list")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({leagueID: leagueID})
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+async function getBannedListLeague(cookie, leagueID){
+    let results = "";
+    await request.post("/league/get_banned_list")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({leagueID: leagueID})
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+async function getReceivedInviteListLeague(cookie, leagueID){
+    let results = "";
+    await request.post("/league/get_pending_request_list")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({leagueID: leagueID})
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+async function getSentInviteListLeague(cookie, leagueID){
+    let results = "";
+    await request.post("/league/get_sent_invite_list")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({leagueID: leagueID})
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+async function getActiveChallengesLeague(cookie, leagueID){
+    let results = "";
+    await request.post("/league/get_league_active_challenges")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({leagueID: leagueID})
+    .then(res => {
+        results = res._body;
+    })
+    return results;
 }
 
 async function getRole(cookie, leagueID){
@@ -153,6 +212,22 @@ async function unFriend(cookie, friendName){
     .then(res => {})
 }
 
+async function blockFriend(cookie, friendName){
+    await request.post("/friend_list/block_user")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({friendName: friendName})
+    .then(res => {})
+}
+
+async function unBlockFriend(cookie, friendName){
+    await request.post("/friend_list/unblock_user")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({friendName: friendName})
+    .then(res => {})
+}
+
 async function sendFriendRequest(cookie, friendName){
     await request.post("/friend_list/send_friend_request")
     .set("Cookie", cookie)
@@ -167,12 +242,84 @@ async function revokeFriendRequest(cookie, friendName){
     .send({friendName: friendName})
     .then(res => {})
 }
+
+async function declineFriendRequest(cookie, friendName){
+    await request.post("/friend_list/remove_received_request")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({friendName: friendName})
+    .then(res => {})
+}
 async function acceptFriendRequest(cookie, friendName){
     await request.post("/friend_list/accept_received_request")
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
     .send({friendName: friendName})
     .then(res => {})
+}
+
+async function getSentFriendRequests(cookie){
+    let results = [];
+    await request.post("/friend_list/sent_request_list")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+async function getBlockedFriends(cookie){
+    let results = [];
+    await request.post("/friend_list/blocked_list")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+async function getReceivedFriendRequests(cookie){
+    let results = [];
+    await request.post("/friend_list/received_request_list")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+async function getFriendList(cookie){
+    let results = [];
+    await request.post("/friend_list/friend_list")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+async function getPendingFriendList(cookie){
+    let results = [];
+    await request.post("/friend_list/pending_requests")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+async function getFriendListInfo(cookie){
+    let results = [];
+    await request.post("/friend_list/get_all_friends_info")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        results = res._body;
+    })
+    return results;
 }
 
 async function getSentChallenges(cookie){
@@ -281,6 +428,14 @@ async function acceptLeague(cookie, leagueID, recipient){
     .then(res => {})
 }
 
+async function acceptLeagueInvite(cookie, leagueID){
+    await request.post("/league/user_accept_invite")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({leagueID: leagueID})
+    .then(res => {})
+}
+
 async function addAdmin(cookie, leagueID, recipient){
     await request.post("/league/add_admin")
     .set("Cookie", cookie)
@@ -288,6 +443,15 @@ async function addAdmin(cookie, leagueID, recipient){
     .send({recipient: recipient, leagueID: leagueID})
     .then(res => {})
 }
+
+async function banUser(cookie, leagueID, recipient){
+    await request.post("/league/ban_user")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({recipient: recipient, leagueID: leagueID})
+    .then(res => {})
+}
+
 
 function getIssueDate(){
     return Date.now();
@@ -443,5 +607,22 @@ module.exports = {
     getOwnedLeagues: getOwnedLeagues,
     getAdminLeagues: getAdminLeagues,
     getAdminLeaguesCount: getAdminLeaguesCount,
-    addAdmin: addAdmin
+    addAdmin: addAdmin,
+    acceptLeagueInvite: acceptLeagueInvite,
+    banUser: banUser,
+    getBannedListLeague: getBannedListLeague,
+    getMemberListLeague: getMemberListLeague,
+    getReceivedInviteListLeague: getReceivedInviteListLeague,
+    getSentInviteListLeague: getSentInviteListLeague,
+    getActiveChallengesLeague: getActiveChallengesLeague,
+    getSentFriendRequests: getSentFriendRequests,
+    getReceivedFriendRequests: getReceivedFriendRequests,
+    getFriendList: getFriendList,
+    declineFriendRequest: declineFriendRequest,
+    blockFriend: blockFriend,
+    unBlockFriend: unBlockFriend,
+    getFriendListInfo: getFriendListInfo,
+    getPendingFriendList: getPendingFriendList,
+    getBlockedFriends: getBlockedFriends
+
 }

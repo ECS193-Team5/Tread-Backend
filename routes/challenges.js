@@ -4,7 +4,7 @@ const Challenge = require("../models/challenge.model");
 const Challenge_progress = require("../models/challenge_progress.model");
 const League = require("../models/league.model");
 const {sendNotificationToUsers} = require("./notifications.js")
-const {isExistingUser} = require("./user.js");
+const { isFriend } = require("./friend_list.js");
 
 
 function addInfoSharedAcrossRequests(req, res, next) {
@@ -92,7 +92,7 @@ router.route('/add_friend_challenge').post(async (req, res, next) => {
     const receivedUser = req.body.receivedUser;
     const challengeType = "friend";
     // Issue date can be undefined
-    if (!(await isExistingUser(req.body.receivedUser))) {
+    if (!(await isFriend(sentUser, receivedUser))) {
         return res.sendStatus(404);
     }
 

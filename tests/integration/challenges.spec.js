@@ -27,7 +27,7 @@ let user3 = {
 
 
 request = request(app);
-/*
+
 describe('Testing challenges', () => {
     let cookieUser1 = "";
     let cookieUser2 = "";
@@ -41,6 +41,12 @@ describe('Testing challenges', () => {
         username1 = await helpers.getUsername(cookieUser1);
         cookieUser2 =  await helpers.createUser(user2, sandbox);
         username2 = await helpers.getUsername(cookieUser2);
+
+        // Make user 1 and user 2 friends
+        await helpers.sendFriendRequest(cookieUser2, username1);
+        cookieUser1 = await helpers.loginUser(user1, sandbox);
+        await helpers.acceptFriendRequest(cookieUser1, username2);
+
         cookieUser3 =  await helpers.createUser(user3, sandbox);
         username3 = await helpers.getUsername(cookieUser3);
 
@@ -97,6 +103,28 @@ describe('Testing challenges', () => {
 
             let results = await helpers.getSentChallenges(cookieUser1);
             expect(results.length).to.equal(1);
+
+        });
+
+        it("Test adding friend challenge to a non-friend", async () => {
+            let originalResults = await helpers.getSentChallenges(cookieUser1);
+
+            let inputData = {
+                receivedUser: username3,
+                issueDate: helpers.getIssueDate(),
+                dueDate: helpers.getDueDate(),
+                unit: "m",
+                amount: 10,
+                exerciseName: "Badminton"
+            }
+            await request.post("/challenges/add_friend_challenge")
+            .set("Cookie", cookieUser1)
+            .set('Accept', 'application/json')
+            .send(inputData)
+            .expect(404)
+
+            let results = await helpers.getSentChallenges(cookieUser1);
+            expect(results.length).to.equal(originalResults.length);
 
         });
 
@@ -220,6 +248,18 @@ describe('Testing challenges', () => {
     });
 
     describe("Test viewing challenges", async () => {
+        before(async function (){
+            // Make user 3 friends with user1 and user2 so they can send challenges
+            cookieUser3 = await helpers.loginUser(user3, sandbox);
+            await helpers.sendFriendRequest(cookieUser3, username1);
+            await helpers.sendFriendRequest(cookieUser3, username2);
+
+            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            await helpers.acceptFriendRequest(cookieUser1, username3);
+
+            cookieUser2 = await helpers.loginUser(user2, sandbox);
+            await helpers.acceptFriendRequest(cookieUser2, username3);
+        })
         it("Test viewing sent challenges", async () => {
             cookieUser3 = await helpers.loginUser(user3, sandbox);
             await helpers.sendFriendChallenge(cookieUser3, username2);
@@ -411,4 +451,4 @@ describe('Testing challenges', () => {
         });
     });
 
-});*/
+});
