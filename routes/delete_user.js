@@ -67,7 +67,7 @@ async function removeUserFromLeagues(username) {
     leagueQueries.push(createQueryToPullFieldFromMany({ bannedUsers: username }));
     return League.bulkWrite(leagueQueries, {ordered: false});
 }
-// maybe add error handling middleware.
+
 router.delete('/', async (req, res, next) => {
     const username = req.session.username;
     try {
@@ -84,11 +84,7 @@ router.delete('/', async (req, res, next) => {
             User_data_origin.deleteOne({ username: username }),
             Notifications.deleteMany({ username: username })
         ]);
-        // Remove from league
-
-        // Delete/edit exercises.
     } catch (err) {
-        console.log(err);
         return res.status(500).json("Could not finish deleting profile.");
     }
     next();

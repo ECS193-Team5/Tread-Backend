@@ -866,7 +866,7 @@ describe('Testing league routes', () => {
                     leagueType: 'private',
                     pendingRequests: [ username5 ],
                     sentRequests: [ username4 ],
-                    bannedUsers: [],
+                    bannedUsers: [ username6 ],
                     admin: [ username1, username2 ],
                     members: [ username1, username2, username3 ],
                     __v: 0
@@ -1061,33 +1061,37 @@ describe('Testing league routes', () => {
     });*/
 
     /*describe("Test League Recent Activity", async function () {
-        it("More than 5 Recent Activites", async function () {
-
-        });
-
         it("0 Recent Activities", async function () {
 
         });
 
-        it("Exactly 5 Recent Activities", async function () {
+        it("1 Recent Activity", async function () {
+
+        });
+
+        it("5 Recent Activities", async function () {
+
+        });
+
+        it("6 Recent Activites", async function () {
 
         });
     });*/
 
     /*describe("Test Recommended Leagues", async function () {
-        it("Test Situation with No Recommneded Leagues", async function () {
+        it("Test Situation with 0 Recommneded Leagues", async function () {
 
         });
 
-        it("Test Situation with One Recommneded Leagues", async function () {
+        it("Test Situation with 1 Recommneded Leagues", async function () {
 
         });
 
-        it("Test Situation with Multiple (<5) Recommneded Leagues", async function () {
+        it("Test Situation with 5 Recommended Leagues", async function () {
 
         });
 
-        it("Test Situation with More than 5 Recommneded Leagues", async function () {
+        it("Test Situation with More than 5 Recommended Leagues", async function () {
 
         });
     });*/

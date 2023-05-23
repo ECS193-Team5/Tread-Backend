@@ -7,9 +7,16 @@ const { expect } = require("chai");
 const mongoose = require('mongoose');
 const Challenge = require("../../models/challenge.model");
 const Challenge_progress = require("../../models/challenge_progress.model");
+const Global_challenge = require("../../models/global_challenge.model");
+const Global_challenge_progress = require("../../models/global_challenge_progress.model");
+const Medals = require("../../models/medals.model");
+const Medals_progress = require("../../models/medal_progress.model");
+const { match } = require("assert");
 const uri = process.env.TEST_ATLAS_URI;
 
-async function clearChallengesAndSession() {
+
+
+async function clearDatabase() {
     mongoose.connect(uri);
     const connection = mongoose.connection;
     connection.once("open", () => {
@@ -18,8 +25,21 @@ async function clearChallengesAndSession() {
 
     await Challenge.deleteMany({});
     await Challenge_progress.deleteMany({});
+    await Global_challenge.deleteMany({});
+    await Global_challenge_progress.deleteMany({});
     await connection.dropCollection('sessions');
-    await mongoose.disconnect();
+}
+
+async function getDataOriginLastDate(cookie, dataOrigin){
+    let results = {};
+    await request.post("/medals/get_data_origin_last_import_date")
+        .set("Cookie", cookie)
+        .set('Accept', 'application/json')
+        .send({dataOrigin:dataOrigin})
+        .then(res => {
+           results = res._body;
+        })
+    return results;
 }
 
 after(async () => {
@@ -27,6 +47,117 @@ after(async () => {
     await mongoose.disconnect();
     app.close();
 })
+
+async function getMedalsInProgress(cookie){
+    let results = [];
+    await request.post("/medals/get_in_progress")
+        .set("Cookie", cookie)
+        .set('Accept', 'application/json')
+        .then(res => {
+           results = res._body;
+        })
+    return results;
+};
+
+async function checkUserExist(cookie, username){
+    let result = "none";
+    await request.post("/user/check_username_exist")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({username:username})
+    .then(res => {
+        result = res._body;
+    })
+    return result;
+}
+
+async function getDisplayName(cookie){
+    let result = "none";
+    await request.post("/user/get_display_name")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        result = res._body;
+    })
+    return result;
+}
+
+async function getUsername(cookie){
+    let result = "none";
+    await request.post("/user/get_username")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        result = res._body;
+    })
+    return result;
+}
+
+async function updatePicture(cookie, newPicture){
+    let result = "none";
+    await request.post("/user/update_picture")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({picture: newPicture})
+    .then(res => {
+        result = res.status;
+    })
+    return result;
+}
+
+async function getExerciseLog(cookie){
+    let result = "none";
+    await request.post("/stats/get_exercise_log")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        result = res._body;
+    })
+    return result;
+}
+
+async function getPastChallenges(cookie){
+    let result = "none";
+    await request.post("/stats/get_past_challenges")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        result = res._body;
+    })
+    return result;
+}
+
+async function updateDisplayName(cookie, displayName){
+    let result = "";
+    await request.post("/user/update_display_name")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({displayName:displayName})
+    .then(res => {
+        result = res.status;
+    })
+    return result;
+}
+async function getUsername(cookie){
+    let result = "none";
+    await request.post("/user/get_username")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        result = res._body;
+    })
+    return result;
+}
+async function getMedalsComplete(cookie){
+    let results = [];
+    await request.post("/medals/get_earned")
+        .set("Cookie", cookie)
+        .set('Accept', 'application/json')
+        .then(res => {
+           results = res._body;
+        })
+    return results;
+};
 
 async function createUser(user, sandbox) {
     let cookie = await loginUser(user, sandbox);
@@ -40,12 +171,14 @@ async function createUser(user, sandbox) {
 }
 
 async function deleteUser(cookie) {
+    let status = "";
     await request.delete("/delete_user/")
         .set('Cookie', cookie)
         .then(res => {
+            status = res.status;
         });
 
-    return;
+    return status;
 }
 
 async function loginUser(user, sandbox) {
@@ -519,6 +652,33 @@ async function getIssuedChallenges(cookie){
         return results;
 }
 
+async function getGlobalChallenges(cookie){
+    let results = [];
+    await request.post("/global_challenge/get_challenges")
+        .set("Cookie", cookie)
+        .set('Accept', 'application/json')
+        .then(res =>{
+            results = res._body;
+        })
+        return results;
+}
+
+async function addGlobalChallenge(cookie, data){
+    let inputData = {
+        issueDate: getIssueDate(),
+        dueDate: getDueDate(),
+        unit: data.unit,
+        amount: data.amount,
+        exerciseName: data.exerciseName
+    }
+    await request.post("/global_challenge/add_challenge")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send(inputData)
+    .then(res => {
+    })
+}
+
 async function getIssuedChallengesByLeague(cookie, leagueID){
     let results = [];
     await request.post("/challenges/league_challenges")
@@ -556,6 +716,32 @@ async function sendSelfChallenge(cookie){
     .then(res => {})
 }
 
+async function addMedal(cookie, data){
+    await request.post("/medals/add_medal")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send(data)
+    .expect(200);
+}
+
+
+async function sendSelfChallengeWithData(cookie, data){
+    let inputData = {
+        receivedUser: "self",
+        issueDate: getIssueDate(),
+        dueDate: getDueDate(),
+        unit: data.unit,
+        amount: data.amount,
+        exerciseName: data.exerciseName
+    }
+
+    await request.post("/challenges/add_self_challenge")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send(inputData)
+    .then(res => {})
+}
+
 async function sendLeagueChallenge(cookie, leagueID){
     let inputData = {
         receivedUser: leagueID,
@@ -572,8 +758,26 @@ async function sendLeagueChallenge(cookie, leagueID){
     .then(res => {})
 }
 
+function findMatchingChallenge(challengeList, data){
+    let matchingChallenges = [];
+    for(let i = 0; i < challengeList.length; i++){
+        let exercise = challengeList[i].exercise;
+        if(exercise.exerciseName === data.exerciseName && exercise.unit === data.unit){
+            matchingChallenges.push(challengeList[i]);
+        }
+    }
+    return matchingChallenges;
+}
+async function sendExercise(cookie, data){
+    await request.post("/exercise_log/add")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send(data)
+    .then(res => {})
+}
+
 module.exports = {
-    clearChallengesAndSession: clearChallengesAndSession,
+    clearDatabase: clearDatabase,
     createUser: createUser,
     deleteUser: deleteUser,
     loginUser: loginUser,
@@ -623,6 +827,21 @@ module.exports = {
     unBlockFriend: unBlockFriend,
     getFriendListInfo: getFriendListInfo,
     getPendingFriendList: getPendingFriendList,
-    getBlockedFriends: getBlockedFriends
-
+    getBlockedFriends: getBlockedFriends,
+    sendSelfChallengeWithData: sendSelfChallengeWithData,
+    sendExercise: sendExercise,
+    findMatchingChallenge: findMatchingChallenge,
+    getGlobalChallenges: getGlobalChallenges,
+    addGlobalChallenge: addGlobalChallenge,
+    addMedal: addMedal,
+    getMedalsComplete: getMedalsComplete,
+    getMedalsInProgress: getMedalsInProgress,
+    checkUserExist: checkUserExist,
+    getDisplayName: getDisplayName,
+    getUsername: getUsername,
+    updatePicture: updatePicture,
+    updateDisplayName: updateDisplayName,
+    getDataOriginLastDate: getDataOriginLastDate,
+    getExerciseLog: getExerciseLog,
+    getPastChallenges: getPastChallenges
 }

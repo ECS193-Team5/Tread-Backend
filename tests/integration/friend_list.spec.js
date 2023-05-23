@@ -393,29 +393,33 @@ describe('Testing friend_list routes', () => {
     });
 
     /*describe("Test Friend Recent Activity", async function () {
-        it("More than 5 Recent Activites", async function () {
-
-        });
-
         it("0 Recent Activities", async function () {
 
         });
 
-        it("Exactly 5 Recent Activities", async function () {
+        it("1 Recent Activity", async function () {
+
+        });
+
+        it("5 Recent Activities", async function () {
+
+        });
+
+        it("6 Recent Activites", async function () {
 
         });
     });*/
 
     /*describe("Test Recommended Friends", async function () {
-        it("Test Situation with No Recommneded Friends", async function () {
+        it("Test Situation with 0 Recommneded Friends", async function () {
 
         });
 
-        it("Test Situation with One Recommneded Friends", async function () {
+        it("Test Situation with 1 Recommneded Friends", async function () {
 
         });
 
-        it("Test Situation with Multiple (<5) Recommended Friends", async function () {
+        it("Test Situation with 5 Recommended Friends", async function () {
 
         });
 

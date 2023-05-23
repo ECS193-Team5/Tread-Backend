@@ -102,8 +102,7 @@ async function getLeaderboard(req, res, next) {
             username: 1, displayName: 1, progress:1
         }).lean()
     ]);
-    const topFiveAndUser = [topFiveUsers, userRank
-    ];
+    const topFiveAndUser = [topFiveUsers, userRank];
     return res.status(200).json(topFiveAndUser)
 
 }

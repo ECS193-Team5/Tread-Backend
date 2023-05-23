@@ -22,7 +22,7 @@ async function checkForChallengeCompletion(username, exerciseLog, model) {
         $expr: {$gte: [ "$progress" , "$exercise.convertedAmount" ]}
     }
 
-    model.updateMany(challengeCompletionQuery, {completed: true});
+    await model.updateMany(challengeCompletionQuery, {completed: true});
 }
 
 async function updateChallenges(username, exerciseLog) {
@@ -127,8 +127,9 @@ async function addExerciseToLog(req, res, next) {
     }
 
     const newExerciseLog = new Exercise_log(exerciseLog);
+
     try {
-        Promise.all([
+        await Promise.all([
             newExerciseLog.save(),
             updateChallenges(username,  newExerciseLog),
             updateGlobalChallenges(username, newExerciseLog),
@@ -136,7 +137,6 @@ async function addExerciseToLog(req, res, next) {
             touchDataOriginDate(username, dataOrigin)
         ]);
     } catch (err) {
-        console.log(err)
         return res.status(500).json("Error: " + err);
     }
 

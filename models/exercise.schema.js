@@ -54,7 +54,7 @@ const exercise = new Schema(
     },
     amount: {
         type: Number,
-        reqired: true,
+        required: true,
         min: 0
     },
     convertedAmount: {
