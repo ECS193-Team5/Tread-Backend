@@ -5,7 +5,7 @@ process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
 const chai = require("chai");
 const { expect } = chai;
 
-var helpers = require("./helperFunc");
+var helpers = require("./postRequests");
 
 describe('Testing /user routes', async function () {
     let usersInfo = [];

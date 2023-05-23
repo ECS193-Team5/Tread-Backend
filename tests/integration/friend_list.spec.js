@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
 const app = require("../../index");
 const googleauth = require('google-auth-library');
-var helpers = require("./helperFunc");
+var helpers = require("./postRequests");
 const chai = require("chai");
 const deepEqualInAnyOrder = require('deep-equal-in-any-order');
 chai.use(deepEqualInAnyOrder);

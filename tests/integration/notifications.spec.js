@@ -7,7 +7,7 @@ request = request(app);
 
 var {expect} = require("chai");
 
-var helpers = require("./helperFunc");
+var helpers = require("./postRequests");
 
 
 describe('Testing notifications', () => {

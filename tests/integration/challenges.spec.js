@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
 const app = require("../../index");
 const { expect} = require("chai");
-var helpers = require("./helperFunc");
+var helpers = require("./postRequests");
 
 let user1 = {
     "sub": "challenges1",

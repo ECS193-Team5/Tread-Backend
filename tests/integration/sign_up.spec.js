@@ -11,7 +11,7 @@ const chai = require("chai");
 const { expect } = chai;
 
 const User = require("../../models/user.model");
-var helpers = require("./helperFunc");
+var helpers = require("./postRequests");
 
 
 

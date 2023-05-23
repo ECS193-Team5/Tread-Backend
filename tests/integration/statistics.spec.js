@@ -6,7 +6,7 @@ process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
 const app = require("../../index");
 request = request(app);
 
-var helpers = require("./helperFunc");
+var helpers = require("./postRequests");
 const chai = require("chai");
 const deepEqualInAnyOrder = require('deep-equal-in-any-order');
 chai.use(deepEqualInAnyOrder);
