@@ -1,127 +1,110 @@
-var request = require("supertest");
 var sandbox = require("sinon").createSandbox();
 require('dotenv').config();
-const mongoose = require("mongoose");
 process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
-const app = require("../../index");
-request = request(app);
-const googleauth = require('google-auth-library');
-var helpers = require("./helperFunc");
+
 const chai = require("chai");
-const deepEqualInAnyOrder = require('deep-equal-in-any-order');
-chai.use(deepEqualInAnyOrder);
-const {expect} = chai;
+const { expect } = chai;
 
-let user1 = {
-    "sub": "user1",
-    "given_name": "Pinkie",
-    "family_name": "Pie",
-}
+var helpers = require("./helperFunc");
 
-let user2 = {
-    "sub": "user2",
-    "given_name": "Rainbow",
-    "family_name": "Dash",
-}
-
-
-describe('Testing user routes', async function () {
-    let cookieUser1 = "";
-    let cookieUser2 = "";
-    let username1 = "";
-    let username2 = "";
+describe('Testing /user routes', async function () {
+    let usersInfo = [];
+    const users = [{
+        "sub": "user1",
+        "given_name": "Pinkie",
+        "family_name": "Pie",
+    }, {
+        "sub": "user2",
+        "given_name": "Rainbow",
+        "family_name": "Dash",
+    }]
 
     before(async function () {
-        cookieUser1 = await helpers.createUser(user1, sandbox);
-        username1 = await helpers.getUsername(cookieUser1);
-        cookieUser2 = await helpers.createUser(user2, sandbox);
-        username2 = await helpers.getUsername(cookieUser2);
+        usersInfo = await createUsers(users, sandbox);
     })
 
     after(async function () {
-        await helpers.deleteUser(cookieUser1);
-        await helpers.deleteUser(cookieUser2);
+        await helpers.deleteUsers(usersInfo);
     })
 
-    describe("Test check username", async function(){
-        it("Username should not exist", async function(){
-            let ifUserExist = await helpers.checkUserExist(cookieUser1, "fakseUser");
+    describe("Test /check_username_exists", async function () {
+        it("Test username that does not exist", async function () {
+            let ifUserExist = await helpers.checkUserExist(usersInfo[0].cookie, "fakseUser");
             expect(ifUserExist).to.equal(false);
         });
 
-        it("Username does exist and it is myself", async function(){
-            let ifUserExist = await helpers.checkUserExist(cookieUser1, username1);
+        it("Test username does exist (my own username)", async function () {
+            let ifUserExist = await helpers.checkUserExist(usersInfo[0].cookie, usersInfo[0].username);
             expect(ifUserExist).to.equal(true);
         });
 
-        it("Username does exist and it is not myself", async function(){
-            let ifUserExist = await helpers.checkUserExist(cookieUser1, username2);
+        it("Test username does exist (not my username)", async function () {
+            let ifUserExist = await helpers.checkUserExist(usersInfo[0].cookie, usersInfo[1].username);
             expect(ifUserExist).to.equal(true);
         });
     });
 
-    describe("Get display_name of user", async function(){
-        it("Test for user1", async function(){
-            let displayName = await helpers.getDisplayName(cookieUser1);
-            expect(displayName.displayName).to.equal(user1.given_name);
+    describe("Test /get_display_name", async function () {
+        it("Test for users[0]", async function () {
+            let displayName = await helpers.getDisplayName(usersInfo[0].cookie);
+            expect(displayName.displayName).to.equal(users[0].given_name);
         })
 
-        it("Test for user2", async function(){
-            let displayName = await helpers.getDisplayName(cookieUser2);
-            expect(displayName.displayName).to.equal(user2.given_name);
+        it("Test for users[1]", async function () {
+            let displayName = await helpers.getDisplayName(usersInfo[1].cookie);
+            expect(displayName.displayName).to.equal(users[1].given_name);
         })
     })
 
-    describe("Get username of user", async function(){
-        it("Test for user1", async function(){
-            let username = await helpers.getUsername(cookieUser1);
-            expect(username).to.equal(username1);
+    describe("Test /get_username", async function () {
+        it("Test for users[0]", async function () {
+            let username = await helpers.getUsername(usersInfo[0].cookie);
+            expect(username).to.equal(usersInfo[0].username);
         })
 
-        it("Test for user2", async function(){
-            let username = await helpers.getUsername(cookieUser2);
-            expect(username).to.equal(username2);
+        it("Test for users[1]", async function () {
+            let username = await helpers.getUsername(usersInfo[1].cookie);
+            expect(username).to.equal(usersInfo[1].username);
         })
     });
 
-    describe("Test update picture", async function(){
-        it("Test give png", async function(){
-            let status = await helpers.updatePicture(cookieUser1, "https://i.imgur.com/sXwXq45.png");
+    describe("Test /update_picture", async function () {
+        it("Test give a valid photo", async function () {
+            let status = await helpers.updatePicture(usersInfo[0].cookie, "https://i.imgur.com/sXwXq45.png");
             expect(status).to.equal(200);
         })
 
-        it("Test give no photo", async function(){
-            let status = await helpers.updatePicture(cookieUser1, "");
+        it("Test give no photo", async function () {
+            let status = await helpers.updatePicture(usersInfo[0].cookie, "");
             expect(status).to.equal(200);
         })
 
-        it("Stub upload erorr", async function(){
-            let status = await helpers.updatePicture(cookieUser1, "image");
+        it("Test invalid photo", async function () {
+            let status = await helpers.updatePicture(usersInfo[0].cookie, "image");
             expect(status).to.equal(400);
         })
     })
 
-    describe("Test update display name", async function(){
-        it("Test give valid display name", async function(){
-            let status = await helpers.updateDisplayName(cookieUser1, "NewCoolName");
+    describe("Test /update_display_name", async function () {
+        it("Test give valid display name", async function () {
+            let status = await helpers.updateDisplayName(usersInfo[0].cookie, "NewCoolName");
             expect(status).to.equal(200);
-            let displayName = await helpers.getDisplayName(cookieUser1);
+            let displayName = await helpers.getDisplayName(usersInfo[0].cookie);
             expect(displayName.displayName).to.equal("NewCoolName");
         })
 
-        it("Test give no display name", async function(){
-            let status = await helpers.updateDisplayName(cookieUser2, "");
+        it("Test give no display name", async function () {
+            let status = await helpers.updateDisplayName(usersInfo[1].cookie, "");
             expect(status).to.equal(200);
-            let displayName = await helpers.getDisplayName(cookieUser2);
-            expect(displayName.displayName).to.equal(user2.given_name);
+            let displayName = await helpers.getDisplayName(usersInfo[1].cookie);
+            expect(displayName.displayName).to.equal(users[1].given_name);
         })
 
-        it("Test give invalid display name", async function(){
-            let status = await helpers.updateDisplayName(cookieUser2, "This name is too long for the display name. Too many char.");
+        it("Test give invalid display name", async function () {
+            let status = await helpers.updateDisplayName(usersInfo[1].cookie, "This name is too long for the display name. Too many char.");
             expect(status).to.equal(400);
-            let displayName = await helpers.getDisplayName(cookieUser2);
-            expect(displayName.displayName).to.equal(user2.given_name);
+            let displayName = await helpers.getDisplayName(usersInfo[1].cookie);
+            expect(displayName.displayName).to.equal(users[1].given_name);
         })
-
     })
 });

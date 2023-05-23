@@ -5,8 +5,8 @@
   "scripts": {
     "test": "mocha ./tests/*.spec.js --exit",
     "integration_test": "mocha ./tests/integration/*.spec.js --exit --timeout 10000",
-    "bekah_test": "mocha ./tests/integration/statistics.spec.js  --timeout 12000",
-    "bekah_test_cov": "nyc mocha ./tests/integration/statistics.spec.js --timeout 12000",
+    "bekah_test": "mocha ./tests/integration/friend_list.spec.js  --timeout 12000",
+    "bekah_test_cov": "nyc mocha ./tests/integration/friend_list.spec.js --timeout 12000",
     "start": "node index.js",
     "start-dev": "nodemon index.js",
     "coverage": "nyc --reporter=text npm test"

@@ -1,47 +1,39 @@
 var request = require("supertest");
 var sandbox = require("sinon").createSandbox();
 require('dotenv').config();
-const mongoose = require("mongoose");
+
 process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
 const app = require("../../index");
 request = request(app);
-const googleauth = require('google-auth-library');
+
 var helpers = require("./helperFunc");
 const chai = require("chai");
 const deepEqualInAnyOrder = require('deep-equal-in-any-order');
 chai.use(deepEqualInAnyOrder);
-const {expect} = chai;
-
-let user1 = {
-    "sub": "stats1",
-    "given_name": "Business",
-    "family_name": "Proposal",
-}
-
-let user2 = {
-    "sub": "stats2",
-    "given_name": "Under",
-    "family_name": "Umbrella",
-}
+const { expect } = chai;
 
 describe('Testing /stats routes', async function () {
-    let cookieUser1 = "";
-    let cookieUser2 = "";
-    let username1 = "";
-    let username2 = "";
+    let usersInfo = [];
     let exerciseExample = {
         loggedDate: Date.now(),
         amount: 10,
         exerciseName: "Baseball",
         unit: "sec",
-        dataOrigin:"web"
+        dataOrigin: "web"
     }
 
+    let users = [{
+        "sub": "stats1",
+        "given_name": "Business",
+        "family_name": "Proposal",
+    }, {
+        "sub": "stats2",
+        "given_name": "Under",
+        "family_name": "Umbrella",
+    }];
+
     before(async function () {
-        cookieUser1 = await helpers.createUser(user1, sandbox);
-        username1 = await helpers.getUsername(cookieUser1);
-        cookieUser2 = await helpers.createUser(user2, sandbox);
-        username2 = await helpers.getUsername(cookieUser2);
+        usersInfo = await helpers.createUsers(users, sandbox);
 
         let inputData = {
             receivedUser: "self",
@@ -53,43 +45,46 @@ describe('Testing /stats routes', async function () {
         }
 
         await request.post("/challenges/add_self_challenge")
-        .set("Cookie", cookieUser2)
-        .set('Accept', 'application/json')
-        .send(inputData)
-        .expect(200);
+            .set("Cookie", usersInfo[1].cookie)
+            .set('Accept', 'application/json')
+            .send(inputData)
+            .expect(200);
     })
 
     after(async function () {
-        await helpers.deleteUser(cookieUser1);
-        await helpers.deleteUser(cookieUser2);
+        await helpers.deleteUsers(usersInfo);
     })
 
-    describe("Test /get_exercise_log", async function(){
-        it("Test user has no previous exercises", async function(){
-            let results = await helpers.getExerciseLog(cookieUser1);
+    describe("Test /get_exercise_log", async function () {
+        it("Test user has no previous exercises", async function () {
+            let results = await helpers.getExerciseLog(usersInfo[0].cookie);
             expect(results.length).to.equal(0);
         });
-        it("Test user has multiple exercises", async function(){
-            await helpers.sendExercise(cookieUser1, exerciseExample);
-            await helpers.sendExercise(cookieUser1, exerciseExample);
-            let results = await helpers.getExerciseLog(cookieUser1);
+
+        it("Test user has had multiple previous exercises", async function () {
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
+            let results = await helpers.getExerciseLog(usersInfo[0].cookie);
+            console.log("I mean to add a depep equal here", results);
             expect(results.length).to.equal(2);
         });
     });
 
-    describe("Test /get_past_challenges", async function(){
-        it("Test user has no past challenges", async function(){
-            let results = await helpers.getPastChallenges(cookieUser1);
+    describe("Test /get_past_challenges", async function () {
+        it("Test user has had no past challenges", async function () {
+            let results = await helpers.getPastChallenges(usersInfo[0].cookie);
             expect(results.length).to.equal(0);
         });
-        it("Test user has no past challenges but has a current challenge", async function(){
-            await helpers.sendSelfChallenge(cookieUser1);
-            let results = await helpers.getPastChallenges(cookieUser1);
+
+        it("Test user has had no past challenges but has a current challenge", async function () {
+            await helpers.sendSelfChallenge(usersInfo[0].cookie);
+            let results = await helpers.getPastChallenges(usersInfo[0].cookie);
             expect(results.length).to.equal(0);
         });
-        it("Test user has past challenge", async function(){
-            await helpers.sendSelfChallenge(cookieUser2);
-            let results = await helpers.getPastChallenges(cookieUser2);
+
+        it("Test user has had a past challenge", async function () {
+            await helpers.sendSelfChallenge(usersInfo[1].cookie);
+            let results = await helpers.getPastChallenges(usersInfo[1].cookie);
             expect(results.length).to.equal(1);
 
             delete results[0]._id;
@@ -99,19 +94,19 @@ describe('Testing /stats routes', async function () {
             delete results[0].exercise._id;
 
             expect(results[0]).to.deep.equal(
-            {
-                username: username2,
-                exercise: {
-                  exerciseName: 'Baseball',
-                  unit: 'm',
-                  amount: 10,
-                  unitType: 'distance',
-                  convertedAmount: 10
-                },
-                progress: 0,
-                completed: false
-            });
-
+                {
+                    username: usersInfo[1].username,
+                    exercise: {
+                        exerciseName: 'Baseball',
+                        unit: 'm',
+                        amount: 10,
+                        unitType: 'distance',
+                        convertedAmount: 10
+                    },
+                    progress: 0,
+                    completed: false
+                }
+            );
         });
     });
 

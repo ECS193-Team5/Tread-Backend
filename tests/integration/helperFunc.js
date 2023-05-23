@@ -260,6 +260,28 @@ async function getMemberListLeague(cookie, leagueID){
     return results;
 }
 
+async function getRecentActivityFriend(cookie){
+    let results = "";
+    await request.post("/friend_list/get_recent_activity")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
+async function getRecommendedFriend(cookie){
+    let results = "";
+    await request.post("/friend_list/get_recommended")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
+
 async function getBannedListLeague(cookie, leagueID){
     let results = "";
     await request.post("/league/get_banned_list")
@@ -776,6 +798,41 @@ async function sendExercise(cookie, data){
     .then(res => {})
 }
 
+function cleanRecentResults(results){
+    let results = results.map(
+        (item) => {
+            return {
+                exerciseName: item.exercise.exerciseName,
+                unit: item.exercise.unit,
+                amount: item.exercise.amount,
+                username: item.username
+            };
+        }
+    )
+
+    return results;
+}
+
+async function makeFriend(cookie1, username1, cookie2, username2){
+    await helpers.sendFriendRequest(cookie1, username2);
+    await helpers.acceptFriendRequest(cookie2, username1);
+}
+
+async function createUsers(users, sandbox){
+    let userInfo = [];
+    for(let i = 0; i < users.length; i++){
+        let newUser = {};
+        newUser.cookie = await createUser(users[i], sandbox);
+        newUser.username = await getUsername(newUser.cookie);
+        userInfo.push(newUser);
+    }
+    return userInfo;
+}
+
+async function deleteUsers(usersInfo){
+    usersInfo.forEach(async (item)=> {await deleteUser(userInfo.cookie)})
+}
+
 module.exports = {
     clearDatabase: clearDatabase,
     createUser: createUser,
@@ -843,5 +900,11 @@ module.exports = {
     updateDisplayName: updateDisplayName,
     getDataOriginLastDate: getDataOriginLastDate,
     getExerciseLog: getExerciseLog,
-    getPastChallenges: getPastChallenges
+    getPastChallenges: getPastChallenges,
+    getRecentActivityFriend: getRecentActivityFriend,
+    cleanRecentResults: cleanRecentResults,
+    getRecommendedFriend: getRecommendedFriend,
+    makeFriend: makeFriend,
+    createUsers: createUsers,
+    deleteUsers: deleteUsers
 }

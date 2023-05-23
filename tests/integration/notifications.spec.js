@@ -3,229 +3,181 @@ var sandbox = require("sinon").createSandbox();
 require('dotenv').config();
 process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
 const app = require("../../index");
-var {expect} = require("chai");
-var helpers = require("./helperFunc");
-let user1 = {
-    "sub": "notification1",
-    "given_name": "Howard",
-    "family_name": "Wang",
-}
-
-let user2 = {
-    "sub": "notification2",
-    "given_name": "Rebekah",
-    "family_name": "Grace",
-}
-
 request = request(app);
 
+var {expect} = require("chai");
+
+var helpers = require("./helperFunc");
+
+
 describe('Testing notifications', () => {
-    let cookieUser1 = "";
-    let cookieUser2 = "";
-    let username1 = "";
-    let username2 = "";
+    let usersInfo = [];
+    let users = [{
+        "sub": "notification1",
+        "given_name": "Howard",
+        "family_name": "Wang",
+    },{
+        "sub": "notification2",
+        "given_name": "Rebekah",
+        "family_name": "Grace",
+    }]
 
     before(async () => {
-        cookieUser1 =  await helpers.createUser(user1, sandbox);
-        username1 = await helpers.getUsername(cookieUser1);
-        cookieUser2 =  await helpers.createUser(user2, sandbox);
-        username2 = await helpers.getUsername(cookieUser2);
-
+        usersInfo = await helpers.createUsers(users, sandbox);
     });
 
     after(async () => {
-        cookieUser1 = await helpers.loginUser(user1, sandbox);
-        await helpers.deleteUser(cookieUser1);
-        cookieUser2 = await helpers.loginUser(user2, sandbox);
-        await helpers.deleteUser(cookieUser2);
+        await helpers.deleteUsers(usersInfo);
     })
 
-    describe("Testing notifications sent based on a one event", () => {
-        describe('Testing notifications based on league role', () => {
+    describe("Testing /notifications", () => {
+        describe('Testing /get_notifications based on league roles', () => {
             let leagueInfo = "";
 
             beforeEach(async () => {
-                cookieUser2 = await helpers.loginUser(user2, sandbox);
-                leagueInfo = await helpers.createLeague(cookieUser2, "name", "public", "description");
-
-                cookieUser1 = await helpers.loginUser(user1, sandbox);
-                await helpers.joinLeague(cookieUser1, leagueInfo.leagueID)
-
-                cookieUser2 = await helpers.loginUser(user2, sandbox);
+                leagueInfo = await helpers.createLeague(usersInfo[1].cookie, "name", "public", "description");
+                await helpers.joinLeague(usersInfo[0].cookie, leagueInfo.leagueID)
             });
 
             afterEach(async () => {
-                cookieUser2 = helpers.loginUser(user2, sandbox);
-                helpers.deleteLeague(cookieUser2, leagueInfo.leagueID);
+                helpers.deleteLeague(usersInfo[1].cookie, leagueInfo.leagueID);
                 sandbox.restore();
             });
 
             it("Test that kicking out a user sends a notification", async () => {
                 await request.post("/league/kick_member")
-                .set("Cookie", cookieUser2)
+                .set("Cookie", usersInfo[1].cookie)
                 .set('Accept', 'application/json')
                 .send({
-                    recipient: username1,
+                    recipient: usersInfo[0].username,
                     leagueID:leagueInfo.leagueID,
                     leagueName:leagueInfo.leagueName})
                 .then(res => {})
 
-                cookieUser1 = await helpers.loginUser(user1, sandbox);
-                await helpers.checkMostRecentNotification(cookieUser1, "You have been kicked out of " + leagueInfo.leagueName);
+                await helpers.checkMostRecentNotification(usersInfo[0].cookie, "You have been kicked out of " + leagueInfo.leagueName);
             });
 
             it("Test that banning a user sends a notification", async () => {
                 await request.post("/league/ban_user")
-                .set("Cookie", cookieUser2)
+                .set("Cookie", usersInfo[1].cookie)
                 .set('Accept', 'application/json')
                 .send({
-                    recipient: username1,
+                    recipient: usersInfo[0].username,
                     leagueID:leagueInfo.leagueID,
                     leagueName:leagueInfo.leagueName
                 })
 
-                cookieUser1 = await helpers.loginUser(user1, sandbox);
-                await helpers.checkMostRecentNotification(cookieUser1, "You have been banned from " + leagueInfo.leagueName);
+                await helpers.checkMostRecentNotification(usersInfo[0].cookie, "You have been banned from " + leagueInfo.leagueName);
             });
 
 
             it("Test that elevating a user to admin sends a notification", async () => {
                 await request.post("/league/add_admin")
-                .set("Cookie", cookieUser2)
+                .set("Cookie", usersInfo[1].cookie)
                 .set('Accept', 'application/json')
                 .send({
-                    recipient: username1,
+                    recipient: usersInfo[0].username,
                     leagueID:leagueInfo.leagueID,
                     leagueName:leagueInfo.leagueName
                 })
 
-                cookieUser1 = await helpers.loginUser(user1, sandbox);
-                await helpers.checkMostRecentNotification(cookieUser1, "You have been elevated to the admin team in " + leagueInfo.leagueName);
+                await helpers.checkMostRecentNotification(usersInfo[0].cookie, "You have been elevated to the admin team in " + leagueInfo.leagueName);
 
             });
 
             it("Test that removing a user from admin sends a notification", async () => {
                 await request.post("/league/add_admin")
-                .set("Cookie", cookieUser2)
+                .set("Cookie", usersInfo[1].cookie)
                 .set('Accept', 'application/json')
                 .send({
-                    recipient: username1,
+                    recipient: usersInfo[0].username,
                     leagueID:leagueInfo.leagueID,
                     leagueName:leagueInfo.leagueName
                 })
 
                 await request.post("/league/remove_admin")
-                .set("Cookie", cookieUser2)
+                .set("Cookie", usersInfo[1].cookie)
                 .set('Accept', 'application/json')
                 .send({
-                    recipient: username1,
+                    recipient: usersInfo[0].username,
                     leagueID:leagueInfo.leagueID,
                     leagueName:leagueInfo.leagueName
                 })
 
-                cookieUser1 = await helpers.loginUser(user1, sandbox);
-                await helpers.checkMostRecentNotification(cookieUser1, "You have been removed from the admin team in " + leagueInfo.leagueName);
+                await helpers.checkMostRecentNotification(usersInfo[0].cookie, "You have been removed from the admin team in " + leagueInfo.leagueName);
 
             });
 
         });
 
-        describe('Testing notifications based on making friends', () => {
-            it("Test sending a friend request sends a notification", async () => {
-                cookieUser2 = await helpers.loginUser(user2, sandbox);
-                await helpers.sendFriendRequest(cookieUser2, username1);
-                cookieUser1 = await helpers.loginUser(user1, sandbox);
-                await helpers.checkMostRecentNotification(cookieUser1, username2 + " sent you a friend request.");
-
-                cookieUser2 = await helpers.loginUser(user2, sandbox);
-                await helpers.revokeFriendRequest(cookieUser1, username1);
-            });
-
-            it("Test accepting a friend request sends a notification", async () => {
-                cookieUser1 = await helpers.loginUser(user1, sandbox);
-                await helpers.sendFriendRequest(cookieUser1, username2);
-                cookieUser2 = await helpers.loginUser(user2, sandbox);
-                await helpers.acceptFriendRequest(cookieUser2, username1);
-
-                cookieUser1 = await helpers.loginUser(user1, sandbox);
-                await helpers.checkMostRecentNotification(cookieUser1, username2 + " accepted your friend request.");
-
-                await helpers.unFriend(cookieUser1, username2);
-            });
-        });
-
-        describe('Testing notifications based on league invites', () => {
+        describe('Testing /get_notifications based on league invites', () => {
             let leagueInfo = {};
 
             beforeEach(async() => {
-                cookieUser2 = await helpers.loginUser(user2, sandbox);
-                leagueInfo = await helpers.createLeague(cookieUser2, "name", "private", "description");
+                leagueInfo = await helpers.createLeague(usersInfo[1].cookie, "name", "private", "description");
             });
 
             afterEach(async () =>{
-                cookieUser2 = await helpers.loginUser(user2, sandbox);
-                await helpers.deleteLeague(cookieUser2, leagueInfo.leagueID);
+                await helpers.deleteLeague(usersInfo[1].cookie, leagueInfo.leagueID);
             })
 
             it("Test being invited to a league gives a notification", async () => {
-                await helpers.inviteLeague(cookieUser2, leagueInfo.leagueID, username1);
-                cookieUser1 = await helpers.loginUser(user1, sandbox);
-                await helpers.checkMostRecentNotification(cookieUser1, username2 + " invited you to a league.");
+                await helpers.inviteLeague(usersInfo[1].cookie, leagueInfo.leagueID, usersInfo[0].username);
+                await helpers.checkMostRecentNotification(usersInfo[0].cookie, usersInfo[1].username + " invited you to a league.");
             });
 
             it("Test being accepted into a league gives a notification", async () => {
-                cookieUser1 = await helpers.loginUser(user1, sandbox);
-                await helpers.joinLeague(cookieUser1, leagueInfo.leagueID);
-                cookieUser2 = await helpers.loginUser(user2, sandbox);
-                await helpers.acceptLeague(cookieUser2, leagueInfo.leagueID, username1)
-                cookieUser1 = await helpers.loginUser(user1, sandbox);
-                await helpers.checkMostRecentNotification(cookieUser1, username2 + " accepted your league join request.");
+                await helpers.joinLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+                await helpers.acceptLeague(usersInfo[1].cookie, leagueInfo.leagueID, usersInfo[0].username);
+                await helpers.checkMostRecentNotification(usersInfo[0].cookie, usersInfo[1].username + " accepted your league join request.");
             });
-
         });
 
-        describe('Testing notifications based on sending challenges', () => {
+        describe('Testing /get_notifications based on friend relationships', () => {
+            it("Test sending a friend request sends a notification", async () => {
+                await helpers.sendFriendRequest(usersInfo[1].cookie, usersInfo[0].username);
+                await helpers.checkMostRecentNotification(usersInfo[0].cookie, usersInfo[1].username + " sent you a friend request.");
+
+                await helpers.revokeFriendRequest(usersInfo[0].cookie, usersInfo[0].username);
+            });
+
+            it("Test accepting a friend request sends a notification", async () => {
+                await helpers.makeFriend(usersInfo[0].cookie, usersInfo[1].username, usersInfo[1].cookie, usersInfo[0].username);
+                await helpers.checkMostRecentNotification(usersInfo[0].cookie, usersInfo[1].username + " accepted your friend request.");
+
+                await helpers.unFriend(usersInfo[0].cookie, usersInfo[1].username);
+            });
+        });
+
+        describe('Testing /get_notifications based on challenge interactions', () => {
             beforeEach(async () => {
-                cookieUser1 = await helpers.loginUser(user1, sandbox);
-                await helpers.sendFriendRequest(cookieUser1, username2);
-                cookieUser2 = await helpers.loginUser(user2, sandbox);
-                await helpers.acceptFriendRequest(cookieUser2, username1);
+                await helpers.makeFriend(usersInfo[0].cookie, usersInfo[1].username, usersInfo[1].cookie, usersInfo[0].username);
             })
 
             afterEach(async () => {
-                cookieUser2 = await helpers.loginUser(user2, sandbox);
-                await helpers.unFriend(cookieUser2, username1);
+                await helpers.unFriend(usersInfo[1].cookie, usersInfo[0].username);
             })
 
             it("Test receiving a challenge sends a notification", async () => {
-                cookieUser2 = await  helpers.loginUser(user2, sandbox);
-                await helpers.sendFriendChallenge(cookieUser2, username1);
-                cookieUser1 = await helpers.loginUser(user1, sandbox);
-                await helpers.checkMostRecentNotification(cookieUser1, username2 + " sent you a challenge.");
+                await helpers.sendFriendChallenge(usersInfo[1].cookie, usersInfo[0].username);
+                await helpers.checkMostRecentNotification(usersInfo[0].cookie, usersInfo[1].username + " sent you a challenge.");
             });
 
             it("Test someone accepting a challenge gives a notification", async () => {
-                cookieUser1 = await helpers.loginUser(user1, sandbox);
-                await helpers.sendFriendChallenge(cookieUser1, username2);
-                cookieUser2 = await helpers.loginUser(user2, sandbox);
-                await helpers.acceptChallenge(cookieUser2, username1);
-                cookieUser1 = await helpers.loginUser(user1, sandbox);
-                await helpers.checkMostRecentNotification(cookieUser1, username2 + " accepted your challenge.");
+                await helpers.sendFriendChallenge(usersInfo[0].cookie, usersInfo[1].username);
+                await helpers.acceptChallenge(usersInfo[1].cookie, usersInfo[0].username);
+                await helpers.checkMostRecentNotification(usersInfo[0].cookie, usersInfo[1].username + " accepted your challenge.");
             });
-
         });
     });
 
-    describe("Test delete notification", () => {
+    describe("Test /delete_notification", () => {
         it("Test that the user can delete a notification", async () => {
             let results = [];
-
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            helpers.sendFriendRequest(cookieUser2, username1);
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            helpers.sendFriendRequest(usersInfo[1].cookie, usersInfo[0].username);
 
             await request.post("/notifications/get_notifications")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .then(res => {
                 results = res._body;
@@ -235,13 +187,13 @@ describe('Testing notifications', () => {
             let lengthResults = results.length;
 
             await request.post("/notifications/delete_notification")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({notificationID: id})
             .then(res => {})
 
             await request.post("/notifications/get_notifications")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .then(res => {
                 results = res._body;
@@ -250,33 +202,30 @@ describe('Testing notifications', () => {
         })
     });
 
-    describe("Test delete notification", () => {
+    describe("Test /delete_all_notifications", () => {
         it("Test that the user can delete all notifications", async () => {
             let results = [];
 
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            helpers.sendFriendRequest(cookieUser2, username1);
-            leagueInfo = await helpers.createLeague(cookieUser2, "n", "public", "desc");
-            await helpers.inviteLeague(cookieUser2, leagueInfo.leagueID, username1);
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            helpers.sendFriendRequest(usersInfo[1].cookie, usersInfo[0].username);
+            leagueInfo = await helpers.createLeague(usersInfo[1].cookie, "n", "public", "desc");
+            await helpers.inviteLeague(usersInfo[1].cookie, leagueInfo.leagueID, usersInfo[0].username);
 
             await request.post("/notifications/get_notifications")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .then(res => {
                 results = res._body;
             })
 
-
             expect(results.length).to.be.greaterThanOrEqual(2);
 
             await request.post("/notifications/delete_all_notifications")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .then(res => {})
 
             await request.post("/notifications/get_notifications")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .then(res => {
                 results = res._body;
