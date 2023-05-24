@@ -62,6 +62,7 @@ async function sendPushNotificationToUsers(usernames, messageBody, page) {
     await sendMessageToDevices(message);
 }
 async function updateNotificationLog(usernames, message) {
+
     const notificationLogs = usernames.map(username => ({
         username: username,
         message: message

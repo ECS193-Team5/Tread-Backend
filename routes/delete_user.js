@@ -85,6 +85,7 @@ router.delete('/', async (req, res, next) => {
             Notifications.deleteMany({ username: username })
         ]);
     } catch (err) {
+        console.log(err);
         return res.status(500).json("Could not finish deleting profile.");
     }
     next();

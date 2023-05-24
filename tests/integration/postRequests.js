@@ -27,7 +27,6 @@ async function clearDatabase() {
     await Challenge_progress.deleteMany({});
     await Global_challenge.deleteMany({});
     await Global_challenge_progress.deleteMany({});
-    await connection.dropCollection('sessions');
 }
 
 after(async () => {
@@ -173,6 +172,22 @@ async function sendLeagueChallenge(cookie, leagueID){
     .then(res => {})
 }
 
+async function sendLeagueChallengeWithData(cookie, leagueID, data){
+    let inputData = {
+        receivedUser: leagueID,
+        issueDate: getIssueDate(),
+        dueDate: getDueDate(),
+        unit: "m",
+        amount: 10,
+        exerciseName: "Badminton"
+    }
+    await request.post("/challenges/add_league_challenge")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send(inputData)
+    .then(res => {})
+}
+
 // Challenge Interaction functions
 async function acceptChallenge(cookie, sender){
     let challengeID = "";
@@ -251,7 +266,9 @@ async function deleteUser(cookie) {
 }
 
 async function deleteUsers(usersInfo){
-    usersInfo.forEach(async (item)=> {await deleteUser(item.cookie)})
+    for(let i =0; i< usersInfo.length; i++){
+        await deleteUser(usersInfo[i].cookie);
+    }
 }
 
 /* Exercise Log Functions */
@@ -295,6 +312,7 @@ async function sendFriendRequest(cookie, friendName){
     .set('Accept', 'application/json')
     .send({friendName: friendName})
     .then(res => {})
+
 }
 async function revokeFriendRequest(cookie, friendName){
     await request.post("/friend_list/remove_sent_request")
@@ -319,9 +337,9 @@ async function acceptFriendRequest(cookie, friendName){
     .then(res => {})
 }
 
-async function makeFriend(cookie1, username1, cookie2, username2){
-    await helpers.sendFriendRequest(cookie1, username2);
-    await helpers.acceptFriendRequest(cookie2, username1);
+async function makeFriend(user1, user2){
+    await sendFriendRequest(user1.cookie, user2.username);
+    await acceptFriendRequest(user2.cookie, user1.username);
 }
 
 // Friend List Functions
@@ -402,7 +420,7 @@ async function getRecentActivityFriend(cookie){
 }
 
 function cleanRecentResults(results){
-    let results = results.map(
+    results = results.map(
         (item) => {
             return {
                 exerciseName: item.exercise.exerciseName,
@@ -415,7 +433,7 @@ function cleanRecentResults(results){
     return results;
 }
 
-async function getRecommendedFriend(cookie){
+async function getRecommendedFriends(cookie){
     let results = "";
     await request.post("/friend_list/get_recommended")
     .set("Cookie", cookie)
@@ -450,8 +468,31 @@ async function addGlobalChallenge(cookie, data){
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
     .send(inputData)
-    .then(res => {
+    .expect(200);
+}
+
+async function getGlobalLeaderboard(cookie, challengeID){
+    let results = "";
+    await request.post("/global_challenge/get_leaderboard")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({challengeID: challengeID})
+    .then(res =>{
+        results = res._body
     })
+    return results;
+}
+
+function expectChallengeValues(challenge, expectedCompleted, expectedProgress){
+    expect(challenge.completed).to.equal(expectedCompleted);
+    expect(challenge.progress).to.equal(expectedProgress);
+}
+
+async function bulkUserSendExercises(usersInfo, data){
+    for(let i = 0; i< usersInfo.length; i++){
+        data.amount = i + 1;
+        await sendExercise(usersInfo[i].cookie,data);
+    }
 }
 
 /* League Functions */
@@ -842,6 +883,11 @@ async function updateDisplayName(cookie, displayName){
 }
 
 
+async function delay(milliseconds){
+    return new Promise(resolve => {
+        setTimeout(resolve, milliseconds);
+    });
+}
 
 
 
@@ -851,79 +897,81 @@ async function updateDisplayName(cookie, displayName){
 
 
 
-
-
-module.exports = {
-    clearDatabase: clearDatabase,
-    createUser: createUser,
-    deleteUser: deleteUser,
-    loginUser: loginUser,
-    getUsername: getUsername,
-    createLeague: createLeague,
-    getSentChallenges: getSentChallenges,
-    getReceivedChallenges: getReceivedChallenges,
-    joinLeague: joinLeague,
-    deleteLeague: deleteLeague,
-    checkMostRecentNotification: checkMostRecentNotification,
-    unFriend: unFriend,
-    sendFriendRequest: sendFriendRequest,
-    revokeFriendRequest: revokeFriendRequest,
+module.exports = {    acceptChallenge: acceptChallenge,
     acceptFriendRequest: acceptFriendRequest,
-    inviteLeague: inviteLeague,
     acceptLeague: acceptLeague,
-    getIssueDate: getIssueDate,
-    getDueDate: getDueDate,
-    sendFriendChallenge: sendFriendChallenge,
-    acceptChallenge: acceptChallenge,
-    declineAllChallenges: declineAllChallenges,
-    revokeAllChallenges: revokeAllChallenges,
-    sendSelfChallenge: sendSelfChallenge,
-    sendLeagueChallenge: sendLeagueChallenge,
-    getIssuedChallenges: getIssuedChallenges,
-    getIssuedChallengesByLeague: getIssuedChallengesByLeague,
-    getRole: getRole,
-    getSentLeagues: getSentLeagues,
-    getInvitedLeagues: getInvitedLeagues,
-    getAcceptedLeagues: getAcceptedLeagues,
-    getOwnedLeagues: getOwnedLeagues,
-    getAdminLeagues: getAdminLeagues,
-    getAdminLeaguesCount: getAdminLeaguesCount,
-    addAdmin: addAdmin,
     acceptLeagueInvite: acceptLeagueInvite,
-    banUser: banUser,
-    getBannedListLeague: getBannedListLeague,
-    getMemberListLeague: getMemberListLeague,
-    getReceivedInviteListLeague: getReceivedInviteListLeague,
-    getSentInviteListLeague: getSentInviteListLeague,
-    getActiveChallengesLeague: getActiveChallengesLeague,
-    getSentFriendRequests: getSentFriendRequests,
-    getReceivedFriendRequests: getReceivedFriendRequests,
-    getFriendList: getFriendList,
-    declineFriendRequest: declineFriendRequest,
-    blockFriend: blockFriend,
-    unBlockFriend: unBlockFriend,
-    getFriendListInfo: getFriendListInfo,
-    getPendingFriendList: getPendingFriendList,
-    getBlockedFriends: getBlockedFriends,
-    sendSelfChallengeWithData: sendSelfChallengeWithData,
-    sendExercise: sendExercise,
-    findMatchingChallenge: findMatchingChallenge,
-    getGlobalChallenges: getGlobalChallenges,
+    addAdmin: addAdmin,
     addGlobalChallenge: addGlobalChallenge,
     addMedal: addMedal,
+    banUser: banUser,
+    blockFriend: blockFriend,
+    bulkUserSendExercises: bulkUserSendExercises,
+    checkMostRecentNotification: checkMostRecentNotification,
+    checkUserExist: checkUserExist,
+    cleanRecentResults: cleanRecentResults,
+    clearDatabase: clearDatabase,
+    createLeague: createLeague,
+    createUser: createUser,
+    createUsers: createUsers,
+    declineAllChallenges: declineAllChallenges,
+    declineFriendRequest: declineFriendRequest,
+    delay: delay,
+    deleteLeague: deleteLeague,
+    deleteUser: deleteUser,
+    deleteUsers: deleteUsers,
+    expectChallengeValues: expectChallengeValues,
+    findMatchingChallenge: findMatchingChallenge,
+    getAcceptedLeagues: getAcceptedLeagues,
+    getActiveChallengesLeague: getActiveChallengesLeague,
+    getAdminLeagues: getAdminLeagues,
+    getAdminLeaguesCount: getAdminLeaguesCount,
+    getBannedListLeague: getBannedListLeague,
+    getBlockedFriends: getBlockedFriends,
+    getDataOriginLastDate: getDataOriginLastDate,
+    getDisplayName: getDisplayName,
+    getDueDate: getDueDate,
+    getExerciseLog: getExerciseLog,
+    getFriendList: getFriendList,
+    getFriendListInfo: getFriendListInfo,
+    getGlobalChallenges: getGlobalChallenges,
+    getGlobalLeaderboard: getGlobalLeaderboard,
+    getInvitedLeagues: getInvitedLeagues,
+    getIssueDate: getIssueDate,
+    getIssuedChallenges: getIssuedChallenges,
+    getIssuedChallengesByLeague: getIssuedChallengesByLeague,
     getMedalsComplete: getMedalsComplete,
     getMedalsInProgress: getMedalsInProgress,
-    checkUserExist: checkUserExist,
-    getDisplayName: getDisplayName,
-    updatePicture: updatePicture,
-    updateDisplayName: updateDisplayName,
-    getDataOriginLastDate: getDataOriginLastDate,
-    getExerciseLog: getExerciseLog,
+    getMemberListLeague: getMemberListLeague,
+    getOwnedLeagues: getOwnedLeagues,
     getPastChallenges: getPastChallenges,
+    getPendingFriendList: getPendingFriendList,
+    getReceivedChallenges: getReceivedChallenges,
+    getReceivedFriendRequests: getReceivedFriendRequests,
+    getReceivedInviteListLeague: getReceivedInviteListLeague,
     getRecentActivityFriend: getRecentActivityFriend,
-    cleanRecentResults: cleanRecentResults,
-    getRecommendedFriend: getRecommendedFriend,
+    getRecommendedFriends: getRecommendedFriends,
+    getRole: getRole,
+    getSentChallenges: getSentChallenges,
+    getSentFriendRequests: getSentFriendRequests,
+    getSentInviteListLeague: getSentInviteListLeague,
+    getSentLeagues: getSentLeagues,
+    getUsername: getUsername,
+    inviteLeague: inviteLeague,
+    joinLeague: joinLeague,
+    loginUser: loginUser,
     makeFriend: makeFriend,
-    createUsers: createUsers,
-    deleteUsers: deleteUsers
+    revokeAllChallenges: revokeAllChallenges,
+    revokeFriendRequest: revokeFriendRequest,
+    sendExercise: sendExercise,
+    sendFriendChallenge: sendFriendChallenge,
+    sendFriendRequest: sendFriendRequest,
+    sendLeagueChallenge: sendLeagueChallenge,
+    sendLeagueChallengeWithData: sendLeagueChallengeWithData,
+    sendSelfChallenge: sendSelfChallenge,
+    sendSelfChallengeWithData: sendSelfChallengeWithData,
+    unBlockFriend: unBlockFriend,
+    unFriend: unFriend,
+    updateDisplayName: updateDisplayName,
+    updatePicture: updatePicture,
 }

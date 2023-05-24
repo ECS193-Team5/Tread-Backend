@@ -380,9 +380,9 @@ router.route('/get_recommended').post(async (req, res, next) => {
         friendName:{$nin: invalidFriends}
     }, {"_id": 0, "friendName": 1}).limit(MUTUAL_FRIEND_QUERY_LIMIT).lean()
 
-    const mutualFriendsFrequency = await getSortedFieldFrequency("friendName", mutualFriends)
+    const mutualFriendsFrequency = await getSortedFieldFrequency("friendName", mutualFriends);
 
-    return res.status(200).json(mutualFriendsFrequency);
+    return res.status(200).json(mutualFriendsFrequency.slice(0,5));
 });
 
 

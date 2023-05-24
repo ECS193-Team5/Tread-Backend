@@ -32,7 +32,7 @@ describe('Testing /stats routes', async function () {
         "family_name": "Umbrella",
     }];
 
-    before(async function () {
+    beforeEach(async function () {
         usersInfo = await helpers.createUsers(users, sandbox);
 
         let inputData = {
@@ -51,7 +51,7 @@ describe('Testing /stats routes', async function () {
             .expect(200);
     })
 
-    after(async function () {
+    afterEach(async function () {
         await helpers.deleteUsers(usersInfo);
     })
 
@@ -65,7 +65,20 @@ describe('Testing /stats routes', async function () {
             await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
             await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
             let results = await helpers.getExerciseLog(usersInfo[0].cookie);
-            console.log("I mean to add a depep equal here", results);
+            results = helpers.cleanRecentResults(results);
+            expect(results).to.deep.equal([
+                {
+                    username: usersInfo[0].username,
+                    exerciseName: 'Baseball',
+                    unit: 'sec',
+                    amount: 10,
+                },
+                {
+                    username: usersInfo[0].username,
+                    exerciseName: 'Baseball',
+                    unit: 'sec',
+                    amount: 10,
+                }]);
             expect(results.length).to.equal(2);
         });
     });
@@ -83,7 +96,7 @@ describe('Testing /stats routes', async function () {
         });
 
         it("Test user has had a past challenge", async function () {
-            await helpers.sendSelfChallenge(usersInfo[1].cookie);
+            await helpers.delay(1001)
             let results = await helpers.getPastChallenges(usersInfo[1].cookie);
             expect(results.length).to.equal(1);
 

@@ -445,7 +445,7 @@ describe('Testing /league routes', () => {
         beforeEach(async()=>{
             // Second User creates league
             leagueInfo = await helpers.createLeague(usersInfo[1].cookie, "n", "public", "desc");
-            helpers.joinLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+            await helpers.joinLeague(usersInfo[0].cookie, leagueInfo.leagueID);
         })
 
         afterEach(async() => {
@@ -570,7 +570,7 @@ describe('Testing /league routes', () => {
         });
     });
 
-    describe("Test member actions in league", async () => {
+   describe("Test member actions in league", async () => {
         let leagueInfo = {};
         beforeEach(async()=>{
             // Second User creates league
@@ -935,7 +935,18 @@ describe('Testing /league routes', () => {
         });
     });
 
-    /*describe("Test /get_league_leaderboard", async function () {
+    // Missing League lines
+    describe("Test /get_league_leaderboard", async function () {
+        let leagueInfo = {};
+        before(async()=>{
+            leagueInfo = await helpers.createLeague(usersInfo[0].cookie, "n", "private", "desc");
+            await helpers.sendLeagueChallenge(usersInfo[0].cookie, leagueInfo.leagueID);
+        })
+
+        after(async() => {
+            await helpers.deleteLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+        })
+
         it("Test when no member has completed a challenge", async function () {
 
         });
@@ -947,7 +958,7 @@ describe('Testing /league routes', () => {
         it("Test when everyone has completed some challenges", async function () {
 
         });
-    });*/
+    });
 
     /*describe("Test /get_recent_acivity", async function () {
         it("Test 0 Recent Activities", async function () {

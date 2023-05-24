@@ -75,11 +75,10 @@ async function notifyNewChallenge(req, res, next) {
     const sentUser = req.session.username;
     // remove self from notification list
     const index = participants.indexOf(sentUser);
-    if (index > -1) { // only splice array when item is found
-        participants.splice(index, 1); // 2nd parameter means remove one item only
-    }
 
-    await sendNotificationToUsers(
+    participants.splice(index, 1); // 2nd parameter means remove one item only
+
+    sendNotificationToUsers(
         participants,
         sentUser + " sent you a challenge.",
         "currentChallengePage"
@@ -307,6 +306,7 @@ router.route('/decline_friend_challenge').post(async (req, res) => {
 
 router.route('/get_challenge_leaderboard').post(async (req, res) => {
     // need to verify user is in challenge for leaderboard
+    console.log("get challenge leaderboard runs")
     const username = req.session.username;
     const challengeID = req.body.challengeID;
 
