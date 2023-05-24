@@ -6,6 +6,7 @@ const Exercise_log = require("../models/exercise_log.model");
 const {isExistingUser} = require("./user.js");
 const {sendNotificationToUsers} = require("./notifications.js");
 const {getSortedFieldFrequency} = require("./helpers.js");
+const { moduleExpression } = require("@babel/types");
 
 async function getPropertyOfFriendList(username, property) {
     return User_inbox.findOne({username: username }, property).lean();
@@ -379,9 +380,9 @@ router.route('/get_recommended').post(async (req, res, next) => {
         friendName:{$nin: invalidFriends}
     }, {"_id": 0, "friendName": 1}).limit(MUTUAL_FRIEND_QUERY_LIMIT).lean()
 
-    const mutualFriendsFrequency = await getSortedFieldFrequency("friendName", mutualFriends)
+    const mutualFriendsFrequency = await getSortedFieldFrequency("friendName", mutualFriends);
 
-    return res.status(200).json(mutualFriendsFrequency);
+    return res.status(200).json(mutualFriendsFrequency.slice(0,5));
 });
 
 
@@ -405,3 +406,4 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
 
 
 module.exports = router;
+module.exports.isFriend = isFriend;

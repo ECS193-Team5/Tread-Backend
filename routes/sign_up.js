@@ -51,7 +51,7 @@ router.route('/get_profile_photo').post(
       } catch (err){ //try with different discriminator
         discriminator = (discriminator + 1) % 10000;
         profileInfo.username = chosenUsername + '#' + formatDiscriminator(discriminator);
-        if (discriminator == end) {
+        if (discriminator === end) {
           throw new Error("Username not available")
         }
       }
@@ -111,7 +111,6 @@ router.route('/get_profile_photo').post(
         createUserInbox(completeUsername),
         generateUserMedalProgress(completeUsername),
         uploadImage(picture, 'profilePictures', completeUsername.replace('#', '_')),
-        // Add device token
         registerDeviceToken(req.session.username, req.body.deviceToken)
       ]);
     } catch (err){

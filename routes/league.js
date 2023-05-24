@@ -699,6 +699,7 @@ router.route('/get_recommended').post(async (req, res, next) => {
     // find at most 6 leagues that are public from that list
     const NUMBER_OF_RECENT_EXERCISES = 10;
     const WEEK_IN_MILISECONDS = 604800000;
+    const LIMIT_NUMBER_LEAGUES_RETURNED = 5;
     const CHALLENGE_QUERY_TIME_LIMIT = Date.now() - WEEK_IN_MILISECONDS;
     const username =  req.session.username;
 
@@ -722,7 +723,7 @@ router.route('/get_recommended').post(async (req, res, next) => {
     const publicRelatedLeagues = await League.find({
         _id: {$in: relatedLeagueChallenges},
         leagueType: "public"
-    }, {"leagueName": 1}).lean();
+    }, {"leagueName": 1}).limit(LIMIT_NUMBER_LEAGUES_RETURNED).lean();
 
     return res.status(200).json(publicRelatedLeagues);
 });

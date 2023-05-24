@@ -4,7 +4,7 @@ require('dotenv').config();
 const mongoose = require("mongoose");
 process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
 const app = require("../../index");
-const { loginUser, createUser, getUsername, deleteUser } = require("./helperFunc");
+const { loginUser, createUser, getUsername, deleteUser } = require("./postRequests");
 const googleauth = require('google-auth-library');
 //var helpers = require("./helperFunc");
 const { expect} = require("chai");
@@ -23,7 +23,7 @@ let user2 = {
 
 
 request = request(app);
-/*
+
 describe('Testing authentication routes', () => {
     let cookieUser1 = "";
     let cookieUser2 = "";
@@ -115,4 +115,4 @@ describe('Testing authentication routes', () => {
         sandbox.restore();
     })
 
-});*/
+});

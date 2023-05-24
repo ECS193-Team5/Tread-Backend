@@ -5,64 +5,42 @@ const mongoose = require("mongoose");
 process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
 const app = require("../../index");
 const { expect} = require("chai");
-var helpers = require("./helperFunc");
+var helpers = require("./postRequests");
 
-let user1 = {
-    "sub": "challenges1",
-    "given_name": "Howard",
-    "family_name": "Wang",
-}
 
-let user2 = {
-    "sub": "challenges2",
-    "given_name": "Rebekah",
-    "family_name": "Grace",
-}
-
-let user3 = {
-    "sub": "challenges3",
-    "given_name": "Prabdheep",
-    "family_name": "Kainth",
-}
 
 
 request = request(app);
-/*
-describe('Testing challenges', () => {
-    let cookieUser1 = "";
-    let cookieUser2 = "";
-    let cookieUser3 = "";
-    let username1 = "";
-    let username2 = "";
-    let username3 = "";
+
+describe('Testing /challenges', () => {
+    let users = [{
+        "sub": "challenges1",
+        "given_name": "Howard",
+        "family_name": "Wang",
+    }, {
+        "sub": "challenges2",
+        "given_name": "Rebekah",
+        "family_name": "Grace",
+    }, {
+        "sub": "challenges3",
+        "given_name": "Prabdheep",
+        "family_name": "Kainth",
+    }];
+    let usersInfo = [];
 
     before(async () => {
-        cookieUser1 =  await helpers.createUser(user1, sandbox);
-        username1 = await helpers.getUsername(cookieUser1);
-        cookieUser2 =  await helpers.createUser(user2, sandbox);
-        username2 = await helpers.getUsername(cookieUser2);
-        cookieUser3 =  await helpers.createUser(user3, sandbox);
-        username3 = await helpers.getUsername(cookieUser3);
-
+        usersInfo = await helpers.createUsers(users, sandbox);
+        await helpers.makeFriend(usersInfo[0], usersInfo[1]);
     });
 
     after(async () => {
-        cookieUser1 = await helpers.loginUser(user1, sandbox);
-        await helpers.deleteUser(cookieUser1);
-        cookieUser2 = await helpers.loginUser(user2, sandbox);
-        await helpers.deleteUser(cookieUser2);
-        cookieUser3 = await helpers.loginUser(user3, sandbox);
-        await helpers.deleteUser(cookieUser3);
+        await helpers.deleteUsers(usersInfo);
     })
 
     describe("Test adding challenges", async () => {
-        before(async() => {
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
-        })
-
-        it("Test adding self challenge", async () => {
+        it("Test /add_self_challenge", async () => {
             let inputData = {
-                receivedUser: username1,
+                receivedUser: usersInfo[0].username,
                 issueDate: helpers.getIssueDate(),
                 dueDate: helpers.getDueDate(),
                 unit: "m",
@@ -70,19 +48,19 @@ describe('Testing challenges', () => {
                 exerciseName: "Badminton"
             }
             await request.post("/challenges/add_self_challenge")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send(inputData)
             .expect(200);
 
-            let results = await helpers.getIssuedChallenges(cookieUser1);
+            let results = await helpers.getIssuedChallenges(usersInfo[0].cookie);
 
             expect(results.length).to.equal(1);
         });
 
-        it("Test adding friend challenge", async () => {
+        it("Test /add_friend_challenge", async () => {
             let inputData = {
-                receivedUser: username2,
+                receivedUser: usersInfo[1].username,
                 issueDate: helpers.getIssueDate(),
                 dueDate: helpers.getDueDate(),
                 unit: "m",
@@ -90,18 +68,40 @@ describe('Testing challenges', () => {
                 exerciseName: "Badminton"
             }
             await request.post("/challenges/add_friend_challenge")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send(inputData)
             .expect(200)
 
-            let results = await helpers.getSentChallenges(cookieUser1);
+            let results = await helpers.getSentChallenges(usersInfo[0].cookie);
             expect(results.length).to.equal(1);
 
         });
 
-        it("Test adding league challenge", async () => {
-            let leagueInfo = await helpers.createLeague(cookieUser1, "name", "private", "description");
+        it("Test /add_friend_challenge to a non-friend", async () => {
+            let originalResults = await helpers.getSentChallenges(usersInfo[0].cookie);
+
+            let inputData = {
+                receivedUser: usersInfo[2].username,
+                issueDate: helpers.getIssueDate(),
+                dueDate: helpers.getDueDate(),
+                unit: "m",
+                amount: 10,
+                exerciseName: "Badminton"
+            }
+            await request.post("/challenges/add_friend_challenge")
+            .set("Cookie", usersInfo[0].cookie)
+            .set('Accept', 'application/json')
+            .send(inputData)
+            .expect(404)
+
+            let results = await helpers.getSentChallenges(usersInfo[0].cookie);
+            expect(results.length).to.equal(originalResults.length);
+
+        });
+
+        it("Test /add_league_challenge", async () => {
+            let leagueInfo = await helpers.createLeague(usersInfo[0].cookie, "name", "private", "description");
 
             let inputData = {
                 receivedUser: leagueInfo.leagueID,
@@ -112,24 +112,24 @@ describe('Testing challenges', () => {
                 exerciseName: "Badminton"
             }
             await request.post("/challenges/add_league_challenge")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send(inputData)
             .expect(200)
 
             await request.post("/league/get_league_active_challenges")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({leagueID:leagueInfo.leagueID})
             .then(res=>{
                 expect(res._body).to.equal(1);
             })
 
-            await helpers.deleteLeague(cookieUser1, leagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[0].cookie, leagueInfo.leagueID);
         });
 
-        it("Test adding league challenge", async () => {
-            let leagueInfo = await helpers.createLeague(cookieUser1, "name", "private", "description");
+        it("Test /add_league_challenge for league the user is not an admin of", async () => {
+            let leagueInfo = await helpers.createLeague(usersInfo[0].cookie, "name", "private", "description");
 
             let inputData = {
                 receivedUser: leagueInfo.leagueID,
@@ -139,23 +139,20 @@ describe('Testing challenges', () => {
                 amount: 10,
                 exerciseName: "Badminton"
             }
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
             await request.post("/challenges/add_league_challenge")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
             .send(inputData)
             .expect(400)
 
-            await helpers.deleteLeague(cookieUser1, leagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[0].cookie, leagueInfo.leagueID);
         });
-
     });
 
-    describe("Test challenge interactions", async () => {
+    describe("Test friend challenge interactions", async () => {
         beforeEach(async() => {
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
             let inputData = {
-                receivedUser: username2,
+                receivedUser: usersInfo[1].username,
                 issueDate: helpers.getIssueDate(),
                 dueDate: helpers.getDueDate(),
                 unit: "m",
@@ -163,158 +160,152 @@ describe('Testing challenges', () => {
                 exerciseName: "Badminton"
             }
             await request.post("/challenges/add_friend_challenge")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send(inputData)
         })
 
-        it("Test revoking a sent challenge", async () => {
-            let results = await helpers.getSentChallenges(cookieUser1);
+        it("Test /delete_friend_challenge", async () => {
+            let results = await helpers.getSentChallenges(usersInfo[0].cookie);
 
             let firstChallengeID = results[0]._id;
 
             await request.post("/challenges/delete_friend_challenge")
-                .set("Cookie", cookieUser1)
+                .set("Cookie", usersInfo[0].cookie)
                 .set('Accept', 'application/json')
                 .send({challengeID : firstChallengeID})
                 .expect(200);
 
-            let newResults = await helpers.getSentChallenges(cookieUser1);
+            let newResults = await helpers.getSentChallenges(usersInfo[0].cookie);
             expect(newResults.length).to.equal(results.length - 1);
         });
 
-        it("Test accepting a challenge", async () => {
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            let receivedResults = await helpers.getReceivedChallenges(cookieUser2);
-            let issuedResults = await helpers.getIssuedChallenges(cookieUser2);
+        it("Test /accept_friend_challenge", async () => {
+            let receivedResults = await helpers.getReceivedChallenges(usersInfo[1].cookie);
+            let issuedResults = await helpers.getIssuedChallenges(usersInfo[1].cookie);
             let firstChallengeID = receivedResults[0]._id;
 
             await request.post("/challenges/accept_friend_challenge")
-                .set("Cookie", cookieUser2)
+                .set("Cookie", usersInfo[1].cookie)
                 .set('Accept', 'application/json')
                 .send({challengeID : firstChallengeID})
                 .expect(200);
 
-            let results = await helpers.getReceivedChallenges(cookieUser2);
+            let results = await helpers.getReceivedChallenges(usersInfo[1].cookie);
             expect(results.length).to.equal(receivedResults.length - 1);
-            results = await helpers.getIssuedChallenges(cookieUser2);
+            results = await helpers.getIssuedChallenges(usersInfo[1].cookie);
             expect(results.length).to.equal(issuedResults.length + 1);
         });
 
-        it("Test declining a challenge", async () => {
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            let receivedResults = await helpers.getReceivedChallenges(cookieUser2);
+        it("Test /decline_friend_challenge", async () => {
+            let receivedResults = await helpers.getReceivedChallenges(usersInfo[1].cookie);
 
             let firstChallengeID = receivedResults[0]._id;
 
             await request.post("/challenges/decline_friend_challenge")
-                .set("Cookie", cookieUser2)
+                .set("Cookie", usersInfo[1].cookie)
                 .set('Accept', 'application/json')
                 .send({challengeID : firstChallengeID})
                 .expect(200);
 
-            let newReceivedResults = await helpers.getReceivedChallenges(cookieUser2);
+            let newReceivedResults = await helpers.getReceivedChallenges(usersInfo[1].cookie);
             expect(newReceivedResults.length).to.equal(receivedResults.length -1);
         });
 
     });
 
-    describe("Test viewing challenges", async () => {
-        it("Test viewing sent challenges", async () => {
-            cookieUser3 = await helpers.loginUser(user3, sandbox);
-            await helpers.sendFriendChallenge(cookieUser3, username2);
-            await helpers.sendFriendChallenge(cookieUser3, username1);
+    describe("Test viewing challenge lists", async () => {
+        before(async function (){
+            // Make user 3 friends with user1 and user2 so they can send challenges
+            await helpers.sendFriendRequest(usersInfo[2].cookie, usersInfo[0].username);
+            await helpers.sendFriendRequest(usersInfo[2].cookie, usersInfo[1].username);
 
-            let results = await helpers.getSentChallenges(cookieUser3);
+            await helpers.acceptFriendRequest(usersInfo[0].cookie, usersInfo[2].username);
+            await helpers.acceptFriendRequest(usersInfo[1].cookie, usersInfo[2].username);
+        });
+
+        it("Test /sent_challenges", async () => {
+            await helpers.sendFriendChallenge(usersInfo[2].cookie, usersInfo[1].username);
+            await helpers.sendFriendChallenge(usersInfo[2].cookie, usersInfo[0].username);
+
+            let results = await helpers.getSentChallenges(usersInfo[2].cookie);
 
             expect(results.length).to.equal(2);
 
-            await helpers.revokeAllChallenges(cookieUser3, results);
+            await helpers.revokeAllChallenges(usersInfo[2].cookie, results);
         });
 
-        it("Test viewing received challenges", async () => {
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            await helpers.sendFriendChallenge(cookieUser2, username1);
-            await helpers.sendFriendChallenge(cookieUser2, username1);
-            cookieUser3 = await helpers.loginUser(user3, sandbox);
-            await helpers.sendFriendChallenge(cookieUser3, username1);
+        it("Test /received_challenges", async () => {
+            await helpers.sendFriendChallenge(usersInfo[1].cookie, usersInfo[0].username);
+            await helpers.sendFriendChallenge(usersInfo[1].cookie, usersInfo[0].username);
+            await helpers.sendFriendChallenge(usersInfo[2].cookie, usersInfo[0].username);
 
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
-            let results = await helpers.getReceivedChallenges(cookieUser1);
+            let results = await helpers.getReceivedChallenges(usersInfo[0].cookie);
 
             expect(results.length).to.equal(3);
 
-            await helpers.declineAllChallenges(cookieUser1, results);
+            await helpers.declineAllChallenges(usersInfo[0].cookie, results);
         });
 
-        it("Test viewing issued challenges", async () => {
-            cookieUser3 = await helpers.loginUser(user3, sandbox);
+        it("Test /accepted_challenges", async () => {
 
-            let originalResults = await helpers.getIssuedChallenges(cookieUser3);
+            let originalResults = await helpers.getIssuedChallenges(usersInfo[2].cookie);
             let originalLength = originalResults.length;
 
             // Send out challenges
-            await helpers.sendSelfChallenge(cookieUser3)
-            await helpers.sendFriendChallenge(cookieUser3, username1)
-            let leagueInfo = await helpers.createLeague(cookieUser3, "name", "public", "description")
-            await helpers.sendLeagueChallenge(cookieUser3, leagueInfo.leagueID)
+            await helpers.sendSelfChallenge(usersInfo[2].cookie)
+            await helpers.sendFriendChallenge(usersInfo[2].cookie, usersInfo[0].username)
+            let leagueInfo = await helpers.createLeague(usersInfo[2].cookie, "name", "public", "description")
+            await helpers.sendLeagueChallenge(usersInfo[2].cookie, leagueInfo.leagueID)
 
             // Move to user 1 to accept the challenge
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
-            await helpers.acceptChallenge(cookieUser1, username3);
+            await helpers.acceptChallenge(usersInfo[0].cookie, usersInfo[2].username);
 
             // Move back to user 3, should have 3 issued Challenges
-            cookieUser3 = await helpers.loginUser(user3, sandbox);
-
-            let results = await helpers.getIssuedChallenges(cookieUser3);
+            let results = await helpers.getIssuedChallenges(usersInfo[2].cookie);
 
             expect(results.length).to.equal(originalLength + 3);
 
-            await helpers.deleteLeague(cookieUser3, leagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[2].cookie, leagueInfo.leagueID);
         });
 
-        it("Test viewing issued challenges by league", async () => {
-            cookieUser3 = await helpers.loginUser(user3, sandbox);
-            let leagueInfo = await helpers.createLeague(cookieUser3, "name", "public", "description")
-            await helpers.sendLeagueChallenge(cookieUser3, leagueInfo.leagueID);
+        it("Test /league_challenges", async () => {
+            let leagueInfo = await helpers.createLeague(usersInfo[2].cookie, "name", "public", "description")
+            await helpers.sendLeagueChallenge(usersInfo[2].cookie, leagueInfo.leagueID);
 
-            let results = await helpers.getIssuedChallengesByLeague(cookieUser3, leagueInfo.leagueID);
+            let results = await helpers.getIssuedChallengesByLeague(usersInfo[2].cookie, leagueInfo.leagueID);
 
             expect(results.length).to.equal(1);
 
-            await helpers.deleteLeague(cookieUser3, leagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[2].cookie, leagueInfo.leagueID);
         });
 
     });
 
-    describe("Test leaderboard", async () => {
-        it("Test viewing leaderboard for league challenge", async () => {
-            cookieUser3 = await helpers.loginUser(user3, sandbox);
-            let leagueInfo = await helpers.createLeague(cookieUser3, "name", "public", "description")
-            await helpers.sendLeagueChallenge(cookieUser3, leagueInfo.leagueID);
+    it("Test /get_challenge_leaderboard", async () => {
+        let leagueInfo = await helpers.createLeague(usersInfo[2].cookie, "name", "public", "description")
+        await helpers.sendLeagueChallenge(usersInfo[2].cookie, leagueInfo.leagueID);
 
-            let challengeID = await helpers.getIssuedChallengesByLeague(cookieUser3, leagueInfo.leagueID)
+        let challengeID = await helpers.getIssuedChallengesByLeague(usersInfo[2].cookie, leagueInfo.leagueID)
 
-            await request.post("/challenges/get_challenge_leaderboard")
-            .set("Cookie", cookieUser2)
-            .set('Accept', 'application/json')
-            .send({challengeID : challengeID})
-            .then(res => {
-                expect(res._body[0].username).to.equal(username3);
-                expect(res._body[0].progress).to.equal(0);
-                }
-            )
+        await request.post("/challenges/get_challenge_leaderboard")
+        .set("Cookie", usersInfo[1].cookie)
+        .set('Accept', 'application/json')
+        .send({challengeID : challengeID})
+        .then(res => {
+            expect(res._body[0].username).to.equal(usersInfo[2].username);
+            expect(res._body[0].progress).to.equal(0);
+            }
+        )
 
-            await helpers.deleteLeague(cookieUser3, leagueInfo.leagueID);
-        });
-    })
+        await helpers.deleteLeague(usersInfo[2].cookie, leagueInfo.leagueID);
+    });
 
-    describe("Test mongoose fails", async () => {
+    describe("Test failures due to mongoose", async () => {
         it("Test invalid save", async () => {
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
             sandbox.stub(mongoose.Model.prototype, 'save').throws("error - cannot save");
             let inputData = {
-                receivedUser: username2,
+                receivedUser: usersInfo[1].username,
                 issueDate: helpers.getIssueDate(),
                 dueDate: helpers.getDueDate(),
                 unit: "m",
@@ -322,7 +313,7 @@ describe('Testing challenges', () => {
                 exerciseName: "Badminton"
             }
             await request.post("/challenges/add_friend_challenge")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send(inputData)
             .expect(500)
@@ -331,11 +322,10 @@ describe('Testing challenges', () => {
         })
 
         it("Test invalid bulkWrite", async () => {
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
             sandbox.stub(mongoose.Model, 'bulkWrite').throws("error - cannot save");
 
             let inputData = {
-                receivedUser: username2,
+                receivedUser: usersInfo[1].username,
                 issueDate: helpers.getIssueDate(),
                 dueDate: helpers.getDueDate(),
                 unit: "m",
@@ -343,7 +333,7 @@ describe('Testing challenges', () => {
                 exerciseName: "Badminton"
             }
             await request.post("/challenges/add_friend_challenge")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send(inputData)
             .expect(500)
@@ -352,9 +342,8 @@ describe('Testing challenges', () => {
         });
     });
 
-    describe("Test failed user inputs", async () => {
+    describe("Test failures due to user inputs", async () => {
         it("Test receivedUser does not exist", async () => {
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
             let inputData = {
                 receivedUser: "fakeusername#0000",
                 issueDate: helpers.getIssueDate(),
@@ -364,16 +353,14 @@ describe('Testing challenges', () => {
                 exerciseName: "Badminton"
             }
             await request.post("/challenges/add_friend_challenge")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send(inputData)
             .expect(404);
         });
 
-        it("Test User Does not Own league", async () => {
-            cookieUser3 = await helpers.loginUser(user3, sandbox);
-            let leagueInfo = await helpers.createLeague(cookieUser3, "name", "public", "description")
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
+        it("Test attempts to send a league challenge to a league they do not own", async () => {
+            let leagueInfo = await helpers.createLeague(usersInfo[2].cookie, "name", "public", "description")
 
             let inputData = {
                 receivedUser: leagueInfo.leagueID,
@@ -384,31 +371,27 @@ describe('Testing challenges', () => {
                 exerciseName: "Badminton"
             }
             await request.post("/challenges/add_league_challenge")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send(inputData)
             .expect(400);
         });
 
-        it("Test User Accept Challenge Does not Exist", async () => {
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
-
+        it("Test user accepts a challenge that does not exist", async () => {
             await request.post("/challenges/accept_friend_challenge")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({challengeID: 0})
             .expect(404);
         });
 
-        it("Test User Decline Challenge Does not Exist", async () => {
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
-
+        it("Test user declines a challenge that does not exist", async () => {
             await request.post("/challenges/decline_friend_challenge")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({challengeID: 0})
             .expect(404);
         });
     });
 
-});*/
+});
