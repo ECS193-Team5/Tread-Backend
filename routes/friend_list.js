@@ -6,7 +6,6 @@ const Exercise_log = require("../models/exercise_log.model");
 const {isExistingUser} = require("./user.js");
 const {sendNotificationToUsers} = require("./notifications.js");
 const {getSortedFieldFrequency} = require("./helpers.js");
-const { moduleExpression } = require("@babel/types");
 
 async function getPropertyOfFriendList(username, property) {
     return User_inbox.findOne({username: username }, property).lean();
