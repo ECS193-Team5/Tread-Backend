@@ -65,7 +65,7 @@ describe('Testing friend_list routes', () => {
         let usersInfo = [];
 
         before(async function(){
-            usersInfo = await helpers.createUsers(users.slice(0,2), sandbox);
+            usersInfo = await helpers.createGoogleUsers(users.slice(0,2), sandbox);
         })
 
         after(async () => {
@@ -261,7 +261,7 @@ describe('Testing friend_list routes', () => {
         let usersInfo = [];
 
         beforeEach(async function(){
-            usersInfo = await helpers.createUsers(users.slice(0,3), sandbox);
+            usersInfo = await helpers.createGoogleUsers(users.slice(0,3), sandbox);
         })
 
         afterEach(async () => {
@@ -385,7 +385,7 @@ describe('Testing friend_list routes', () => {
         let exerciseList = [];
 
         before(async function(){
-            usersInfo = await helpers.createUsers(users.slice(0, 3), sandbox);
+            usersInfo = await helpers.createGoogleUsers(users.slice(0, 3), sandbox);
 
             // User Friend 1 & 2 and 1&3
             await helpers.sendFriendRequest(usersInfo[0].cookie, usersInfo[1].username);
@@ -480,7 +480,7 @@ describe('Testing friend_list routes', () => {
         let usersInfo = [];
 
         before(async function(){
-            usersInfo = await helpers.createUsers(users, sandbox);
+            usersInfo = await helpers.createGoogleUsers(users, sandbox);
 
             // User Friend 1 & 2 and 1&3
             await helpers.sendFriendRequest(usersInfo[0].cookie, usersInfo[1].username);
@@ -533,7 +533,7 @@ describe('Testing friend_list routes', () => {
         let usersInfo = [];
 
         before(async function(){
-            usersInfo = await helpers.createUsers(users.slice(0, 2), sandbox);
+            usersInfo = await helpers.createGoogleUsers(users.slice(0, 2), sandbox);
         });
 
         after(async () => {

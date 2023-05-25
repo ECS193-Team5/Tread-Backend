@@ -3,6 +3,7 @@ process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
 const app = require("../../index");
 request = request(app);
 const googleauth = require('google-auth-library');
+const appleSignin = require("apple-signin-auth");
 const { expect } = require("chai");
 const mongoose = require('mongoose');
 const Challenge = require("../../models/challenge.model");
@@ -37,7 +38,34 @@ after(async () => {
 
 
 /* Auth Functions */
-async function loginUser(user, sandbox) {
+async function loginAppleUser(user, sandbox) {
+
+    let cookie = "";
+    var userVal = {
+        fullName: {
+            "givenName":user.given_name,
+            "familyName":user.family_name
+        },
+        sub: user.sub,
+        deviceToken:"token",
+        nonce:"nonce"
+    }
+    sandbox.restore();
+    sandbox.stub(appleSignin, "verifyIdToken").resolves(userVal);
+
+    await request.post("/auth/login/apple")
+        .set('Accept', 'application/json')
+        .send(userVal)
+        .then(res => {
+            cookie = res.headers['set-cookie'];
+        }
+    )
+    sandbox.restore();
+    return cookie;
+}
+
+async function loginGoogleUser(user, sandbox) {
+
     let cookie = "";
     var userVal = {
         sub: user.sub,
@@ -46,18 +74,19 @@ async function loginUser(user, sandbox) {
         email: "testemail" + user.sub + "@gmail.com",
         picture: "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png"
     }
+    sandbox.restore();
     let payloadStub = sandbox.stub().returns(userVal)
     sandbox.stub(googleauth.OAuth2Client.prototype, "verifyIdToken").resolves({ getPayload: payloadStub });
+
     await request.post("/auth/login/google")
         .set('Accept', 'application/json')
         .then(res => {
             cookie = res.headers['set-cookie'];
         }
-        )
+    )
     sandbox.restore();
     return cookie;
 }
-
 /* Challenges Functions */
 // get challenge list functions
 async function getSentChallenges(cookie){
@@ -777,22 +806,35 @@ async function checkMostRecentNotification(cookie, message){
 }
 
 /* Sign Up Functions */
-async function createUser(user, sandbox) {
-    let cookie = await loginUser(user, sandbox);
+async function createGoogleUser(user, sandbox) {
+    let cookie = await loginGoogleUser(user, sandbox);
     await request.post("/sign_up/sign_up")
         .set('Accept', 'application/json')
         .set('Cookie', cookie)
         .send({"username": user.given_name, "displayName": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
         .then(res => {
+        
         })
     return cookie;
 }
 
-async function createUsers(users, sandbox){
+async function createAppleUser(user, sandbox) {
+    let cookie = await loginAppleUser(user, sandbox);
+    await request.post("/sign_up/sign_up")
+        .set('Accept', 'application/json')
+        .set('Cookie', cookie)
+        .send({"username": user.given_name, "displayName": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
+        .then(res => {
+        
+        })
+    return cookie;
+}
+
+async function createGoogleUsers(users, sandbox){
     let userInfo = [];
     for(let i = 0; i < users.length; i++){
         let newUser = {};
-        newUser.cookie = await createUser(users[i], sandbox);
+        newUser.cookie = await createGoogleUser(users[i], sandbox);
         newUser.username = await getUsername(newUser.cookie);
         userInfo.push(newUser);
     }
@@ -912,8 +954,9 @@ module.exports = {    acceptChallenge: acceptChallenge,
     cleanRecentResults: cleanRecentResults,
     clearDatabase: clearDatabase,
     createLeague: createLeague,
-    createUser: createUser,
-    createUsers: createUsers,
+    createGoogleUser: createGoogleUser,
+    createGoogleUsers: createGoogleUsers,
+    createAppleUser: createAppleUser,
     declineAllChallenges: declineAllChallenges,
     declineFriendRequest: declineFriendRequest,
     delay: delay,
@@ -959,7 +1002,8 @@ module.exports = {    acceptChallenge: acceptChallenge,
     getUsername: getUsername,
     inviteLeague: inviteLeague,
     joinLeague: joinLeague,
-    loginUser: loginUser,
+    loginGoogleUser: loginGoogleUser,
+    loginAppleUser: loginAppleUser,
     makeFriend: makeFriend,
     revokeAllChallenges: revokeAllChallenges,
     revokeFriendRequest: revokeFriendRequest,

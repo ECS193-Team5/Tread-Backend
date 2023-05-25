@@ -33,7 +33,7 @@ describe('Testing /stats routes', async function () {
     }];
 
     beforeEach(async function () {
-        usersInfo = await helpers.createUsers(users, sandbox);
+        usersInfo = await helpers.createGoogleUsers(users, sandbox);
 
         let inputData = {
             receivedUser: "self",

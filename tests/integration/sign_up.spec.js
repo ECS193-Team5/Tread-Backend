@@ -28,7 +28,7 @@ describe('Testing /sign_up routes', async function () {
         describe("Test sign up succeeds", async function () {
 
             it("Test succesful sign_up", async function () {
-                let cookie = await helpers.loginUser(user, sandbox);
+                let cookie = await helpers.loginGoogleUser(user, sandbox);
                 await request.post("/sign_up/sign_up")
                     .set('Accept', 'application/json')
                     .set('Cookie', cookie)
@@ -38,7 +38,7 @@ describe('Testing /sign_up routes', async function () {
             })
 
             it("Test succesful sign_up on the same user after delete user", async function () {
-                let cookie = await helpers.loginUser(user, sandbox);
+                let cookie = await helpers.loginGoogleUser(user, sandbox);
                 await request.post("/sign_up/sign_up")
                     .set('Accept', 'application/json')
                     .set('Cookie', cookie)
@@ -46,7 +46,7 @@ describe('Testing /sign_up routes', async function () {
                     .expect(200);
                 await helpers.deleteUser(cookie);
 
-                cookie = await helpers.loginUser(user, sandbox);
+                cookie = await helpers.loginGoogleUser(user, sandbox);
                 await request.post("/sign_up/sign_up")
                     .set('Accept', 'application/json')
                     .set('Cookie', cookie)
@@ -57,7 +57,7 @@ describe('Testing /sign_up routes', async function () {
             })
 
             it("Test successful sign_up with no display name", async function () {
-                let cookie = await helpers.loginUser(user, sandbox);
+                let cookie = await helpers.loginGoogleUser(user, sandbox);
                 await request.post("/sign_up/sign_up")
                     .set('Accept', 'application/json')
                     .set('Cookie', cookie)
@@ -69,7 +69,7 @@ describe('Testing /sign_up routes', async function () {
 
         describe("Test sign_up fails", async function () {
             it("Test sign_up fails because the user already has a username", async function () {
-                let cookie = await helpers.loginUser(user, sandbox);
+                let cookie = await helpers.loginGoogleUser(user, sandbox);
                 await request.post("/sign_up/sign_up")
                     .set('Accept', 'application/json')
                     .set('Cookie', cookie)
@@ -85,7 +85,7 @@ describe('Testing /sign_up routes', async function () {
             });
 
             it("Test sign_up fails because all the usernames are taken", async function () {
-                let cookie = await helpers.loginUser(user, sandbox);
+                let cookie = await helpers.loginGoogleUser(user, sandbox);
                 sandbox.stub(User, 'updateOne').throws("Invalid Username");
                 await request.post("/sign_up/sign_up")
                     .set('Accept', 'application/json')
@@ -97,7 +97,7 @@ describe('Testing /sign_up routes', async function () {
             });
 
             it("Test sign_up fails because the image is invalid", async function () {
-                let cookie = await helpers.loginUser(user, sandbox);
+                let cookie = await helpers.loginGoogleUser(user, sandbox);
                 await request.post("/sign_up/sign_up")
                     .set('Accept', 'application/json')
                     .set('Cookie', cookie)
@@ -107,7 +107,7 @@ describe('Testing /sign_up routes', async function () {
             });
 
             it("Test sign_up fails because the username is invalid", async function () {
-                let cookie = await helpers.loginUser(user, sandbox);
+                let cookie = await helpers.loginGoogleUser(user, sandbox);
                 await request.post("/sign_up/sign_up")
                     .set('Accept', 'application/json')
                     .set('Cookie', cookie)
@@ -120,7 +120,7 @@ describe('Testing /sign_up routes', async function () {
 
     describe("Test /get_profile_photo", async function () {
         it("Test correctly gets the first profile photo", async function () {
-            let cookie = await helpers.loginUser(user, sandbox);
+            let cookie = await helpers.loginGoogleUser(user, sandbox);
             let photo = "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png";
             await request.post("/sign_up/sign_up")
                 .set('Accept', 'application/json')
