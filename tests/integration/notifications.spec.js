@@ -28,7 +28,7 @@ describe('Testing notifications', () => {
 
     describe("Testing /get_notifications", () => {
         before(async () => {
-            usersInfo = await helpers.createUsers(users, sandbox);
+            usersInfo = await helpers.createGoogleUsers(users, sandbox);
         });
 
         after(async () => {
@@ -219,7 +219,7 @@ describe('Testing notifications', () => {
 
     describe("Test /delete_notification", () => {
         beforeEach(async () => {
-            usersInfo = await helpers.createUsers(users, sandbox);
+            usersInfo = await helpers.createGoogleUsers(users, sandbox);
         });
 
         afterEach(async () => {
@@ -283,7 +283,7 @@ describe('Testing notifications', () => {
 
     describe("Test /delete_all_notifications", () => {
         beforeEach(async () => {
-            usersInfo = await helpers.createUsers(users, sandbox);
+            usersInfo = await helpers.createGoogleUsers(users, sandbox);
         });
 
         afterEach(async () => {
@@ -359,9 +359,9 @@ describe('Testing notifications', () => {
                 "family_name": "Kainth",
             };
 
-            let cookie1 = await helpers.loginUser(user1, sandbox);
+            let cookie1 = await helpers.loginGoogleUser(user1, sandbox);
             let username1 = await helpers.getUsername(cookie1);
-            let cookie2 = await helpers.createUser(user2, sandbox);
+            let cookie2 = await helpers.createGoogleUser(user2, sandbox);
             await request.post("/sign_up/sign_up")
                 .set('Accept', 'application/json')
                 .set('Cookie', cookie1)
@@ -388,7 +388,7 @@ describe('Testing notifications', () => {
             };
 
             // Sign in users for the first time
-            let cookie1 = await helpers.loginUser(user1, sandbox);
+            let cookie1 = await helpers.loginGoogleUser(user1, sandbox);
 
             await request.post("/sign_up/sign_up")
                 .set('Accept', 'application/json')
@@ -401,7 +401,7 @@ describe('Testing notifications', () => {
                 })
                 .expect(200)
             let username1 = await helpers.getUsername(cookie1);
-            let cookie2 = await helpers.createUser(user2, sandbox);
+            let cookie2 = await helpers.createGoogleUser(user2, sandbox);
 
             // Login twice more
             var userVal = {
@@ -439,7 +439,7 @@ describe('Testing notifications', () => {
             };
 
             // Sign in users for the first time
-            let cookie1 = await helpers.loginUser(user1, sandbox);
+            let cookie1 = await helpers.loginGoogleUser(user1, sandbox);
             await request.post("/sign_up/sign_up")
                 .set('Accept', 'application/json')
                 .set('Cookie', cookie1)
@@ -451,7 +451,7 @@ describe('Testing notifications', () => {
                 })
                 .expect(200)
             let username1 = await helpers.getUsername(cookie1);
-            let cookie2 = await helpers.createUser(user2, sandbox);
+            let cookie2 = await helpers.createGoogleUser(user2, sandbox);
 
             // Login twice more
             var userVal = {

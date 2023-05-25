@@ -20,7 +20,7 @@ describe('Testing /user routes', async function () {
     }]
 
     before(async function () {
-        usersInfo = await createUsers(users, sandbox);
+        usersInfo = await createGoogleUsers(users, sandbox);
     })
 
     after(async function () {

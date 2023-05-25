@@ -63,7 +63,7 @@ describe('Testing /global_challenge routes', async function () {
     ]
 
     before(async function () {
-        usersInfo = await helpers.createUsers(users, sandbox);
+        usersInfo = await helpers.createGoogleUsers(users, sandbox);
     })
 
     afterEach(async function () {

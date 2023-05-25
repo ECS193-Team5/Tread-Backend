@@ -29,7 +29,7 @@ const userSchema = new Schema(
   {
     authenticationSource: {
       type: String,
-      enum: ['google'],
+      enum: ['google', 'apple'],
       required: true,
     },
     authenticationID: {
@@ -41,7 +41,6 @@ const userSchema = new Schema(
     email: String,
     username: {
       type: String,
-      required: true,
       default: null,
       index: {
         unique: true,

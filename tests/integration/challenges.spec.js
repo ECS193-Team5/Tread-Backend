@@ -29,7 +29,7 @@ describe('Testing /challenges', () => {
     let usersInfo = [];
 
     before(async () => {
-        usersInfo = await helpers.createUsers(users, sandbox);
+        usersInfo = await helpers.createGoogleUsers(users, sandbox);
         await helpers.makeFriend(usersInfo[0], usersInfo[1]);
     });
 

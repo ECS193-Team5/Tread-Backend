@@ -32,9 +32,9 @@ describe('Testing /data_origin/', async function () {
     let username2 = "";
 
     before(async function () {
-        cookieUser1 = await helpers.createUser(user1, sandbox);
+        cookieUser1 = await helpers.createGoogleUser(user1, sandbox);
         username1 = await helpers.getUsername(cookieUser1);
-        cookieUser2 = await helpers.createUser(user2, sandbox);
+        cookieUser2 = await helpers.createGoogleUser(user2, sandbox);
         username2 = await helpers.getUsername(cookieUser2);
     })
 

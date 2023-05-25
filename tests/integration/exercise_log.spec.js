@@ -32,7 +32,7 @@ describe('Testing exercise_log_routes', () => {
             let username1 = "";
 
             before(async function(){
-                cookieUser1 = await helpers.createUser(user1, sandbox);
+                cookieUser1 = await helpers.createGoogleUser(user1, sandbox);
                 username1 = await helpers.getUsername(cookieUser1);
             })
 
@@ -94,7 +94,7 @@ describe('Testing exercise_log_routes', () => {
                 let username1 = "";
 
                 before(async function(){
-                    cookieUser1 = await helpers.createUser(user1, sandbox);
+                    cookieUser1 = await helpers.createGoogleUser(user1, sandbox);
                     username1 = await helpers.getUsername(cookieUser1);
                     let inputData = {
                         unit: "sec",
@@ -174,7 +174,7 @@ describe('Testing exercise_log_routes', () => {
                     }
                 ]
                 before(async function(){
-                    cookieUser1 = await helpers.createUser(user1, sandbox);
+                    cookieUser1 = await helpers.createGoogleUser(user1, sandbox);
                     username1 = await helpers.getUsername(cookieUser1);
                     await helpers.sendSelfChallengeWithData(cookieUser1, inputData[0]);
                     await helpers.sendSelfChallengeWithData(cookieUser1, inputData[1]);
@@ -328,7 +328,7 @@ describe('Testing exercise_log_routes', () => {
                 ];
 
                 before(async function(){
-                    cookieUser1 = await helpers.createUser(user1, sandbox);
+                    cookieUser1 = await helpers.createGoogleUser(user1, sandbox);
                     username1 = await helpers.getUsername(cookieUser1);
                     await helpers.sendSelfChallengeWithData(cookieUser1, inputData[0]);
                     await helpers.sendSelfChallengeWithData(cookieUser1, inputData[1]);
@@ -379,7 +379,7 @@ describe('Testing exercise_log_routes', () => {
             ]
 
             before(async function(){
-                cookieUser1 = await helpers.createUser(user1, sandbox);
+                cookieUser1 = await helpers.createGoogleUser(user1, sandbox);
                 username1 = await helpers.getUsername(cookieUser1);
                 await helpers.addGlobalChallenge(cookieUser1, globalChallengeData[0]);
                 await helpers.addGlobalChallenge(cookieUser1, globalChallengeData[1]);
@@ -465,7 +465,7 @@ describe('Testing exercise_log_routes', () => {
             let username2 = "";
 
             before(async function(){
-                cookieUser1 = await helpers.createUser(user1, sandbox);
+                cookieUser1 = await helpers.createGoogleUser(user1, sandbox);
                 username1 = await helpers.getUsername(cookieUser1);
             })
 

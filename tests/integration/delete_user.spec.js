@@ -28,7 +28,7 @@ describe('Testing /delete_user routes', async function () {
     }]
 
     before(async function () {
-        usersInfo = await helpers.createUsers(users, sandbox);
+        usersInfo = await helpers.createGoogleUsers(users, sandbox);
     })
 
     it("Test delete user succeeds", async function(){

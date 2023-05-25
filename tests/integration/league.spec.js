@@ -44,7 +44,7 @@ describe('Testing /league routes', () => {
     }];
 
     before(async () => {
-        usersInfo = await helpers.createUsers(users, sandbox);
+        usersInfo = await helpers.createGoogleUsers(users, sandbox);
     });
 
     after(async () => {

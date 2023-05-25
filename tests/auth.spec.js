@@ -61,8 +61,8 @@ describe('Testing authentication', () => {
         });
     });
 
-    describe("Testing createUser()", () => {
-        let createUser;
+    describe("Testing createGoogleUser()", () => {
+        let createGoogleUser;
         let saveStub;
         let userInfo =  {
             authenticationSource: 'google',
@@ -75,23 +75,23 @@ describe('Testing authentication', () => {
         }
 
         beforeEach(() => {
-            createUser = auth.__get__("createUser");
+            createGoogleUser = auth.__get__("createGoogleUser");
             saveStub = sandbox.stub(mongoose.Model.prototype, 'save')
         });
 
-        it("createUser should succesfully make an object given clean data", async function (){
+        it("createGoogleUser should succesfully make an object given clean data", async function (){
             saveStub.resolves("");
-            let ret = await createUser(userInfo);
+            let ret = await createGoogleUser(userInfo);
         });
 
-        it("createUser should throw an error when the document cannot save", async function (){
+        it("createGoogleUser should throw an error when the document cannot save", async function (){
             saveStub.rejects("err");
-            let createUserSpy = sandbox.spy(createUser);
+            let createGoogleUserSpy = sandbox.spy(createGoogleUser);
             try{
-                await createUser(userInfo);
+                await createGoogleUser(userInfo);
             }
             catch(err){
-                expect(createUserSpy).to.have.thrown;
+                expect(createGoogleUserSpy).to.have.thrown;
                 return;
             }
             expect(4).to.equal(5);
@@ -202,31 +202,31 @@ describe('Testing authentication', () => {
         describe("Testing createNewUserIfNecessary", () => {
             let createNewUserIfNecessary;
             let isNewUserStub;
-            let createUserStub;
+            let createGoogleUserStub;
 
             beforeEach(() => {
                 createNewUserIfNecessary = auth.__get__("createNewUserIfNecessary");
                 isNewUserStub = sandbox.stub();
-                createUserStub = sandbox.stub();
+                createGoogleUserStub = sandbox.stub();
                 auth.__set__('isNewUser', isNewUserStub);
-                auth.__set__('createUser', createUserStub);
+                auth.__set__('createGoogleUser', createGoogleUserStub);
                 res.locals.userInfoFromAuth = {"iss":"https://accounts.google.com","nbf":1682032534,"aud":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","sub":"108876580734941179924","email":"howardw117@gmail.com","email_verified":true,"azp":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","name":"Howard Wang","picture":"https://lh3.googleusercontent.com/a/AGNmyxbjdCdenNt_rsh6wKGKFqHIsnmWR3qrc4oFecg8kw=s96-c","given_name":"Howard","family_name":"Wang","iat":1682032834,"exp":1682036434,"jti":"f75ecd240a5c906b362599b9a4ee0416b47d5e12"};
             });
 
-            it("Skips createUser() if isNewUser() returns false", async function() {
+            it("Skips createGoogleUser() if isNewUser() returns false", async function() {
                 isNewUserStub.returns(false);
-                createUserStub.rejects();
+                createGoogleUserStub.rejects();
                 await createNewUserIfNecessary(req, res, next);
-                expect(createUserStub).to.not.have.been.called;
+                expect(createGoogleUserStub).to.not.have.been.called;
                 expect(isNewUserStub).to.have.been.called;
                 expect(next).to.have.been.called;
             });
 
-            it("Returns status 500 if createUser() rejects", async function() {
+            it("Returns status 500 if createGoogleUser() rejects", async function() {
                 isNewUserStub.returns(true);
-                createUserStub.rejects("error");
+                createGoogleUserStub.rejects("error");
                 await createNewUserIfNecessary(req, res, next);
-                expect(createUserStub).to.have.been.called;
+                expect(createGoogleUserStub).to.have.been.called;
                 expect(isNewUserStub).to.have.been.called;
                 expect(next).to.not.have.been.called;
                 expect(res.status).to.equal(500);
@@ -235,9 +235,9 @@ describe('Testing authentication', () => {
 
             it("CreateNewUserIftNecessary() returns successfully", async function() {
                 isNewUserStub.returns(true);
-                createUserStub.resolves();
+                createGoogleUserStub.resolves();
                 await createNewUserIfNecessary(req, res, next);
-                expect(createUserStub).to.have.been.called;
+                expect(createGoogleUserStub).to.have.been.called;
                 expect(isNewUserStub).to.have.been.called;
                 expect(next).to.have.been.called;
             });
