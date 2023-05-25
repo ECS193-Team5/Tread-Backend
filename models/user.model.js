@@ -30,18 +30,18 @@ const userSchema = new Schema(
     authenticationSource: {
       type: String,
       enum: ['google'],
-      requried: true,
+      required: true,
     },
     authenticationID: {
       type: String,
-      requried: true,
+      required: true,
     },
     givenName: String,
     familyName: String,
     email: String,
     username: {
       type: String,
-      requried: true,
+      required: true,
       default: null,
       index: {
         unique: true,

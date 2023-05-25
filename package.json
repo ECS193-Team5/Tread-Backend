@@ -14,9 +14,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "apple-signin-auth": "^1.7.5",
     "cloudinary": "^1.36.1",
     "connect-mongo": "^4.6.0",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "deep-equal-in-any-order": "^2.0.6",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",

@@ -2,10 +2,15 @@ const router = require("express").Router();
 let User = require("../models/user.model");
 const { registerDeviceToken, removeDeviceToken } = require("./notifications.js");
 const { OAuth2Client } = require('google-auth-library');
+const crypto = require("crypto");
+const appleSignin = require("apple-signin-auth");
 const CLIENT_ID = process.env.CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
+const APPLE_SERVICE_ID = 'run.tread.applesignin';
+const APPLE_BUNDLE_ID = 'run.tread.treadmobile';
+const DEFAULT_PROFILE_IMAGE_URL = "";
 
-async function verify(token) {
+async function googleVerify(token) {
   const ticket = await client.verifyIdToken({
     idToken: token,
     audience: CLIENT_ID,  // Specify the CLIENT_ID of the app that accesses the backend
@@ -16,6 +21,14 @@ async function verify(token) {
   return userInfoFromAuth;
   // If request specified a G Suite domain:
   // const domain = userInfoFromAuth['hd'];
+}
+async function appleVerify(token, nonce){
+  const userInfoFromAuth = await appleSignin.verifyIdToken(token, {
+    audience: [APPLE_SERVICE_ID, APPLE_BUNDLE_ID], // client id - can also be an array
+    nonce: nonce ? crypto.createHash('sha256').update(nonce).digest('hex') : undefined,
+  });
+  console.log(userInfoFromAuth)
+  return userInfoFromAuth;
 }
 
 function hasUsernameFromDoc(usernameDoc) {
@@ -37,12 +50,73 @@ async function createUser(userInfo) {
   await newUser.save()
 }
 
+async function appleLogin(req, res, next) {
+  const nonce = req.body.rawNonce;
+  const idToken = req.headers.authorization;
+  const fullName = req.body.fullName;
+
+  // need to add csrf preventions
+  let userInfoFromAuth;
+  try {
+    userInfoFromAuth = await appleVerify(idToken, nonce);
+  } catch (err) {
+    return res.status(401).json("Error: " + err);
+  }
+
+  let usernameDoc = await User.findOne(
+    { authenticationSource: 'apple', authenticationID: userInfoFromAuth.sub },
+    'username').lean();
+
+  if (isNewUser(usernameDoc)) {
+    userInfo = {
+      authenticationSource: 'apple',
+      authenticationID: userInfoFromAuth.sub,
+      displayName: fullName.givenName,
+      given_name: fullName.givenName,
+      family_name: fullName.familyName,
+      email: userInfoFromAuth.email,
+      picture: DEFAULT_PROFILE_IMAGE_URL,
+    }
+
+    try {
+      await createUser(userInfo);
+    } catch (err) {
+      return res.status(500).json("Error: " + err);
+    }
+
+  }
+
+  const hasUsername = hasUsernameFromDoc(res.locals.usernameDoc);
+  const deviceToken = req.body.deviceToken;
+  const authenticationSource = res.locals.authenticationSource
+  req.session.regenerate(async function (err) {
+    if (err) return res.status(500).json(err);
+    // store user information in session, typically a user id
+    req.session.authenticationSource = authenticationSource;
+    req.session.authenticationID = userInfoFromAuth.sub;
+
+    if (hasUsername) {
+      req.session.username = res.locals.usernameDoc.username;
+      await registerDeviceToken(req.session.username, deviceToken);
+    } else {
+      req.session.username = null;
+    }
+
+    // save the session before redirection to ensure page
+    // load does not happen before session is saved
+    req.session.save(function (err) {
+      if (err) return res.status(500).json(err);
+      return res.status(200).json({ hasUsername: hasUsername });
+    })
+  })
+}
+
 async function verifyUserAndFindUsername(req, res, next) {
 
   // need to add csrf preventions
   let userInfoFromAuth;
   try {
-    userInfoFromAuth = await verify(req.headers.authorization);
+    userInfoFromAuth = await googleVerify(req.headers.authorization);
   } catch (err) {
     return res.status(401).json("Error: " + err);
   }
@@ -106,6 +180,8 @@ async function generateLoggedInSession(req, res, next) {
 }
 
 router.route('/login/google').post(verifyUserAndFindUsername, createNewUserIfNecessary, generateLoggedInSession);
+
+router.route('/login/apple').post(appleLogin);
 
 
 async function logout(req, res) {
