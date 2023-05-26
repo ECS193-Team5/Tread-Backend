@@ -11,7 +11,7 @@ describe("Testing cloudinary", () =>{
     let cloudinaryFile;
 
     beforeEach(() => {
-        cloudinaryFile = rewire("../routes/cloudinary.js");
+        cloudinaryFile = rewire("../../routes/cloudinary.js");
     });
 
     afterEach(() => {

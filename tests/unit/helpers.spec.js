@@ -3,14 +3,14 @@ const sinonChai = require("sinon-chai");
 chai.use(sinonChai);
 const { expect, assert } = require("chai");
 const rewire = require("rewire");
-const { getSortedFieldFrequency } = require("../routes/helpers");
+const { getSortedFieldFrequency } =require("../../routes/helpers");
 var sandbox = require("sinon").createSandbox();
 
 describe("Testing helpers", () => {
     let helpers;
 
     beforeEach(() => {
-        helpers = rewire("../routes/helpers.js");
+        helpers = rewire("../../routes/helpers.js");
     });
 
     afterEach(() => {

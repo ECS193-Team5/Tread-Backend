@@ -38,7 +38,7 @@ function getListOfIDsFromChallenges(challenges) {
 // incomplete
 async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
     const currentGlobalChallenges = await Global_challenge.find({
-        issuedDate: {
+        issueDate: {
             $lte: Date.now(),
         },
         dueDate: {

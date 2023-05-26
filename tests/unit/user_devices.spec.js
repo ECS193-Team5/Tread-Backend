@@ -11,7 +11,7 @@ describe("Testing user_devices", () => {
     let user_devices;
 
     beforeEach(() => {
-        user_devices = rewire("../routes/user_devices.js");
+        user_devices = rewire("../../routes/user_devices.js");
     });
 
     afterEach(() => {

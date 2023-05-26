@@ -4,7 +4,7 @@ const Medal_progress = require("../models/medal_progress.model");
 const Global_challenge = require("../models/global_challenge.model");
 const Global_challenge_progress = require("../models/global_challenge_progress.model");
 const Challenge_progress = require("../models/challenge_progress.model");
-const { touchDataOriginDate } = require("./data_origin.js");
+const { touchDataOriginAnchor } = require("./data_origin.js");
 const { getUnitType, convertAmount } = require("../models/exercise.schema");
 
 async function checkForChallengeCompletion(username, exerciseLog, model) {
@@ -13,7 +13,7 @@ async function checkForChallengeCompletion(username, exerciseLog, model) {
         'exercise.exerciseName': exerciseLog.exercise.exerciseName,
         'exercise.unitType' : exerciseLog.exercise.unitType,
         completed: false,
-        issuedDate: {
+        issueDate: {
             $lte: Math.min(Date.now(), exerciseLog.loggedDate)
         },
         dueDate: {
@@ -32,7 +32,7 @@ async function updateChallenges(username, exerciseLog) {
         username: username,
         'exercise.exerciseName': exerciseLog.exercise.exerciseName,
         'exercise.unitType' : exerciseLog.exercise.unitType,
-        issuedDate: {
+        issueDate: {
             $lte: Math.min(Date.now(), exerciseLog.loggedDate)
         },
         dueDate: {
@@ -54,7 +54,7 @@ async function updateGlobalChallenges(username, exerciseLog) {
     const needUpdatingGlobalChallenge = await Global_challenge.findOne({
         'exercise.exerciseName' : exerciseLog.exercise.exerciseName,
         'exercise.unitType' : exerciseLog.exercise.unitType,
-        issuedDate: {
+        issueDate: {
             $lte: Math.min(Date.now(), exerciseLog.loggedDate)
         },
         dueDate: {
@@ -115,6 +115,7 @@ async function updateMedalsWithExercise(username, exercise) {
 async function addExerciseToLog(req, res, next) {
     const username = req.session.username;
     const dataOrigin = req.body.dataOrigin;
+    const anchor = req.body.anchor;
     const exercise = {
         exerciseName: req.body.exerciseName,
         unit: req.body.unit,
@@ -134,7 +135,7 @@ async function addExerciseToLog(req, res, next) {
             updateChallenges(username,  newExerciseLog),
             updateGlobalChallenges(username, newExerciseLog),
             updateMedalsWithExercise(username, newExerciseLog.exercise),
-            touchDataOriginDate(username, dataOrigin)
+            touchDataOriginAnchor(username, dataOrigin, anchor)
         ]);
     } catch (err) {
         return res.status(500).json("Error: " + err);
@@ -161,7 +162,7 @@ function getManyUpdateChallengeQuery(username, exerciseList) {
                 username: username,
                 'exercise.exerciseName': exerciseLog.exercise.exerciseName,
                 'exercise.unitType': getUnitType(exerciseLog.exercise.unit),
-                issuedDate: {
+                issueDate: {
                     $lte: Math.min(Date.now(), exerciseLog.loggedDate)
                 },
                 dueDate: {
@@ -180,7 +181,7 @@ function getManyChallengeCompletionQuery(username, uniqueExercises) {
                 username: username,
                 'exercise.exerciseName': exercise.exerciseName,
                 'exercise.unitType' : exercise.unitType,
-                issuedDate: {
+                issueDate: {
                     $lte: Date.now()
                 },
                 dueDate: {
@@ -207,7 +208,7 @@ function getQueryForGlobalChallengesMatchingExercises(username, uniqueExercises)
             username: username,
             'exercise.exerciseName': exercise.exerciseName,
             'exercise.unitType': exercise.unitType,
-            issuedDate: {
+            issueDate: {
                 $lte: Date.now()
             },
             dueDate: {
@@ -315,6 +316,7 @@ async function updateDatabaseWithExerciseList(req, res, next) {
     const dataOrigin = req.body.dataOrigin;
     const exerciseList = req.body.exerciseList;
     const uniqueExercises = req.body.uniqueExercises;
+    const anchor = req.body.anchor;
     const username = req.session.username;
 
     try {
@@ -322,7 +324,7 @@ async function updateDatabaseWithExerciseList(req, res, next) {
             addExerciseListToExerciseLog(username, exerciseList),
             updateManyChallengeProgress(username, exerciseList, uniqueExercises),
             updateManyMedalProgress(username, uniqueExercises, exerciseList),
-            touchDataOriginDate(username, dataOrigin)
+            touchDataOriginAnchor(username, dataOrigin, anchor)
         ])
     } catch (err) {
         console.log(err)
