@@ -16,13 +16,6 @@ const challengeSchema = new Schema(
     participants: {
         type: [String],
         required: true,
-        validate: {
-            validator: function(participants) {
-                return (participants.length > 0);
-            },
-            message: () => 'Size must be greater than zero.'
-        }
-
     },
     sentUser: {
         type: String,

@@ -10,6 +10,7 @@ async function getOriginLastImportDate(req, res) {
     const lastImportDateFromOrigin = await User_data_origin.findOne({
         username: username
     }, fieldToReturn);
+
     return res.status(200).json(lastImportDateFromOrigin);
 }
 
@@ -21,7 +22,7 @@ async function touchDataOriginDate(username, dataOrigin) {
         updateQueryField.webLastPostedDate = Date.now();
     } else if (dataOrigin === 'healthKit') {
         updateQueryField.healthKitLastPostedDate = Date.now();
-    }else if (dataOrigin === 'healthConnect') {
+    } else if (dataOrigin === 'healthConnect') {
         updateQueryField.healthConnectLastPostedDate = Date.now();
     }
 

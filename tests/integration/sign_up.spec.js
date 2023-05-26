@@ -55,20 +55,10 @@ describe('Testing /sign_up routes', async function () {
                 await helpers.deleteUser(cookie);
 
             })
-
-            it("Test successful sign_up with no display name", async function () {
-                let cookie = await helpers.loginGoogleUser(user, sandbox);
-                await request.post("/sign_up/sign_up")
-                    .set('Accept', 'application/json')
-                    .set('Cookie', cookie)
-                    .send({ "username": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
-                    .expect(200);
-                await helpers.deleteUser(cookie);
-            })
         })
 
         describe("Test sign_up fails", async function () {
-            it("Test sign_up fails because the user already has a username", async function () {
+           it("Test sign_up fails because the user already has a username", async function () {
                 let cookie = await helpers.loginGoogleUser(user, sandbox);
                 await request.post("/sign_up/sign_up")
                     .set('Accept', 'application/json')
@@ -106,12 +96,62 @@ describe('Testing /sign_up routes', async function () {
                 await helpers.deleteUser(cookie);
             });
 
-            it("Test sign_up fails because the username is invalid", async function () {
+            it("Test sign_up fails because the username is empty", async function () {
                 let cookie = await helpers.loginGoogleUser(user, sandbox);
                 await request.post("/sign_up/sign_up")
                     .set('Accept', 'application/json')
                     .set('Cookie', cookie)
-                    .send({ "username": "This is a stupidly long invalid username", "displayName": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
+                    .send({ "username": "", "displayName": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
+                    .expect(400);
+                await helpers.deleteUser(cookie);
+            });
+
+            it("Test sign_up fails because the username is too long", async function () {
+                let cookie = await helpers.loginGoogleUser(user, sandbox);
+                await request.post("/sign_up/sign_up")
+                    .set('Accept', 'application/json')
+                    .set('Cookie', cookie)
+                    .send({ "username": "Thisisastupidlylonginvalidusernamethatwillfail", "displayName": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
+                    .expect(400);
+                await helpers.deleteUser(cookie);
+            });
+
+            it("Test sign_up fails because the username has an invalid char", async function () {
+                let cookie = await helpers.loginGoogleUser(user, sandbox);
+                await request.post("/sign_up/sign_up")
+                    .set('Accept', 'application/json')
+                    .set('Cookie', cookie)
+                    .send({ "username": "Has Space", "displayName": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
+                    .expect(400);
+                await helpers.deleteUser(cookie);
+            });
+
+            it("Test sign_up fails because the display name is empty", async function () {
+                let cookie = await helpers.loginGoogleUser(user, sandbox);
+                await request.post("/sign_up/sign_up")
+                    .set('Accept', 'application/json')
+                    .set('Cookie', cookie)
+                    .send({ "username": "HasSpace", "displayName": "", "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
+                    .expect(400);
+                await helpers.deleteUser(cookie);
+            });
+
+            it("Test sign_up fails because the display name is too long", async function () {
+                let cookie = await helpers.loginGoogleUser(user, sandbox);
+                await request.post("/sign_up/sign_up")
+                    .set('Accept', 'application/json')
+                    .set('Cookie', cookie)
+                    .send({ "username": "HasSpace", "displayName": "thisisastupidlylongdisplayamethatshouldfailifIhaveanythingtosay", "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
+                    .expect(400);
+                await helpers.deleteUser(cookie);
+            });
+
+            it("Test sign_up fails because the display name has an invalid char", async function () {
+                let cookie = await helpers.loginGoogleUser(user, sandbox);
+                await request.post("/sign_up/sign_up")
+                    .set('Accept', 'application/json')
+                    .set('Cookie', cookie)
+                    .send({ "username": "HasSpace", "displayName": "displa$", "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
                     .expect(400);
                 await helpers.deleteUser(cookie);
             });

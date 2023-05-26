@@ -1,54 +1,118 @@
-/*var request = require("supertest");
+var request = require("supertest");
 var sandbox = require("sinon").createSandbox();
 require('dotenv').config();
-const mongoose = require("mongoose");
 process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
 const app = require("../../index");
 request = request(app);
-const googleauth = require('google-auth-library');
 var helpers = require("./postRequests");
 const chai = require("chai");
-const deepEqualInAnyOrder = require('deep-equal-in-any-order');
-chai.use(deepEqualInAnyOrder);
 const {expect} = chai;
 
-let user1 = {
-    "sub": "deleteUser1",
-    "given_name": "Ash",
-    "family_name": "Ketchum",
-}
-
-let user2 = {
-    "sub": "deleteUser1",
-    "given_name": "Misty",
-    "family_name": "Williams",
-}
 
 
-describe('Testing /data_origin/', async function () {
-    let cookieUser1 = "";
-    let cookieUser2 = "";
-    let username1 = "";
-    let username2 = "";
+
+describe('Testing /data_orign/get_origin_last_import_date routes', async function () {
+    let usersInfo = [];
+    let users = [{
+        "sub": "data1",
+        "given_name": "Ash",
+        "family_name": "Ketchum",
+    }, {
+        "sub": "data2",
+        "given_name": "Misty",
+        "family_name": "Williams",
+    }]
 
     before(async function () {
-        cookieUser1 = await helpers.createGoogleUser(user1, sandbox);
-        username1 = await helpers.getUsername(cookieUser1);
-        cookieUser2 = await helpers.createGoogleUser(user2, sandbox);
-        username2 = await helpers.getUsername(cookieUser2);
+        usersInfo = await helpers.createGoogleUsers(users, sandbox);
     })
 
-    after(async function(){
-        await helpers.deleteUser(cookieUser1);
-        await helpers.deleteUser(cookieUser2);
+    after(async function () {
+        usersInfo = await helpers.deleteUsers(usersInfo);
     })
 
-    it("Test get data origin succeeds on web", async function(){
+    describe("Test data origin if the user has never logged in before", async function(){
+        it("Test web", async function(){
+            let results = await helpers.getDataOriginLastDate(usersInfo[0].cookie, "web");
+            expect(results).to.equal(null);
+        })
 
-        let dataOrigin = await helpers.getDataOriginLastDate(cookieUser1, "web");
-        console.log(dataOrigin);
+        it("Test healthConnect", async function(){
+            let results = await helpers.getDataOriginLastDate(usersInfo[0].cookie, "healthConnect");
+            expect(results).to.equal(null);
+        })
+
+        it("Test healthKit", async function(){
+            let results = await helpers.getDataOriginLastDate(usersInfo[0].cookie, "healthKit");
+            expect(results).to.equal(null);
+        })
+
+        it("Test none", async function(){
+            let results = await helpers.getDataOriginLastDate(usersInfo[0].cookie, "none");
+            expect(results).to.equal(null);
+        })
     })
 
+    describe("Test data origin if the user has logged an exercise", async function(){
+        it("Test web", async function(){
+            let startTime = Date.now();
+            let exerciseExample = {
+                loggedDate: Date.now(),
+                amount: 10,
+                exerciseName: "Baseball",
+                unit: "m",
+                dataOrigin:"web"
+            }
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
+            let results = await helpers.getDataOriginLastDate(usersInfo[0].cookie, "web");
+            let endTime = Date.now();
+            expect(Date.parse(results.webLastPostedDate)).to.be.greaterThanOrEqual(startTime);
+            expect(Date.parse(results.webLastPostedDate)).to.be.lessThanOrEqual(endTime);
+        })
 
+        it("Test healthConnect", async function(){
+            let startTime = Date.now();
+            let exerciseExample = {
+                loggedDate: Date.now(),
+                amount: 10,
+                exerciseName: "Baseball",
+                unit: "m",
+                dataOrigin:"healthConnect"
+            }
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
+            let results = await helpers.getDataOriginLastDate(usersInfo[0].cookie, "healthConnect");
+            let endTime = Date.now();
+            expect(Date.parse(results.healthConnectLastPostedDate)).to.be.greaterThanOrEqual(startTime);
+            expect(Date.parse(results.healthConnectLastPostedDate)).to.be.lessThanOrEqual(endTime);
+        })
 
-});*/
+        it("Test healthKit", async function(){
+            let startTime = Date.now();
+            let exerciseExample = {
+                loggedDate: Date.now(),
+                amount: 10,
+                exerciseName: "Baseball",
+                unit: "m",
+                dataOrigin:"healthKit"
+            }
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
+            let results = await helpers.getDataOriginLastDate(usersInfo[0].cookie, "healthKit");
+            let endTime = Date.now();
+            expect(Date.parse(results.healthKitLastPostedDate)).to.be.greaterThanOrEqual(startTime);
+            expect(Date.parse(results.healthKitLastPostedDate)).to.be.lessThanOrEqual(endTime);
+        })
+
+        it("Test none", async function(){
+            let exerciseExample = {
+                loggedDate: Date.now(),
+                amount: 10,
+                exerciseName: "Baseball",
+                unit: "m"
+            }
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
+            let results = await helpers.getDataOriginLastDate(usersInfo[0].cookie, "");
+            expect(results).to.deep.equal({});
+        })
+    })
+
+});

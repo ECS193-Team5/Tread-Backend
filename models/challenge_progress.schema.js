@@ -36,21 +36,7 @@ const challengeProgress = new Schema(
     completed: {
       type: Boolean,
       required: true,
-      default: false,
-      validate: {
-        validator: function(completed) {
-          if (this.progress < this.exercise.convertedAmount && !completed) {
-            return true
-          }
-
-          if (this.progress > this.exercise.convertedAmount && completed) {
-            return true
-          }
-
-          return false;
-        },
-        message: () => 'Wrong Status'
-      }
+      default: false
     }
   }
 );

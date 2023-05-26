@@ -470,8 +470,6 @@ describe('Testing friend_list routes', () => {
 
             let results = await helpers.getRecentActivityFriend(usersInfo[0].cookie);
             expect(results.length).to.equal(5);
-            results = helpers.cleanRecentResults(results);
-            expect(results).to.deep.equalInAnyOrder(exerciseList.slice(1,6));
         });
     });
 

@@ -396,7 +396,7 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
     const recentFriendActivity = await Exercise_log.find({
         username: {$in: friendList}
     },{
-        "_id": 0
+        "_id": 0,
     }).sort({loggedDate: -1}).limit(5).lean();
 
     return res.status(200).json(recentFriendActivity);

@@ -9,35 +9,35 @@ const googleauth = require('google-auth-library');
 var helpers = require("./postRequests");
 const chai = require("chai");
 const deepEqualInAnyOrder = require('deep-equal-in-any-order');
+const exercise = require("../../models/exercise.schema");
+const Exercise_log = require("../../models/exercise_log.model");
 chai.use(deepEqualInAnyOrder);
 const {expect} = chai;
 
-let user1 = {
-    "sub": "exercise1",
-    "given_name": "Martha",
-    "family_name": "Maple",
-}
 
-let user2 = {
-    "sub": "exercise1",
-    "given_name": "Hercule",
-    "family_name": "Poirot",
-}
 const LOGGED_TIMESTAMP_EXAMPLE = 1684630800000;
 
-describe('Testing exercise_log_routes', () => {
-    describe("Test add one exercise", async function(){
+describe('Testing /exercise_log routes', () => {
+    let users = [{
+        "sub": "exercise1",
+        "given_name": "Martha",
+        "family_name": "Maple",
+    },{
+        "sub": "exercise2",
+        "given_name": "Hercule",
+        "family_name": "Poirot",
+    }]
+
+    describe("Test /add", async function(){
         describe("Test add simple, single exercise", async function () {
-            let cookieUser1 = "";
-            let username1 = "";
+            let usersInfo = [];
 
             before(async function(){
-                cookieUser1 = await helpers.createGoogleUser(user1, sandbox);
-                username1 = await helpers.getUsername(cookieUser1);
+                usersInfo = await helpers.createGoogleUsers(users, sandbox);
             })
 
             after(async () => {
-                await helpers.deleteUser(cookieUser1);
+                await helpers.deleteUsers(usersInfo);
             });
 
             it("Test add a single, working exercise", async function () {
@@ -50,7 +50,7 @@ describe('Testing exercise_log_routes', () => {
                 }
 
                 await request.post("/exercise_log/add")
-                    .set("Cookie", cookieUser1)
+                    .set("Cookie", usersInfo[0].cookie)
                     .set('Accept', 'application/json')
                     .send(exerciseExample)
                     .expect(200);
@@ -65,7 +65,7 @@ describe('Testing exercise_log_routes', () => {
                 }
 
                 await request.post("/exercise_log/add")
-                    .set("Cookie", cookieUser1)
+                    .set("Cookie", usersInfo[0].cookie)
                     .set('Accept', 'application/json')
                     .send(exerciseExample)
                     .expect(500);
@@ -81,31 +81,29 @@ describe('Testing exercise_log_routes', () => {
                 }
 
                 await request.post("/exercise_log/add")
-                    .set("Cookie", cookieUser1)
+                    .set("Cookie", usersInfo[0].cookie)
                     .set('Accept', 'application/json')
                     .send(exerciseExample)
                     .expect(500);
             })
         });
-
+        
         describe("Test challenge updates", async function () {
             describe("Test exercise does not effect a challenge", async function(){
-                let cookieUser1 = "";
-                let username1 = "";
+                let usersInfo = [];
 
                 before(async function(){
-                    cookieUser1 = await helpers.createGoogleUser(user1, sandbox);
-                    username1 = await helpers.getUsername(cookieUser1);
+                    usersInfo = await helpers.createGoogleUsers(users, sandbox);
                     let inputData = {
                         unit: "sec",
                         amount:50,
                         exerciseName: "Baseball"
                     }
-                    await helpers.sendSelfChallengeWithData(cookieUser1, inputData);
+                    await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData);
                 })
 
                 after(async () => {
-                    await helpers.deleteUser(cookieUser1);
+                    await helpers.deleteUsers(usersInfo);
                 });
 
                 it("Test add one exercise that does not effect a challenge because the units do not match", async function () {
@@ -116,9 +114,9 @@ describe('Testing exercise_log_routes', () => {
                         unit: "m",
                         dataOrigin:"web"
                     }
-                    await helpers.sendExercise(cookieUser1, exerciseExample);
+                    await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                    let results = await helpers.getIssuedChallenges(cookieUser1);
+                    let results = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                     expect(results[0].progress.progress).to.equal(0);
                 })
 
@@ -130,17 +128,16 @@ describe('Testing exercise_log_routes', () => {
                         unit: "s",
                         dataOrigin:"web"
                     }
-                    await helpers.sendExercise(cookieUser1, exerciseExample);
+                    await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                    let results = await helpers.getIssuedChallenges(cookieUser1);
+                    let results = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                     expect(results.length).to.equal(1);
                     expect(results[0].progress.progress).to.equal(0);
                 })
             })
 
             describe("Test exercise updates a challenge", async function(){
-                let cookieUser1 = "";
-                let username1 = "";
+                let usersInfo = [];
                 let inputData = [
                     {
                         unit: "sec",
@@ -171,21 +168,27 @@ describe('Testing exercise_log_routes', () => {
                         unit: "min",
                         amount:7,
                         exerciseName: "Skiing"
+                    },
+                    {
+                        unit: "min",
+                        amount: 3,
+                        exerciseName: "Punt"
                     }
                 ]
+
                 before(async function(){
-                    cookieUser1 = await helpers.createGoogleUser(user1, sandbox);
-                    username1 = await helpers.getUsername(cookieUser1);
-                    await helpers.sendSelfChallengeWithData(cookieUser1, inputData[0]);
-                    await helpers.sendSelfChallengeWithData(cookieUser1, inputData[1]);
-                    await helpers.sendSelfChallengeWithData(cookieUser1, inputData[2]);
-                    await helpers.sendSelfChallengeWithData(cookieUser1, inputData[3]);
-                    await helpers.sendSelfChallengeWithData(cookieUser1, inputData[4]);
-                    await helpers.sendSelfChallengeWithData(cookieUser1, inputData[5]);
+                    usersInfo = await helpers.createGoogleUsers(users, sandbox);
+                    await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[0]);
+                    await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[1]);
+                    await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[2]);
+                    await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[3]);
+                    await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[4]);
+                    await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[5]);
+                    await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[6]);
                 })
 
                 after(async () => {
-                    await helpers.deleteUser(cookieUser1);
+                    await helpers.deleteUsers(usersInfo);
                 });
 
                 it("Test add one exercise that updates one challenge with the same exact unit", async function () {
@@ -196,9 +199,9 @@ describe('Testing exercise_log_routes', () => {
                         unit: "sec",
                         dataOrigin:"web"
                     }
-                    await helpers.sendExercise(cookieUser1, exerciseExample);
+                    await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                    let results = await helpers.getIssuedChallenges(cookieUser1);
+                    let results = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                     let challenge = helpers.findMatchingChallenge(results, inputData[0]);
                     expect(challenge[0].progress.progress).to.equal(10/60);
                     expect(challenge[0].progress.completed).to.equal(false);
@@ -213,9 +216,9 @@ describe('Testing exercise_log_routes', () => {
                         unit: "min",
                         dataOrigin:"web"
                     }
-                    await helpers.sendExercise(cookieUser1, exerciseExample);
+                    await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                    let results = await helpers.getIssuedChallenges(cookieUser1);
+                    let results = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                     let challenge = helpers.findMatchingChallenge(results, inputData[1]);
                     expect(challenge[0].progress.progress).to.equal(10);
                     expect(challenge[0].progress.completed).to.equal(true);
@@ -230,9 +233,9 @@ describe('Testing exercise_log_routes', () => {
                         unit: "min",
                         dataOrigin:"web"
                     }
-                    await helpers.sendExercise(cookieUser1, exerciseExample);
+                    await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                    let results = await helpers.getIssuedChallenges(cookieUser1);
+                    let results = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                     let challenge = helpers.findMatchingChallenge(results, inputData[2]);
                   
                     expect(challenge[0].progress.progress).to.equal(2);
@@ -248,9 +251,9 @@ describe('Testing exercise_log_routes', () => {
                         unit: "min",
                         dataOrigin:"web"
                     }
-                    await helpers.sendExercise(cookieUser1, exerciseExample);
+                    await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                    let results = await helpers.getIssuedChallenges(cookieUser1);
+                    let results = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                     let challenge = helpers.findMatchingChallenge(results, inputData[3]);
 
                     expect(challenge[0].progress.progress).to.equal(3);
@@ -266,7 +269,7 @@ describe('Testing exercise_log_routes', () => {
                         unit: "min",
                         dataOrigin:"web"
                     }
-                    await helpers.sendExercise(cookieUser1, exerciseExample);
+                    await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
                     exerciseExample = {
                         loggedDate: Date.now(),
                         amount: 3,
@@ -274,9 +277,9 @@ describe('Testing exercise_log_routes', () => {
                         unit: "min",
                         dataOrigin:"web"
                     }
-                    await helpers.sendExercise(cookieUser1, exerciseExample);
+                    await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                    let results = await helpers.getIssuedChallenges(cookieUser1);
+                    let results = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                     let challenge = helpers.findMatchingChallenge(results, inputData[4]);
                     expect(challenge[0].progress.progress).to.equal(6);
                     expect(challenge[0].progress.completed).to.equal(true);
@@ -291,7 +294,7 @@ describe('Testing exercise_log_routes', () => {
                         unit: "min",
                         dataOrigin:"web"
                     }
-                    await helpers.sendExercise(cookieUser1, exerciseExample);
+                    await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
                     exerciseExample = {
                         loggedDate: Date.now(),
                         amount: 3,
@@ -299,21 +302,43 @@ describe('Testing exercise_log_routes', () => {
                         unit: "min",
                         dataOrigin:"web"
                     }
-                    await helpers.sendExercise(cookieUser1, exerciseExample);
+                    await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                    let results = await helpers.getIssuedChallenges(cookieUser1);
+                    let results = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                     let challenge = helpers.findMatchingChallenge(results, inputData[5]);
                     expect(challenge[0].progress.progress).to.equal(6);
                     expect(challenge[0].progress.completed).to.equal(false);
                     expect(challenge.length).to.equal(1);
                 })
-                //TODO
-                /*it("Test an exercise on an already completed challenge", async function(){});*/
+
+                it("Test an exercise on an already completed challenge", async function(){
+                    let exerciseExample = {
+                        loggedDate: Date.now(),
+                        amount: 8,
+                        exerciseName: "Punt",
+                        unit: "min",
+                        dataOrigin:"web"
+                    }
+                    await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
+                    exerciseExample = {
+                        loggedDate: Date.now(),
+                        amount: 3,
+                        exerciseName: "Punt",
+                        unit: "min",
+                        dataOrigin:"web"
+                    }
+                    await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
+
+                    let results = await helpers.getIssuedChallenges(usersInfo[0].cookie);
+                    let challenge = helpers.findMatchingChallenge(results, exerciseExample);
+                    expect(challenge[0].progress.progress).to.equal(11);
+                    expect(challenge[0].progress.completed).to.equal(true);
+                    expect(challenge.length).to.equal(1);
+                });
             });
 
             describe("Test exercise updates multiple challenges", async function (){
-                let cookieUser1 = "";
-                let username1 = "";
+                let usersInfo = [];
                 let inputData = [
                     {
                         unit: "sec",
@@ -328,14 +353,13 @@ describe('Testing exercise_log_routes', () => {
                 ];
 
                 before(async function(){
-                    cookieUser1 = await helpers.createGoogleUser(user1, sandbox);
-                    username1 = await helpers.getUsername(cookieUser1);
-                    await helpers.sendSelfChallengeWithData(cookieUser1, inputData[0]);
-                    await helpers.sendSelfChallengeWithData(cookieUser1, inputData[1]);
+                    usersInfo = await helpers.createGoogleUsers(users, sandbox);
+                    await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[0]);
+                    await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[1]);
                 })
 
                 after(async () => {
-                    await helpers.deleteUser(cookieUser1);
+                    await helpers.deleteUsers(usersInfo);
                 });
 
                 it("Test add one exercise that updates multiple challenges", async function () {
@@ -346,9 +370,9 @@ describe('Testing exercise_log_routes', () => {
                         unit: "hr",
                         dataOrigin:"web"
                     }
-                    await helpers.sendExercise(cookieUser1, exerciseExample);
+                    await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                    let results = await helpers.getIssuedChallenges(cookieUser1);
+                    let results = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                     expect(results.length).to.equal(2);
                     expect(results[0].progress.progress).to.equal(60);
                     expect(results[1].progress.progress).to.equal(60);
@@ -356,10 +380,10 @@ describe('Testing exercise_log_routes', () => {
                 })
             })
         });
-
+        
+        
         describe("Test global challenges updates", async function(){
-            let cookieUser1 = "";
-            let username1 = "";
+            let usersInfo = [];
             let globalChallengeData = [
                 {
                     unit: "hr",
@@ -379,15 +403,14 @@ describe('Testing exercise_log_routes', () => {
             ]
 
             before(async function(){
-                cookieUser1 = await helpers.createGoogleUser(user1, sandbox);
-                username1 = await helpers.getUsername(cookieUser1);
-                await helpers.addGlobalChallenge(cookieUser1, globalChallengeData[0]);
-                await helpers.addGlobalChallenge(cookieUser1, globalChallengeData[1]);
-                await helpers.addGlobalChallenge(cookieUser1, globalChallengeData[2]);
+                usersInfo = await helpers.createGoogleUsers(users, sandbox);
+                await helpers.addGlobalChallenge(usersInfo[0].cookie, globalChallengeData[0]);
+                await helpers.addGlobalChallenge(usersInfo[0].cookie, globalChallengeData[1]);
+                await helpers.addGlobalChallenge(usersInfo[0].cookie, globalChallengeData[2]);
             })
 
             after(async () => {
-                await helpers.deleteUser(cookieUser1);
+                await helpers.deleteUsers(usersInfo);
                 await helpers.clearDatabase();
             });
 
@@ -399,9 +422,9 @@ describe('Testing exercise_log_routes', () => {
                     unit: "sec",
                     dataOrigin:"web"
                 }
-                await helpers.sendExercise(cookieUser1, exerciseExample);
+                await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                let results = await helpers.getGlobalChallenges(cookieUser1);
+                let results = await helpers.getGlobalChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(results, exerciseExample);
                 expect(challenge.length).to.equal(0);
             })
@@ -414,9 +437,9 @@ describe('Testing exercise_log_routes', () => {
                     unit: "km",
                     dataOrigin:"web"
                 }
-                await helpers.sendExercise(cookieUser1, exerciseExample);
+                await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                let results = await helpers.getGlobalChallenges(cookieUser1);
+                let results = await helpers.getGlobalChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(results, exerciseExample);
                 expect(challenge.length).to.equal(1);
                 expect(challenge[0].progress).to.equal(1000);
@@ -431,10 +454,10 @@ describe('Testing exercise_log_routes', () => {
                     unit: "hr",
                     dataOrigin:"web"
                 }
-                await helpers.sendExercise(cookieUser1, exerciseExample);
-                await helpers.sendExercise(cookieUser1, exerciseExample);
+                await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
+                await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                let results = await helpers.getGlobalChallenges(cookieUser1);
+                let results = await helpers.getGlobalChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(results, exerciseExample);
                 expect(challenge.length).to.equal(1);
                 expect(challenge[0].progress).to.equal(120);
@@ -448,29 +471,26 @@ describe('Testing exercise_log_routes', () => {
                     unit: "km",
                     dataOrigin:"web"
                 }
-                await helpers.sendExercise(cookieUser1, exerciseExample);
+                await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                let results = await helpers.getGlobalChallenges(cookieUser1);
+                let results = await helpers.getGlobalChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(results, exerciseExample);
                 expect(challenge.length).to.equal(1);
                 expect(challenge[0].progress).to.equal(60*1000);
                 expect(challenge[0].completed).to.equal(true);
             });
         });
-
+        
+       
         describe("Test Add Exercise Effect on Medals", async function(){
-            let cookieUser1 = "";
-            let username1 = "";
-            let cookieUser2 = "";
-            let username2 = "";
+            let usersInfo = [];
 
             before(async function(){
-                cookieUser1 = await helpers.createGoogleUser(user1, sandbox);
-                username1 = await helpers.getUsername(cookieUser1);
+                usersInfo = await helpers.createGoogleUsers(users, sandbox);
             })
 
             after(async () => {
-                await helpers.deleteUser(cookieUser1);
+                await helpers.deleteUsers(usersInfo);
                 await helpers.clearDatabase();
             });
 
@@ -482,10 +502,10 @@ describe('Testing exercise_log_routes', () => {
                     unit: "m",
                     dataOrigin:"web"
                 }
-                await helpers.sendExercise(cookieUser1, exerciseExample);
+                await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                let inProgressMedals = await helpers.getMedalsInProgress(cookieUser1);
-                let completeMedals = await helpers.getMedalsComplete(cookieUser1);
+                let inProgressMedals = await helpers.getMedalsInProgress(usersInfo[0].cookie);
+                let completeMedals = await helpers.getMedalsComplete(usersInfo[0].cookie);
 
                 expect(inProgressMedals.length).to.equal(4);
                 expect(completeMedals.length).to.equal(0);
@@ -499,10 +519,10 @@ describe('Testing exercise_log_routes', () => {
                     unit: "min",
                     dataOrigin:"web"
                 }
-                await helpers.sendExercise(cookieUser1, exerciseExample);
+                await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                let inProgressMedals = await helpers.getMedalsInProgress(cookieUser1);
-                let completeMedals = await helpers.getMedalsComplete(cookieUser1);
+                let inProgressMedals = await helpers.getMedalsInProgress(usersInfo[0].cookie);
+                let completeMedals = await helpers.getMedalsComplete(usersInfo[0].cookie);
 
                 expect(inProgressMedals.length).to.equal(4);
                 expect(completeMedals.length).to.equal(0);
@@ -516,52 +536,307 @@ describe('Testing exercise_log_routes', () => {
                     unit: "km",
                     dataOrigin:"web"
                 }
-                await helpers.sendExercise(cookieUser1, exerciseExample);
+                await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
-                let inProgressMedals = await helpers.getMedalsInProgress(cookieUser1);
-                let completeMedals = await helpers.getMedalsComplete(cookieUser1);
+                let inProgressMedals = await helpers.getMedalsInProgress(usersInfo[0].cookie);
+                let completeMedals = await helpers.getMedalsComplete(usersInfo[0].cookie);
 
                 expect(inProgressMedals.length).to.equal(2);
                 expect(completeMedals.length).to.equal(2);
             })
         });
+        
     });
 
-    /*describe("Test /add_exercise_list", async function(){
+    describe("Test /add_exercise_list", async function(){
+        
         describe("Test add simple sets of exercises", async function(){
-            it("Test no exercises in list", async function(){});
-            it("Test only one exercise in list", async function(){});
-            it("Test multiple exercises in list", async function(){});
-            it("Test one failing exercise", async function(){});
-            it("Test list includes one failing exercise", async function(){});
+            let usersInfo = [];
+            let mainExerciseList = [
+                {"exercise":{"exerciseName":"Bocce", "unit":"ct", "amount":10}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
+                {"exercise":{"exerciseName":"Archery", "unit":"hr", "amount":10}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
+                {"exercise":{"exerciseName":"Archery", "unit":"min", "amount":10}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE}
+            ]
+            before(async function(){
+                usersInfo = await helpers.createGoogleUsers(users, sandbox);
+            })
+
+            after(async () => {
+                await helpers.deleteUsers(usersInfo);
+            });
+
+            it("Test no exercises in list", async function(){
+                let exericseList = [];
+                let status = await helpers.sendExerciseList(usersInfo[0].cookie, "healthConnect", exericseList);
+                expect(status).to.equal(200);
+            });
+            it("Test only one exercise in list", async function(){
+                let exerciseList = mainExerciseList.slice(0,1)
+                let status = await helpers.sendExerciseList(usersInfo[0].cookie, "healthConnect", exerciseList);
+                expect(status).to.equal(200);
+            });
+            it("Test multiple exercises in list", async function(){
+                let exerciseList = mainExerciseList.slice(0,2)
+                let status = await helpers.sendExerciseList(usersInfo[0].cookie, "healthConnect", exerciseList);
+                expect(status).to.equal(200);
+            });
+            it("Test multiple exercises in list with overlap", async function(){
+                let exerciseList = mainExerciseList.slice(0,3)
+                let status = await helpers.sendExerciseList(usersInfo[0].cookie, "healthConnect", exerciseList);
+                expect(status).to.equal(200);
+            });
         });
 
-
         describe("Test effect of exercise list on challenges", async function(){
-            it("Test no exercises in list", async function(){});
-            it("Test only one challenge is effected", async function(){});
-            it("Test multiple challenges effected by the same exercise", async function(){});
-            it("Test two exercises affecting the same challenge", async function(){});
-            it("Test two exercises complete a challenge exactly", async function(){});
-            it("Test two exercises overcomplete a challenge", async function(){});
-            it("Test an exercise on an already completed challenge", async function(){});
+            let usersInfo = [];
+            let inputData = [
+                { unit: "min", amount: 3, exerciseName: "Baseball"},
+                { unit: "min", amount: 4, exerciseName: "Barre"},
+                { unit: "min", amount: 5, exerciseName: "Skiing"},
+                { unit: "min", amount: 6, exerciseName: "Knitting"},
+                { unit: "min", amount: 8, exerciseName: "Archery"},
+                { unit: "min", amount: 8, exerciseName: "Bocce"},
+                { unit: "min", amount: 7, exerciseName: "Bocce"}
+            ]
+            let mainExerciseList = [
+                {"exercise":{"exerciseName":"Archery", "unit":"min", "amount":10}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
+                {"exercise":{"exerciseName":"Archery", "unit":"min", "amount":4}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
+                {"exercise":{"exerciseName":"Bocce", "unit":"min", "amount":4}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE}
+            ]
+
+            beforeEach(async function(){
+                usersInfo = await helpers.createGoogleUsers(users, sandbox);
+            })
+
+            afterEach(async () => {
+                await helpers.deleteUsers(usersInfo);
+            });
+
+            it("Test no exercises in list", async function(){
+                await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[0]);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", []);
+                let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
+
+                for(let i = 0; i< challenges.length; i++){
+                    expect(challenges[i].progress.progress).to.equal(0);
+                }
+            });
+
+            it("Test only one challenge is effected", async function(){
+                let exerciseList = mainExerciseList.slice(0,1);
+                await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[4]);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
+                let challenge = helpers.findMatchingChallenge(challenges, inputData[4]);
+                expect(challenge.length).to.equal(1);
+                expect(challenge[0].progress.progress).to.equal(10);
+            });
+
+            it("Test multiple challenges effected by the same exercise", async function(){
+                let exerciseList = mainExerciseList.slice(0,1);
+                await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[4]);
+                await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[4]);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
+                let challenge = helpers.findMatchingChallenge(challenges, inputData[4]);
+                expect(challenge.length).to.equal(2);
+                expect(challenge[0].progress.progress).to.equal(10);
+                expect(challenge[1].progress.progress).to.equal(10);
+            });
+
+            it("Test two exercises complete a challenge exactly", async function(){
+                let exerciseList =  [mainExerciseList[2], mainExerciseList[2]];
+                await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[5]);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
+                let challenge = helpers.findMatchingChallenge(challenges, inputData[5]);
+                expect(challenge.length).to.equal(1);
+                expect(challenge[0].progress.progress).to.equal(8);
+                expect(challenge[0].progress.completed).to.equal(true);
+            });
+            it("Test two exercises overcomplete a challenge", async function(){
+                let exerciseList =  [mainExerciseList[2], mainExerciseList[2]];
+                await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[6]);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
+                let challenge = helpers.findMatchingChallenge(challenges, inputData[6]);
+                expect(challenge.length).to.equal(1);
+                expect(challenge[0].progress.progress).to.equal(8);
+                expect(challenge[0].progress.completed).to.equal(true);
+            });
+            it("Test an exercise on an already completed challenge", async function(){
+                let exerciseList =  [mainExerciseList[2], mainExerciseList[2], mainExerciseList[2]];
+                await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[6]);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
+                let challenge = helpers.findMatchingChallenge(challenges, inputData[6]);
+                expect(challenge.length).to.equal(1);
+                expect(challenge[0].progress.progress).to.equal(12);
+                expect(challenge[0].progress.completed).to.equal(true);
+            });
         });
 
         describe("Test effect of exercise list on global challenges", async function(){
-            it("Test no exercises in list", async function(){});
-            it("Test only one challenge is effected", async function(){});
-            it("Test multiple challenges effected by the same exercise", async function(){});
-            it("Test two exercises affecting the same challenge", async function(){});
-            it("Test two exercises complete a challenge exactly", async function(){});
-            it("Test two exercises overcomplete a challenge", async function(){});
-            it("Test an exercise on an already completed challenge", async function(){});
+            let usersInfo = [];
+            let inputData = [
+                { unit: "min", amount: 3, exerciseName: "Baseball"},
+                { unit: "min", amount: 4, exerciseName: "Barre"},
+                { unit: "min", amount: 5, exerciseName: "Skiing"},
+                { unit: "min", amount: 6, exerciseName: "Knitting"},
+                { unit: "min", amount: 8, exerciseName: "Archery"},
+                { unit: "min", amount: 8, exerciseName: "Bocce"},
+                { unit: "min", amount: 7, exerciseName: "Bocce"}
+            ]
+            let mainExerciseList = [
+                {"exercise":{"exerciseName":"Archery", "unit":"min", "amount":10}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
+                {"exercise":{"exerciseName":"Archery", "unit":"min", "amount":4}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
+                {"exercise":{"exerciseName":"Bocce", "unit":"min", "amount":4}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE}
+            ]
+
+            beforeEach(async function(){
+                usersInfo = await helpers.createGoogleUsers(users, sandbox);
+            })
+
+            afterEach(async () => {
+                await helpers.deleteUsers(usersInfo);
+                await helpers.clearDatabase();
+            });
+
+            it("Test no exercises in list", async function(){
+                await helpers.addGlobalChallenge(usersInfo[0].cookie, inputData[0]);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", []);
+                let challenges = await helpers.getGlobalChallenges(usersInfo[0].cookie);
+
+                for(let i = 0; i< challenges.length; i++){
+                    expect(challenges[i].progress).to.equal(0);
+                }
+            });
+
+            it("Test only one challenge is effected", async function(){
+                let exerciseList = mainExerciseList.slice(0,1);
+                await helpers.addGlobalChallenge(usersInfo[0].cookie, inputData[4]);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                let challenges = await helpers.getGlobalChallenges(usersInfo[0].cookie);
+                let challenge = helpers.findMatchingChallenge(challenges, inputData[4]);
+                expect(challenge.length).to.equal(1);
+                expect(challenge[0].progress).to.equal(10);
+            });
+
+            it("Test two exercises complete a challenge exactly", async function(){
+                let exerciseList =  [mainExerciseList[2], mainExerciseList[2]];
+                await helpers.addGlobalChallenge(usersInfo[0].cookie, inputData[5]);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                let challenges = await helpers.getGlobalChallenges(usersInfo[0].cookie);
+                let challenge = helpers.findMatchingChallenge(challenges, inputData[5]);
+                expect(challenge.length).to.equal(1);
+                expect(challenge[0].progress).to.equal(8);
+                expect(challenge[0].completed).to.equal(true);
+            });
+            it("Test two exercises overcomplete a challenge", async function(){
+                let exerciseList =  [mainExerciseList[2], mainExerciseList[2]];
+                await helpers.addGlobalChallenge(usersInfo[0].cookie, inputData[6]);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                let challenges = await helpers.getGlobalChallenges(usersInfo[0].cookie);
+                let challenge = helpers.findMatchingChallenge(challenges, inputData[6]);
+                expect(challenge.length).to.equal(1);
+                expect(challenge[0].progress).to.equal(8);
+                expect(challenge[0].completed).to.equal(true);
+            });
+            it("Test an exercise on an already completed challenge", async function(){
+                let exerciseList =  [mainExerciseList[2], mainExerciseList[2], mainExerciseList[2]];
+                await helpers.addGlobalChallenge(usersInfo[0].cookie, inputData[6]);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                let challenges = await helpers.getGlobalChallenges(usersInfo[0].cookie);
+                let challenge = helpers.findMatchingChallenge(challenges, inputData[6]);
+                expect(challenge.length).to.equal(1);
+                expect(challenge[0].progress).to.equal(12);
+                expect(challenge[0].completed).to.equal(true);
+            });
         });
+        
 
         describe("Test effect of exercise list on medals", async function(){
-            it("Test no medals are effected", async function(){});
-            it("Test complete a medal using one exercise", async function(){});
-            it("Test complete a medal using two exercises", async function(){});
-            it("Test complete more than one type of medal", async function(){});
+            let usersInfo = [];
+            let potentialExercises = 
+            [
+                {"exercise":{"exerciseName":"Running", "unit":"km", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
+                {"exercise":{"exerciseName":"Walking", "unit":"hr", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
+                {"exercise":{"exerciseName":"Swim", "unit":"hr", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE}
+            ];
+
+            beforeEach(async function(){
+                usersInfo = await helpers.createGoogleUsers(users, sandbox);
+            })
+
+            afterEach(async () => {
+                await helpers.deleteUsers(usersInfo);
+                await helpers.clearDatabase();
+            });
+
+            it("Test no medals are effected", async function(){
+                let exerciseList = [potentialExercises[1]];
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+
+                let inProgressMedals = await helpers.getMedalsInProgress(usersInfo[0].cookie);
+                let completeMedals = await helpers.getMedalsComplete(usersInfo[0].cookie);
+
+                expect(inProgressMedals.length).to.equal(4);
+                expect(completeMedals.length).to.equal(0);
+            });
+            it("Test complete a medal using one exercise", async function(){
+                let exerciseList = [potentialExercises[0]];
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+
+                let inProgressMedals = await helpers.getMedalsInProgress(usersInfo[0].cookie);
+                let completeMedals = await helpers.getMedalsComplete(usersInfo[0].cookie);
+
+                expect(inProgressMedals.length).to.equal(2);
+                expect(completeMedals.length).to.equal(2);
+            });
+            it("Test complete two types of medals", async function(){
+                let exerciseList = [potentialExercises[0], potentialExercises[2]];
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+
+                let inProgressMedals = await helpers.getMedalsInProgress(usersInfo[0].cookie);
+                let completeMedals = await helpers.getMedalsComplete(usersInfo[0].cookie);
+
+                expect(inProgressMedals.length).to.equal(0);
+                expect(completeMedals.length).to.equal(4);
+            });
         });
-    });*/
+        
+
+
+        describe("Test failures", async function(){
+            let usersInfo = [];
+            let potentialExercises = 
+            [
+                {"exercise":{"exerciseName":"Running", "unit":"km", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
+                {"exercise":{"exerciseName":"Walking", "unit":"hr", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
+                {"exercise":{"exerciseName":"Swim", "unit":"hr", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE}
+            ];
+
+            beforeEach(async function(){
+                usersInfo = await helpers.createGoogleUsers(users, sandbox);
+            })
+
+            afterEach(async () => {
+                await helpers.deleteUsers(usersInfo);
+                await helpers.clearDatabase();
+            });
+
+            it("Test failure to add multiple exercises", async function(){
+                sandbox.stub(Exercise_log, "insertMany").throws("Err - cannot insert");
+
+                let exerciseList = [potentialExercises[0], potentialExercises[2]];
+                await request.post("/exercise_log/add_exercise_list")
+                .set("Cookie", usersInfo[0].cookie)
+                .set('Accept', 'application/json')
+                .send({dataOrigin: "web", exerciseList: exerciseList, uniqueExercises:[]})
+                .expect(500)
+
+                sandbox.restore()
+            });
+        });
+    });
 });

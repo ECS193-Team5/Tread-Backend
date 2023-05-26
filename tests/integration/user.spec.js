@@ -20,7 +20,7 @@ describe('Testing /user routes', async function () {
     }]
 
     before(async function () {
-        usersInfo = await createGoogleUsers(users, sandbox);
+        usersInfo = await helpers.createGoogleUsers(users, sandbox);
     })
 
     after(async function () {
@@ -95,7 +95,7 @@ describe('Testing /user routes', async function () {
 
         it("Test give no display name", async function () {
             let status = await helpers.updateDisplayName(usersInfo[1].cookie, "");
-            expect(status).to.equal(200);
+            expect(status).to.equal(400);
             let displayName = await helpers.getDisplayName(usersInfo[1].cookie);
             expect(displayName.displayName).to.equal(users[1].given_name);
         })

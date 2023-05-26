@@ -78,6 +78,7 @@ router.route('/get_profile_photo').post(
 
   router.route('/sign_up').post(multer().array(), async (req, res,) => {
     if (req.session.username !== null) {
+      console.log("Sign up fails because", req.session.username);
       return res.status(400).json("Error: already has username");
     }
     const chosenUsername = req.body.username;
@@ -88,18 +89,22 @@ router.route('/get_profile_photo').post(
       return res.status(400).json("Error: invalid username")
     }
 
+    if (!User.isValidDisplayName(displayName)) {
+      return res.status(400).json("Error: invalid displayName")
+    }
+
     const userIdentifiers = {
       authenticationSource : req.session.authenticationSource,
       authenticationID : req.session.authenticationID
     }
 
     let profileInfo = {};
-    if (displayName) profileInfo.displayName = displayName
 
     let completeUsername = null;
     try {
       completeUsername = await setUsernameAndUpdateProfile(userIdentifiers, profileInfo, chosenUsername)
     } catch (e){
+      console.log("Sign up fails because no username available");
       return res.status(500).json("Username not available");
     }
 

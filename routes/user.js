@@ -52,19 +52,15 @@ router.route('/update_display_name').post(async (req, res) => {
   const displayName = req.body.displayName;
   const username = req.session.username;
 
-  if (!displayName) {
-    return res.sendStatus(200);
+  if (!User.isValidDisplayName(displayName)) {
+    return res.sendStatus(400);
   }
 
   let update = {
     displayName: displayName
   };
 
-  try {
-    await updateProfileField(username, update);
-  } catch {
-    return res.status(400).json("displayName not valid");
-  }
+  await updateProfileField(username, update);
 
   return res.sendStatus(200);
 });

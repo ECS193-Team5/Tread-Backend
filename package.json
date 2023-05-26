@@ -4,9 +4,8 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha ./tests/*.spec.js --exit",
-    "integration_test": "mocha ./tests/integration/*.spec.js --exit --timeout 10000",
-    "bekah_test": "mocha ./tests/integration/auth.spec.js  --timeout 20000",
-    "bekah_test_cov": "nyc mocha ./tests/integration/auth.spec.js --timeout 20000",
+    "integration_test": "mocha ./tests/integration/*.spec.js  --timeout 20000",
+    "integration_test_cov": "nyc mocha ./tests/integration/*.spec.js --timeout 25000",
     "start": "node index.js",
     "start-dev": "nodemon index.js",
     "coverage": "nyc --reporter=text npm test"

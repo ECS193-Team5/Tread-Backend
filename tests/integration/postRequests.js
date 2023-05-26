@@ -10,9 +10,6 @@ const Challenge = require("../../models/challenge.model");
 const Challenge_progress = require("../../models/challenge_progress.model");
 const Global_challenge = require("../../models/global_challenge.model");
 const Global_challenge_progress = require("../../models/global_challenge_progress.model");
-const Medals = require("../../models/medals.model");
-const Medals_progress = require("../../models/medal_progress.model");
-const { match } = require("assert");
 const uri = process.env.TEST_ATLAS_URI;
 
 
@@ -29,12 +26,12 @@ async function clearDatabase() {
     await Global_challenge.deleteMany({});
     await Global_challenge_progress.deleteMany({});
 }
-
+/*
 after(async () => {
     const mongoose = require("mongoose");
     await mongoose.disconnect();
     app.close();
-})
+})*/
 
 
 /* Auth Functions */
@@ -206,9 +203,9 @@ async function sendLeagueChallengeWithData(cookie, leagueID, data){
         receivedUser: leagueID,
         issueDate: getIssueDate(),
         dueDate: getDueDate(),
-        unit: "m",
-        amount: 10,
-        exerciseName: "Badminton"
+        unit: data.unit,
+        amount: data.amount,
+        exerciseName: data.exerciseName
     }
     await request.post("/challenges/add_league_challenge")
     .set("Cookie", cookie)
@@ -272,7 +269,7 @@ function findMatchingChallenge(challengeList, data){
 /* Data Origin Functions */
 async function getDataOriginLastDate(cookie, dataOrigin){
     let results = {};
-    await request.post("/medals/get_data_origin_last_import_date")
+    await request.post("/data_origin/get_origin_last_import_date")
         .set("Cookie", cookie)
         .set('Accept', 'application/json')
         .send({dataOrigin:dataOrigin})
@@ -309,6 +306,44 @@ async function sendExercise(cookie, data){
     .then(res => {})
 }
 
+const calculateUnitType = (unit) => {
+    if (["m", "km", "mi", "yd", "ft"].includes(unit)){
+        return "distance";
+    }
+    else if (["sec", "min", "hr"].includes(unit)){
+        return "time";
+    }
+    return "count";
+}
+
+function getUniqueExercises(exerciseList){
+    let exercisesUnique = {};
+    let uniqueExerciseList = [];
+    exerciseList.forEach(element => {
+        let exerciseName = element.exercise.exerciseName;
+        let unitType = calculateUnitType(element.exercise.unit);
+
+        if (!(exerciseName in exercisesUnique)){
+            exercisesUnique[exerciseName] = new Set();
+        }
+        if(!exercisesUnique[exerciseName].has(unitType)){
+            exercisesUnique[exerciseName].add(unitType);
+            uniqueExerciseList.push({"exerciseName":exerciseName, "unitType":unitType});
+        }
+    });
+    return uniqueExerciseList;
+}
+async function sendExerciseList(cookie, dataOrigin, exerciseList){
+    let uniqueExercises = getUniqueExercises(exerciseList);
+    let status = "";
+    await request.post("/exercise_log/add_exercise_list")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({dataOrigin: dataOrigin, exerciseList: exerciseList, uniqueExercises:uniqueExercises})
+    .then(res => {status = res.status})
+    return status;
+}
+
 /* Friend List Functions */
 // Friend Interaction Functions
 async function unFriend(cookie, friendName){
@@ -316,7 +351,7 @@ async function unFriend(cookie, friendName){
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
     .send({friendName: friendName})
-    .then(res => {})
+    .then(res => {status = res.status})
 }
 
 async function blockFriend(cookie, friendName){
@@ -573,6 +608,17 @@ async function getActiveChallengesLeague(cookie, leagueID){
     return results;
 }
 
+async function getLeagueLeaderboard(cookie, leagueID){
+    let results = "";
+    await request.post("/league/get_leaderboard")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .send({leagueID: leagueID})
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
 
 async function deleteLeague(cookie, leagueID){
     await request.post("/league/delete_league")
@@ -582,7 +628,27 @@ async function deleteLeague(cookie, leagueID){
         .then(res => {})
 }
 
+async function getRecentActivityLeague(cookie){
+    let results = "";
+    await request.post("/league/get_recent_activity")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
 
+async function getRecommendedLeagues(cookie){
+    let results = "";
+    await request.post("/league/get_recommended")
+    .set("Cookie", cookie)
+    .set('Accept', 'application/json')
+    .then(res => {
+        results = res._body;
+    })
+    return results;
+}
 // League User Joining
 async function joinLeague(cookie, leagueID){
     await request.post("/league/user_request_to_join")
@@ -808,12 +874,12 @@ async function checkMostRecentNotification(cookie, message){
 /* Sign Up Functions */
 async function createGoogleUser(user, sandbox) {
     let cookie = await loginGoogleUser(user, sandbox);
+
     await request.post("/sign_up/sign_up")
         .set('Accept', 'application/json')
         .set('Cookie', cookie)
         .send({"username": user.given_name, "displayName": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
         .then(res => {
-        
         })
     return cookie;
 }
@@ -825,7 +891,6 @@ async function createAppleUser(user, sandbox) {
         .set('Cookie', cookie)
         .send({"username": user.given_name, "displayName": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
         .then(res => {
-        
         })
     return cookie;
 }
@@ -931,14 +996,6 @@ async function delay(milliseconds){
     });
 }
 
-
-
-
-
-
-
-
-
 module.exports = {    acceptChallenge: acceptChallenge,
     acceptFriendRequest: acceptFriendRequest,
     acceptLeague: acceptLeague,
@@ -983,6 +1040,7 @@ module.exports = {    acceptChallenge: acceptChallenge,
     getIssueDate: getIssueDate,
     getIssuedChallenges: getIssuedChallenges,
     getIssuedChallengesByLeague: getIssuedChallengesByLeague,
+    getLeagueLeaderboard: getLeagueLeaderboard,
     getMedalsComplete: getMedalsComplete,
     getMedalsInProgress: getMedalsInProgress,
     getMemberListLeague: getMemberListLeague,
@@ -993,7 +1051,9 @@ module.exports = {    acceptChallenge: acceptChallenge,
     getReceivedFriendRequests: getReceivedFriendRequests,
     getReceivedInviteListLeague: getReceivedInviteListLeague,
     getRecentActivityFriend: getRecentActivityFriend,
+    getRecentActivityLeague: getRecentActivityLeague,
     getRecommendedFriends: getRecommendedFriends,
+    getRecommendedLeagues: getRecommendedLeagues,
     getRole: getRole,
     getSentChallenges: getSentChallenges,
     getSentFriendRequests: getSentFriendRequests,
@@ -1008,6 +1068,7 @@ module.exports = {    acceptChallenge: acceptChallenge,
     revokeAllChallenges: revokeAllChallenges,
     revokeFriendRequest: revokeFriendRequest,
     sendExercise: sendExercise,
+    sendExerciseList: sendExerciseList,
     sendFriendChallenge: sendFriendChallenge,
     sendFriendRequest: sendFriendRequest,
     sendLeagueChallenge: sendLeagueChallenge,

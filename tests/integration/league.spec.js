@@ -10,7 +10,9 @@ const chai = require("chai");
 const deepEqualInAnyOrder = require('deep-equal-in-any-order');
 chai.use(deepEqualInAnyOrder);
 const {expect} = chai;
-
+const Challenge_progress = require("../../models/challenge_progress.model");
+const League = require("../../models/league.model");
+const Challenge = require("../../models/challenge.model");
 request = request(app);
 
 describe('Testing /league routes', () => {
@@ -41,17 +43,30 @@ describe('Testing /league routes', () => {
         "sub": "league6",
         "given_name": "Pepper",
         "family_name": "Pots",
-    }];
+    },
+    {
+        "sub": "league7",
+        "given_name": "Peter",
+        "family_name": "Parker",
+    },
+    {
+        "sub": "league8",
+        "given_name": "Mary",
+        "family_name": "Jane",
+    }
+];
 
-    before(async () => {
-        usersInfo = await helpers.createGoogleUsers(users, sandbox);
-    });
 
-    after(async () => {
-        await helpers.deleteUsers(usersInfo);
-    });
+    describe("Succesfull league functions", async () => {
+        before(async () => {
+            usersInfo = await helpers.createGoogleUsers(users, sandbox);
+        });
 
-    describe("Testing creating and deleting leagues", async () => {
+        after(async () => {
+            await helpers.deleteUsers(usersInfo);
+        });
+
+        describe("Testing creating and deleting leagues", async () => {
 
         it("Test /create_league", async () => {
             let id;
@@ -309,6 +324,25 @@ describe('Testing /league routes', () => {
             let leagues = await helpers.getSentLeagues(usersInfo[0].cookie);
 
             expect(leagues.length).to.equal(0);
+        });
+
+        it("Test /user_request_to_join after /invite_to_joing", async function(){
+            let newLeague = await helpers.createLeague(usersInfo[2].cookie, "n", "public", "d");
+            await request
+            .post("/league/invite_to_join")
+            .set("Cookie", usersInfo[2].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: newLeague.leagueID, recipient: usersInfo[1].username})
+            .expect(200);
+            
+            await request
+            .post("/league/user_request_to_join")
+            .set("Cookie", usersInfo[1].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: newLeague.leagueID})
+            .expect(200);
+
+            await helpers.deleteLeague(usersInfo[2].cookie, newLeague.leagueID)
         });
     });
 
@@ -935,12 +969,30 @@ describe('Testing /league routes', () => {
         });
     });
 
-    // Missing League lines
     describe("Test /get_league_leaderboard", async function () {
         let leagueInfo = {};
+        let exerciseData = [{
+            "amount": 10,
+            "unit":"m",
+            "exerciseName":"Running"
+        }, {
+            "amount": 10,
+            "unit":"m",
+            "exerciseName":"Jumping"
+        }, 
+        {
+            "amount": 10,
+            "unit":"m",
+            "exerciseName":"Swimming"
+        } ]
+
         before(async()=>{
-            leagueInfo = await helpers.createLeague(usersInfo[0].cookie, "n", "private", "desc");
-            await helpers.sendLeagueChallenge(usersInfo[0].cookie, leagueInfo.leagueID);
+            leagueInfo = await helpers.createLeague(usersInfo[0].cookie, "n", "public", "desc");
+            await helpers.joinLeague(usersInfo[1].cookie, leagueInfo.leagueID);
+            await helpers.joinLeague(usersInfo[2].cookie, leagueInfo.leagueID);
+            await helpers.sendLeagueChallengeWithData(usersInfo[0].cookie, leagueInfo.leagueID, exerciseData[0]);
+            await helpers.sendLeagueChallengeWithData(usersInfo[0].cookie, leagueInfo.leagueID, exerciseData[1]);
+            await helpers.sendLeagueChallengeWithData(usersInfo[0].cookie, leagueInfo.leagueID, exerciseData[2]);
         })
 
         after(async() => {
@@ -948,52 +1000,512 @@ describe('Testing /league routes', () => {
         })
 
         it("Test when no member has completed a challenge", async function () {
-
+            let results = await helpers.getLeagueLeaderboard(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(results.length).to.equal(0);
         });
 
         it("Test when one member has completed a challenge", async function () {
-
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            let results = await helpers.getLeagueLeaderboard(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(results.length).to.equal(1);
+            expect(results).to.deep.equal([[usersInfo[0].username, 1]]);
         });
 
-        it("Test when everyone has completed some challenges", async function () {
+        it("Test when one member has completed multiple challenge", async function () {
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[1]);
+            let results = await helpers.getLeagueLeaderboard(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(results.length).to.equal(1);
+            expect(results).to.deep.equal([[usersInfo[0].username, 2]]);
+        });
+
+        it("Test when multiple members complete different amounts of challenges", async function () {
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[2]);
+            await helpers.sendExercise(usersInfo[1].cookie, exerciseData[1]);
+            await helpers.sendExercise(usersInfo[1].cookie, exerciseData[2]);
+            await helpers.sendExercise(usersInfo[2].cookie, exerciseData[1]);
+            let results = await helpers.getLeagueLeaderboard(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(results.length).to.equal(3);
+            expect(results).to.deep.equal([[usersInfo[0].username, 3], [usersInfo[1].username, 2], [usersInfo[2].username, 1]]);
 
         });
     });
+    
 
-    /*describe("Test /get_recent_acivity", async function () {
-        it("Test 0 Recent Activities", async function () {
+    describe("Test /get_recent_activity", async function () {
+        let usersRecentInfo = [];
+        let exerciseList = [];
+        let leagueInfo = {};
+        before(async function(){
+            await helpers.deleteUsers(usersInfo);
+            usersRecentInfo = await helpers.createGoogleUsers(users.slice(0, 3), sandbox);
+            leagueInfo = await helpers.createLeague(usersRecentInfo[0].cookie, "n", "public", "desc");
+            await helpers.joinLeague(usersRecentInfo[1].cookie, leagueInfo.leagueID);
+            await helpers.joinLeague(usersRecentInfo[2].cookie, leagueInfo.leagueID);
+            exerciseList =
+            [
+                {
+                    "username": usersRecentInfo[1].username,
+                    "exerciseName": "Archery",
+                    "amount": 10,
+                    "unit": "min"
+                },
+                {
+                    "username": usersRecentInfo[2].username,
+                    "exerciseName": "Barre",
+                    "amount": 10,
+                    "unit": "min"
+                },
+                {
+                    "username": usersRecentInfo[2].username,
+                    "exerciseName": "Bocce",
+                    "amount": 10,
+                    "unit": "min"
+                },
+                {
+                    "username": usersRecentInfo[1].username,
+                    "exerciseName": "Soccer",
+                    "amount": 10,
+                    "unit": "min"
+                },
+                {
+                    "username": usersRecentInfo[1].username,
+                    "exerciseName": "Skateboarding",
+                    "amount": 10,
+                    "unit": "min"
+                },
+                {
+                    "username": usersRecentInfo[1].username,
+                    "exerciseName": "Sky Diving",
+                    "amount": 10,
+                    "unit": "min"
+                }
+            ]
+        });
+
+        after(async () => {
+            await helpers.deleteUsers(usersRecentInfo);
+        });
+
+        it("0 Recent Activities", async function () {
+            let results = await helpers.getRecentActivityLeague(usersRecentInfo[0].cookie);
+            expect(results.length).to.equal(0);
+        });
+
+        it("1 Recent Activity", async function () {
+            // User 2 logs an exercise
+            await helpers.sendExercise(usersRecentInfo[1].cookie, exerciseList[0]);
+
+            let results = await helpers.getRecentActivityLeague(usersRecentInfo[0].cookie);
+            expect(results.length).to.equal(1);
+            results = helpers.cleanRecentResults(results);
+            expect(results).to.deep.equalInAnyOrder([exerciseList[0]]);
+        });
+
+        it("5 Recent Activities", async function () {
+            await helpers.sendExercise(usersRecentInfo[2].cookie, exerciseList[1]);
+            await helpers.sendExercise(usersRecentInfo[2].cookie, exerciseList[2]);
+            await helpers.sendExercise(usersRecentInfo[1].cookie, exerciseList[3]);
+            await helpers.sendExercise(usersRecentInfo[1].cookie, exerciseList[4]);
+
+            let results = await helpers.getRecentActivityLeague(usersRecentInfo[0].cookie);
+            expect(results.length).to.equal(5);
+            results = helpers.cleanRecentResults(results);
+            expect(results).to.deep.equalInAnyOrder(exerciseList.slice(0,5));
+        });
+
+        it("6 Recent Activites", async function () {
+            await helpers.sendExercise(usersRecentInfo[1].cookie, exerciseList[5]);
+
+            let results = await helpers.getRecentActivityLeague(usersRecentInfo[0].cookie);
+            expect(results.length).to.equal(5);
+        });
+    });
+    
+
+    describe("Test /get_recommended", async function () {
+        let usersInfo = {};
+
+        let exerciseData = [{
+            "amount": 10,
+            "unit":"m",
+            "exerciseName":"Running"
+        }, {
+            "amount": 10,
+            "unit":"m",
+            "exerciseName":"Jumping"
+        },
+        {
+            "amount": 10,
+            "unit":"m",
+            "exerciseName":"Swimming"
+        }];
+
+        before(async function(){
+            usersInfo = await helpers.createGoogleUsers(users, sandbox);
+        })
+
+        after(async function(){
+            await helpers.deleteUsers(usersInfo)
+        })
+
+        // check that public no show
+        it("Test Situation with 0 Recommended Leagues because there are no leagues", async function () {
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(0);
+        });
+
+        it("Test Situation with 0 Recommended Leagues because the league is private ", async function () {
+            let privateLeagueInfo = await helpers.createLeague(usersInfo[1].cookie, "l1", "private", "descr");
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo.leagueID, exerciseData[0]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(0);
+            await helpers.deleteLeague(usersInfo[1].cookie, privateLeagueInfo.leagueID);
+        });
+
+        it("Test Situation with 0 Recommended Leagues because the league is doing a different exercise ", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+            let privateLeagueInfo = await helpers.createLeague(usersInfo[1].cookie, "l1", "public", "descr");
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo.leagueID, exerciseData[0]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[1]);
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(0);
+            await helpers.deleteLeague(usersInfo[1].cookie, privateLeagueInfo.leagueID);
+        });
+
+        it("Test Situation with 1 Recommended League", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+            let privateLeagueInfo = await helpers.createLeague(usersInfo[1].cookie, "l1", "public", "descr");
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo.leagueID, exerciseData[0]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(1);
+            expect(results[0].leagueName).to.equal("l1");
+            expect(results[0]._id).to.equal(privateLeagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[1].cookie, privateLeagueInfo.leagueID);
+        });
+
+        it("Test Situation with 1 Recommended League", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+            let privateLeagueInfo = await helpers.createLeague(usersInfo[1].cookie, "l1", "public", "descr");
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo.leagueID, exerciseData[0]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(1);
+            expect(results[0].leagueName).to.equal("l1");
+            expect(results[0]._id).to.equal(privateLeagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[1].cookie, privateLeagueInfo.leagueID);
+        });
+
+        it("Test Situation with with two overlapping exercises in the same league", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+            let privateLeagueInfo = await helpers.createLeague(usersInfo[1].cookie, "l1", "public", "descr");
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo.leagueID, exerciseData[0]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo.leagueID, exerciseData[1]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[1]);
+
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(1);
+            expect(results[0].leagueName).to.equal("l1");
+            expect(results[0]._id).to.equal(privateLeagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[1].cookie, privateLeagueInfo.leagueID);
+        });
+
+        it("Test Situation with with two exercises in the different leagues", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+
+            let privateLeagueInfo1 = await helpers.createLeague(usersInfo[1].cookie, "l1", "public", "descr");
+            let privateLeagueInfo2 = await helpers.createLeague(usersInfo[2].cookie, "l2", "public", "descr");
+
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo1.leagueID, exerciseData[0]);
+            await helpers.sendLeagueChallengeWithData(usersInfo[2].cookie, privateLeagueInfo2.leagueID, exerciseData[1]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[1]);
+
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(2);
+            let expectedValues = [
+                { _id: privateLeagueInfo1.leagueID, leagueName: privateLeagueInfo1.leagueName },
+                { _id: privateLeagueInfo2.leagueID, leagueName: privateLeagueInfo2.leagueName }
+            ]
+            expect(results).to.deep.equalInAnyOrder(expectedValues);
+
+            await helpers.deleteLeague(usersInfo[1].cookie, privateLeagueInfo1.leagueID);
+            await helpers.deleteLeague(usersInfo[2].cookie, privateLeagueInfo2.leagueID);
+        });
+
+        it("Test Situation with with one league with two exercises", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+
+            let privateLeagueInfo1 = await helpers.createLeague(usersInfo[1].cookie, "l1", "public", "descr");
+
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo1.leagueID, exerciseData[0]);
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo1.leagueID, exerciseData[1]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[1]);
+
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(1);
+            let expectedValues = [
+                { _id: privateLeagueInfo1.leagueID, leagueName: privateLeagueInfo1.leagueName }
+            ]
+            expect(results).to.deep.equalInAnyOrder(expectedValues);
+
+            await helpers.deleteLeague(usersInfo[1].cookie, privateLeagueInfo1.leagueID);
+        });
+
+        it("Test Situation with with five leagues", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+
+            let privateLeagueInfos = [];
+
+            for(let i = 1; i < 6; i++){
+                privateLeagueInfos.push(await helpers.createLeague(usersInfo[i].cookie, "l"+i, "public", "descr"));
+                await helpers.sendLeagueChallengeWithData(usersInfo[i].cookie, privateLeagueInfos[i-1].leagueID, exerciseData[0]);
+                await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            }
+
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(5);
+            let expectedValues = [
+                { _id: privateLeagueInfos[0].leagueID, leagueName: privateLeagueInfos[0].leagueName },
+                { _id: privateLeagueInfos[1].leagueID, leagueName: privateLeagueInfos[1].leagueName },
+                { _id: privateLeagueInfos[2].leagueID, leagueName: privateLeagueInfos[2].leagueName },
+                { _id: privateLeagueInfos[3].leagueID, leagueName: privateLeagueInfos[3].leagueName },
+                { _id: privateLeagueInfos[4].leagueID, leagueName: privateLeagueInfos[4].leagueName }
+            ]
+            expect(results).to.deep.equalInAnyOrder(expectedValues);
+
+            for(let i = 1; i < 6; i++){
+                await helpers.deleteLeague(usersInfo[i].cookie, privateLeagueInfos[i-1].leagueID);
+            }
+        });
+
+        it("Test Situation with with more than 5 leagues", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+
+            let privateLeagueInfos = [];
+
+            for(let i = 1; i < 7; i++){
+                privateLeagueInfos.push(await helpers.createLeague(usersInfo[i].cookie, "l"+i, "public", "descr"));
+                await helpers.sendLeagueChallengeWithData(usersInfo[i].cookie, privateLeagueInfos[i-1].leagueID, exerciseData[0]);
+                await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            }
+
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(5);
+
+            for(let i = 1; i < 7; i++){
+                await helpers.deleteLeague(usersInfo[i].cookie, privateLeagueInfos[i-1].leagueID);
+            }
+        });
+    });
+    })
+
+    describe("Test league failures", async function(){
+        let usersFailInfo = [];
+        let leagueInfo = {};
+
+        before(async function(){
+            await helpers.deleteUsers(usersInfo)
+            usersFailInfo = await helpers.createGoogleUsers(users.slice(0,3), sandbox);
+            leagueInfo = await helpers.createLeague(usersFailInfo[0].cookie, "n", "private", "desc");
+
+        })
+
+        after(async function(){
+            await helpers.deleteLeague(usersFailInfo[0].cookie);
+            await helpers.deleteUsers(usersFailInfo)
+        })
+
+        
+        it("/create_league fails due to leagueDescription being too long", async function(){
+            let inputData = {"leagueName": "n",
+            "leagueType": "private",
+            "leagueDescription": "desciiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+            "leaguePicture": "fake photo"};
+            let info = {};
+
+            await request.post("/league/create_league")
+                .set("Cookie",usersFailInfo[0].cookie)
+                .set("Accept", "application/json")
+                .send(inputData)
+                .expect(500)
+        })
+
+        it("League Upload Image fails in /update_picture", async function(){
+            await request
+                .post("/league/update_picture")
+                .set("Cookie", usersFailInfo[0].cookie)
+                .set('Accept', 'application/json')
+                .send({leagueID: leagueInfo.leagueID, leaguePicture:"bad image"})
+                .expect(400)
+        })
+
+        it("User attempts to update photo for unowned league", async function(){
+            await request
+                .post("/league/update_picture")
+                .set("Cookie", usersFailInfo[1].cookie)
+                .set('Accept', 'application/json')
+                .send({leagueID: leagueInfo.leagueID, leaguePicture:"photo.png"})
+                .expect(401)
+        })
+
+        it("/create_league fails to upload a photo", async function(){
+            let inputData = {"leagueName": "n",
+            "leagueType": "private",
+            "leagueDescription": "desc",
+            "leaguePicture": "fake photo"};
+            let info = {};
+
+            await request.post("/league/create_league")
+                .set("Cookie",usersFailInfo[0].cookie)
+                .set("Accept", "application/json")
+                .send(inputData)
+                .expect(500)
+        })
+
+        it("Challenge Progress delete many fails in /delete_league", async function(){
+            let deletableLeague = await helpers.createLeague(usersFailInfo[1].cookie, "n", "private", "desc");
+
+            deleteStub = sandbox.stub(Challenge_progress, "deleteMany").throws("Err - cannot delete");
+            await request.post("/league/delete_league")
+                .set("Cookie", usersFailInfo[1].cookie)
+                .set("Accept", "application/json")
+                .send({leagueID: deletableLeague.leagueID})
+                .expect(400)
+
+            sandbox.restore();
+            await helpers.deleteLeague(usersFailInfo[0].cookie, deletableLeague.leagueID);
+        });
+
+        it("League Update One Fails in /update_name", async function(){
+            sandbox.restore();
+
+            deleteStub = sandbox.stub(League, "updateOne").throws("Err - cannot update");
+
+            await request
+            .post("/league/update_name")
+            .set("Cookie", usersFailInfo[0].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: leagueInfo.leagueID, leagueName:"newName"})
+            .expect(400);
+
+            sandbox.restore();
+        });
+
+        it("League Update One Fails in /invite_to_join", async function(){
+            sandbox.restore();
+
+            deleteStub = sandbox.stub(League, "updateOne").throws("Err - cannot update");
+
+            await request
+            .post("/league/invite_to_join")
+            .set("Cookie", usersFailInfo[0].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: leagueInfo.leagueID, recipient: usersFailInfo[1].cookie})
+            .expect(400);
+
+            sandbox.restore();
+        });
+
+        it("/invite_to_join fails in findOne", async function(){
+            sandbox.restore();
+
+            deleteStub = sandbox.stub(League, "findOne").throws("Err - cannot find");
+
+            await request
+            .post("/league/invite_to_join")
+            .set("Cookie", usersFailInfo[0].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: leagueInfo.leagueID, recipient: usersFailInfo[1].cookie})
+            .expect(400);
+
+            sandbox.restore();
+        });
+
+        it("/invite_to_join fails because the recipient does not exist", async function(){
+           await request
+            .post("/league/invite_to_join")
+            .set("Cookie", usersFailInfo[0].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: leagueInfo.leagueID, recipient: "fakeUser"})
+            .expect(400);
 
         });
 
-        it("Test 1 Recent Activity", async function () {
+        it("League Update One Fails in /user_request_to_join", async function(){
+            sandbox.restore();
 
+            deleteStub = sandbox.stub(League, "updateOne").throws("Err - cannot update");
+
+            await request
+            .post("/league/user_request_to_join")
+            .set("Cookie", usersFailInfo[1].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: leagueInfo.leagueID})
+            .expect(500);
+
+            sandbox.restore();
         });
 
-        it("Test 5 Recent Activities", async function () {
+        describe("Attempt to get list of league entries for a league that does not exist", async function(){
+            before(async function(){
+                sandbox.restore();
+                let leanStub = sandbox.stub().resolves(null);
+                deleteStub = sandbox.stub(League, "findOne").returns({lean:leanStub});
+            })
 
+            after(async function(){
+                sandbox.restore();
+            })
+            it("/get_member_list", async function(){
+                await request.post("/league/get_member_list")
+                .set("Cookie", usersFailInfo[1].cookie)
+                .set('Accept', 'application/json')
+                .send({leagueID: leagueInfo.leagueID})
+                .expect(404)
+            })
+
+            it("/get_banned_list", async function(){
+                await request.post("/league/get_banned_list")
+                .set("Cookie", usersFailInfo[1].cookie)
+                .set('Accept', 'application/json')
+                .send({leagueID: "9"})
+                .expect(404)
+            })
+
+            it("/get_pending_request_list", async function(){
+                await request.post("/league/get_pending_request_list")
+                .set("Cookie", usersFailInfo[1].cookie)
+                .set('Accept', 'application/json')
+                .send({leagueID: "fake league"})
+                .expect(404)
+            })
+
+            it("/get_sent_invite_list", async function(){
+                await request.post("/league/get_sent_invite_list")
+                .set("Cookie", usersFailInfo[1].cookie)
+                .set('Accept', 'application/json')
+                .send({leagueID: "fake league"})
+                .expect(404)
+            })
         });
 
-        it("Test 6 Recent Activites", async function () {
+        it("Test no user in leagues for /get_recent_activity", async function(){
+            let results = await helpers.getRecentActivityLeague(usersFailInfo[2].cookie);
+            expect(results.length).to.equal(0);
+        })
+    })
 
-        });
-    });*/
-
-    /*describe("Test /get_recommended", async function () {
-        it("Test Situation with 0 Recommended Leagues", async function () {
-
-        });
-
-        it("Test Situation with 1 Recommended Leagues", async function () {
-
-        });
-
-        it("Test Situation with 5 Recommended Leagues", async function () {
-
-        });
-
-        it("Test Situation with More than 5 Recommended Leagues", async function () {
-
-        });
-    });*/
 });
 
