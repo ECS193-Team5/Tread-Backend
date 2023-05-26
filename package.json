@@ -4,8 +4,11 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha ./tests/*.spec.js --exit",
-    "integration_test": "mocha ./tests/integration/*.spec.js  --timeout 20000",
+    "test_cov":"nyc mocha ./tests/*.spec.js --exit",
+    "integration_test": "mocha ./tests/integration/league.spec.js  --timeout 20000",
     "integration_test_cov": "nyc mocha ./tests/integration/*.spec.js --timeout 25000",
+    "unit_test": "mocha ./tests/unit/auth.spec.js  --timeout 20000",
+    "unit_test_cov": "nyc mocha ./tests/unit/*.spec.js --timeout 25000",
     "start": "node index.js",
     "start-dev": "nodemon index.js",
     "coverage": "nyc --reporter=text npm test"

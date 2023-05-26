@@ -9,7 +9,7 @@ describe('Testing Medals System', () => {
     let res = {};
 
     beforeEach(() => {
-        medals = rewire("../routes/medals.js");
+        medals = rewire("../../routes/medals.js");
 
         req = {
             body: {}

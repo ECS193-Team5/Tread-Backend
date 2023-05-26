@@ -216,7 +216,8 @@ router.route('/send_friend_request').post(
     const userFriendDocument = await getUserFriendDocument(username);
 
     if (isRequestSentAlready(userFriendDocument, friendName)) {
-        return res.json("Already sent");
+        return res.json("You have already sent "
+            + friendName + " a friend request.");
     }
 
     if (isBlocking(userFriendDocument, friendName)) {
@@ -224,23 +225,25 @@ router.route('/send_friend_request').post(
     }
 
     if (isBlockedBy(userFriendDocument, friendName)) {
-        return res.json("You are blocked");
+        return res.json("You are blocked by " + friendName + ".");
     }
 
     if (await isFriend(username, friendName)) {
-        return res.json("You are already a friend")
+        return res.json("You were already friends with " + friendName + ".")
     }
 
     if (isRequestReceived(userFriendDocument, friendName)) {
         await acceptFriendRequest(username, friendName);
-        return res.status(200).json("Accepted a received friend request.");
+        return res.status(200).json("You were automatically added as a friend because "
+            + friendName + " had already sent you a friend request.");
     }
 
     sendRequest(username, friendName);
 
     await notifyFriend(username, friendName, " sent you a friend request.")
 
-    return res.status(200).json("Sent friend request.");
+    return res.status(200).json("Successfully sent "
+        + friendName + " a friend request.");
 });
 
 router.route('/accept_received_request').post(

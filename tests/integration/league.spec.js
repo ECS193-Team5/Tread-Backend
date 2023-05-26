@@ -334,7 +334,7 @@ describe('Testing /league routes', () => {
             .set('Accept', 'application/json')
             .send({leagueID: newLeague.leagueID, recipient: usersInfo[1].username})
             .expect(200);
-            
+
             await request
             .post("/league/user_request_to_join")
             .set("Cookie", usersInfo[1].cookie)
@@ -937,7 +937,7 @@ describe('Testing /league routes', () => {
         it("Test that a user should be unbanned when a league invites them", async function () {
             await helpers.inviteLeague(usersInfo[0].cookie, leagueInfo.leagueID, usersInfo[5].username);
 
-            let members = await helpers.getReceivedInviteListLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+            let members = await helpers.getSentInviteListLeague(usersInfo[0].cookie, leagueInfo.leagueID);
             expect(members.length).to.equal(2);
 
             let bannedMembers = await helpers.getBannedListLeague(usersInfo[0].cookie, leagueInfo.leagueID);
@@ -964,6 +964,45 @@ describe('Testing /league routes', () => {
         it("Test league has multiple active challenges", async function () {
             await helpers.sendLeagueChallenge(usersInfo[0].cookie, leagueInfo.leagueID);
             await helpers.sendLeagueChallenge(usersInfo[0].cookie, leagueInfo.leagueID);
+            let results = await helpers.getActiveChallengesLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(results).to.equal(2);
+        });
+
+
+
+        it("Test league has multiple challenges does not include future challenges", async function () {
+            let inputData = {
+                receivedUser: leagueInfo.leagueID,
+                issueDate: helpers.getIssueDate()+24*60*60*1000,
+                dueDate: helpers.getDueDate()+24*60*60*1000,
+                unit: "m",
+                amount: 10,
+                exerciseName: "Baseball"
+            }
+
+            await request.post("/challenges/add_league_challenge")
+            .set("Cookie", usersInfo[0].cookie)
+            .set('Accept', 'application/json')
+            .send(inputData)
+            .then(res => {})
+            let results = await helpers.getActiveChallengesLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(results).to.equal(2);
+        });
+        it("Test league has multiple challenges does not include past challenges", async function () {
+            let inputData = {
+                receivedUser: leagueInfo.leagueID,
+                issueDate: Date.now() + 1000,
+                dueDate: Date.now() + 1001,
+                unit: "m",
+                amount: 10,
+                exerciseName: "Baseball"
+            }
+            await request.post("/challenges/add_league_challenge")
+            .set("Cookie", usersInfo[0].cookie)
+            .set('Accept', 'application/json')
+            .send(inputData)
+            .then(res => {})
+            await helpers.delay(2000)
             let results = await helpers.getActiveChallengesLeague(usersInfo[0].cookie, leagueInfo.leagueID);
             expect(results).to.equal(2);
         });
@@ -1120,7 +1159,7 @@ describe('Testing /league routes', () => {
             expect(results.length).to.equal(5);
         });
     });
-    
+
 
     describe("Test /get_recommended", async function () {
         let usersInfo = {};
