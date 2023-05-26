@@ -229,6 +229,7 @@ router.route("/invite_to_join").post(
         },
             res.locals.updates = {
                 $addToSet: { sentRequests: recipient },
+                $pull: { bannedUsers: recipient }
             }
 
         await notifyMember(recipient, username + " invited you to a league.");
@@ -279,7 +280,8 @@ router.route("/user_request_to_join").post(
         }
         res.locals.filter = {
             _id: ObjectId(leagueID),
-            members: { $ne: username }
+            members: { $ne: username },
+            bannedUsers: { $ne: username }
         },
 
             next();
@@ -449,7 +451,7 @@ async function findLeaguesWhere(filter) {
 }
 
 async function getChallengeCount(filter) {
-    return Challenge.countDocuments(filter);
+    return await Challenge.countDocuments(filter);
 }
 
 async function getAllLeaguesWithChallengeCount(req, res, next) {
@@ -461,8 +463,8 @@ async function getAllLeaguesWithChallengeCount(req, res, next) {
     leaguesInfo.forEach((league) => {
         challengeCount.push(
             getChallengeCount({
-                receivedUser: league._id,
-                issuedDate: {
+                receivedUser: league._id.toString(),
+                issueDate: {
                     $lte: Date.now(),
                 },
                 dueDate: {
@@ -534,7 +536,13 @@ async function getLeagueActiveChallengeCount(req, res, next) {
 
     const challengeCount = await getChallengeCount({
         receivedUser: leagueID,
-        participants: username
+        participants: username,
+        issueDate: {
+            $lte: Date.now(),
+        },
+        dueDate: {
+            $gte: Date.now(),
+        }
     });
     return res.status(200).json(challengeCount)
 }
@@ -711,7 +719,7 @@ router.route('/get_recommended').post(async (req, res, next) => {
 
     const relatedLeagueChallenges = await Challenge.find({
         challengeType: "league",
-        issuedDate: { $gt: CHALLENGE_QUERY_TIME_LIMIT },
+        issueDate: { $gt: CHALLENGE_QUERY_TIME_LIMIT },
         receivedUser: { $nin: await leaguesUserIsIn },
         "exercise.exerciseName": { $in: uniqueRecentExercises }
     }, { "_id": 0, "receivedUser": 1 }).distinct("receivedUser").lean();

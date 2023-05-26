@@ -11,7 +11,7 @@ describe('Testing authentication', () => {
     let auth;
 
     beforeEach(() => {
-        auth = rewire("../routes/auth.js");
+        auth = rewire("../../routes/auth.js");
     });
 
     afterEach(() => {

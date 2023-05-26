@@ -10,7 +10,7 @@ describe("Testing statistics", () => {
     let statistics;
 
     beforeEach(() => {
-        statistics = rewire("../routes/statistics.js");
+        statistics = rewire("../../routes/statistics.js");
     });
 
     afterEach(() => {

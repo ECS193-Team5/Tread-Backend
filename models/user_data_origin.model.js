@@ -9,17 +9,12 @@ const userDataOriginSchema = new Schema(
             unique: true,
             index: true,
         },
-        webLastPostedDate: {
-            type: Date,
+        healthKitAnchor: {
+            type: String,
             required: true,
             default: Date.now
         },
-        healthKitLastPostedDate: {
-            type: Date,
-            required: true,
-            default: Date.now
-        },
-        healthConnectLastPostedDate: {
+        healthConnectAnchor: {
             type: Date,
             required: true,
             default: Date.now
