@@ -2,6 +2,7 @@ const cloudinary = require('cloudinary').v2
 require('dotenv').config();
 
 async function uploadImage(fileSource, folder, publicID){
+
     await cloudinary.uploader.upload(fileSource, {
         upload_preset: process.env.CLOUDINARY_PRESET,
         public_id: publicID,
@@ -11,6 +12,7 @@ async function uploadImage(fileSource, folder, publicID){
         overwrite: true,
         invalidate: true
     });
+
 }
 
 async function deleteImage(publicID) {

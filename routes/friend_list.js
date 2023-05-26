@@ -233,14 +233,14 @@ router.route('/send_friend_request').post(
 
     if (isRequestReceived(userFriendDocument, friendName)) {
         await acceptFriendRequest(username, friendName);
-        return res.sendStatus(200);
+        return res.status(200).json("Accepted a received friend request.");
     }
 
     sendRequest(username, friendName);
 
     await notifyFriend(username, friendName, " sent you a friend request.")
 
-    return res.sendStatus(200);
+    return res.status(200).json("Sent friend request.");
 });
 
 router.route('/accept_received_request').post(
@@ -379,9 +379,9 @@ router.route('/get_recommended').post(async (req, res, next) => {
         friendName:{$nin: invalidFriends}
     }, {"_id": 0, "friendName": 1}).limit(MUTUAL_FRIEND_QUERY_LIMIT).lean()
 
-    const mutualFriendsFrequency = await getSortedFieldFrequency("friendName", mutualFriends)
+    const mutualFriendsFrequency = await getSortedFieldFrequency("friendName", mutualFriends);
 
-    return res.status(200).json(mutualFriendsFrequency);
+    return res.status(200).json(mutualFriendsFrequency.slice(0,5));
 });
 
 
@@ -396,7 +396,7 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
     const recentFriendActivity = await Exercise_log.find({
         username: {$in: friendList}
     },{
-        "_id": 0
+        "_id": 0,
     }).sort({loggedDate: -1}).limit(5).lean();
 
     return res.status(200).json(recentFriendActivity);
@@ -405,3 +405,4 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
 
 
 module.exports = router;
+module.exports.isFriend = isFriend;

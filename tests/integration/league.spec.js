@@ -5,67 +5,70 @@ const mongoose = require("mongoose");
 process.env.ATLAS_URI = process.env.TEST_ATLAS_URI
 const app = require("../../index");
 const googleauth = require('google-auth-library');
-var helpers = require("./helperFunc");
-const { expect } = require("chai");
-
-let user1 = {
-    "sub": "league1",
-    "given_name": "Clark",
-    "family_name": "Kent",
-}
-
-let user2 = {
-    "sub": "league2",
-    "given_name": "Bruce",
-    "family_name": "Wayne",
-}
-
-let user3 = {
-    "sub": "league3",
-    "given_name": "Diana",
-    "family_name": "Prince",
-}
-
-let user4 = {
-    "sub": "league4",
-    "given_name": "Charles",
-    "family_name": "Xavier",
-}
-
+var helpers = require("./postRequests");
+const chai = require("chai");
+const deepEqualInAnyOrder = require('deep-equal-in-any-order');
+chai.use(deepEqualInAnyOrder);
+const {expect} = chai;
+const Challenge_progress = require("../../models/challenge_progress.model");
+const League = require("../../models/league.model");
+const Challenge = require("../../models/challenge.model");
 request = request(app);
 
-describe('Testing league routes', () => {
-    let cookieUser1 = "";
-    let cookieUser2 = "";
-    let cookieUser3 = "";
-    let cookieUser4 = "";
-    let username1 = "";
-    let username2 = "";
-    let username3 = "";
-    let username4 = "";
+describe('Testing /league routes', () => {
+    let usersInfo = [];
+    const users = [{
+        "sub": "league1",
+        "given_name": "Clark",
+        "family_name": "Kent",
+    },
+    {
+        "sub": "league2",
+        "given_name": "Bruce",
+        "family_name": "Wayne",
+    },
+    {
+        "sub": "league3",
+        "given_name": "Diana",
+        "family_name": "Prince",
+    }, {
+        "sub": "league4",
+        "given_name": "Charles",
+        "family_name": "Xavier",
+    }, {
+        "sub": "league5",
+        "given_name": "Tony",
+        "family_name": "Stark",
+    }, {
+        "sub": "league6",
+        "given_name": "Pepper",
+        "family_name": "Pots",
+    },
+    {
+        "sub": "league7",
+        "given_name": "Peter",
+        "family_name": "Parker",
+    },
+    {
+        "sub": "league8",
+        "given_name": "Mary",
+        "family_name": "Jane",
+    }
+];
 
-    before(async () => {
-        cookieUser1 = await helpers.createUser(user1, sandbox);
-        username1 = await helpers.getUsername(cookieUser1);
-        cookieUser2 = await helpers.createUser(user2, sandbox);
-        username2 = await helpers.getUsername(cookieUser2);
-        cookieUser3 = await helpers.createUser(user3, sandbox);
-        username3 = await helpers.getUsername(cookieUser3);
-        cookieUser4 = await helpers.createUser(user4, sandbox);
-        username4 = await helpers.getUsername(cookieUser4);
-    });
 
-    after(async () => {
-        cookieUser1 = await helpers.loginUser(user1, sandbox);
-        await helpers.deleteUser(cookieUser1);
-        cookieUser2 = await helpers.loginUser(user2, sandbox);
-        await helpers.deleteUser(cookieUser2);
-    });
+    describe("Succesfull league functions", async () => {
+        before(async () => {
+            usersInfo = await helpers.createGoogleUsers(users, sandbox);
+        });
 
-    /*
-    describe("Testing league formation", async () => {
+        after(async () => {
+            await helpers.deleteUsers(usersInfo);
+        });
 
-        it("Test create league", async () => {
+        describe("Testing creating and deleting leagues", async () => {
+
+        it("Test /create_league", async () => {
             let id;
             let inputData = {
                 "leagueName": "name",
@@ -75,13 +78,13 @@ describe('Testing league routes', () => {
             };
 
             await request.post("/league/create_league")
-                .set("Cookie", cookieUser1)
+                .set("Cookie", usersInfo[0].cookie)
                 .set("Accept", "application/json")
                 .send(inputData)
                 .then(res => { })
 
             await request.post("/league/get_leagues")
-                .set("Cookie", cookieUser1)
+                .set("Cookie", usersInfo[0].cookie)
                 .set('Accept', 'application/json')
                 .then(res => {
                     id = res._body[0]._id;
@@ -89,7 +92,7 @@ describe('Testing league routes', () => {
 
             await request
                 .post("/league/get_league_name_description_type")
-                .set("Cookie", cookieUser1)
+                .set("Cookie", usersInfo[0].cookie)
                 .set('Accept', 'application/json')
                 .send({leagueID: id})
                 .then(res => {
@@ -99,22 +102,22 @@ describe('Testing league routes', () => {
                 })
 
             // clean up
-            await helpers.deleteLeague(cookieUser1, id);
+            await helpers.deleteLeague(usersInfo[0].cookie, id);
         });
 
-        it("Test delete league", async () => {
-            let leagueInfo = await helpers.createLeague(cookieUser1, "n", "private", "desc");
+        it("Test /delete_league", async () => {
+            let leagueInfo = await helpers.createLeague(usersInfo[0].cookie, "n", "private", "desc");
 
             // League is created
             await request.post("/league/delete_league")
-                .set("Cookie", cookieUser1)
+                .set("Cookie", usersInfo[0].cookie)
                 .set("Accept", "application/json")
                 .send({leagueID: leagueInfo.leagueID})
                 .expect(200)
 
             await request
                 .post("/league/get_league_name_description_type")
-                .set("Cookie", cookieUser1)
+                .set("Cookie", usersInfo[0].cookie)
                 .set('Accept', 'application/json')
                 .send({leagueID: leagueInfo.leagueID})
                 .then(res =>{
@@ -122,12 +125,12 @@ describe('Testing league routes', () => {
                 })
         });
 
-        it("Test leauge info read private", async () => {
-            let leagueInfo = await helpers.createLeague(cookieUser1, "n", "private", "desc");
+        it("Test /_get_league_name_description_type in a private league", async () => {
+            let leagueInfo = await helpers.createLeague(usersInfo[0].cookie, "n", "private", "desc");
 
             await request
                 .post("/league/get_league_name_description_type")
-                .set("Cookie", cookieUser1)
+                .set("Cookie", usersInfo[0].cookie)
                 .set('Accept', 'application/json')
                 .send({leagueID: leagueInfo.leagueID})
                 .then(res =>{
@@ -136,15 +139,15 @@ describe('Testing league routes', () => {
                     expect(res._body.leagueDescription).to.equal("desc")
                 })
 
-            await helpers.deleteLeague(cookieUser1, leagueInfo.leagueID)
+            await helpers.deleteLeague(usersInfo[0].cookie, leagueInfo.leagueID)
         });
 
-        it("Test leauge info read public", async () => {
-            let leagueInfo = await helpers.createLeague(cookieUser1, "n", "public", "desc");
+        it("Test /_get_league_name_description_type in a public league", async () => {
+            let leagueInfo = await helpers.createLeague(usersInfo[0].cookie, "n", "public", "desc");
 
             await request
                 .post("/league/get_league_name_description_type")
-                .set("Cookie", cookieUser1)
+                .set("Cookie", usersInfo[0].cookie)
                 .set('Accept', 'application/json')
                 .send({leagueID: leagueInfo.leagueID})
                 .then(res =>{
@@ -153,32 +156,31 @@ describe('Testing league routes', () => {
                     expect(res._body.leagueDescription).to.equal("desc")
                 })
 
-            await helpers.deleteLeague(cookieUser1, leagueInfo.leagueID)
+            await helpers.deleteLeague(usersInfo[0].cookie, leagueInfo.leagueID)
         });
 
     });
 
-   describe("Testing edit", async () => {
+   describe("Testing editting leagues", async () => {
         let leagueInfo = {};
         before(async()=>{
-            leagueInfo = await helpers.createLeague(cookieUser1, "n", "private", "desc");
+            leagueInfo = await helpers.createLeague(usersInfo[0].cookie, "n", "private", "desc");
         })
 
         after(async() => {
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
-            await helpers.deleteLeague(cookieUser1, leagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[0].cookie, leagueInfo.leagueID);
         })
 
-        it("Test edit league name", async () => {
+        it("Test /update_name", async () => {
             await request
             .post("/league/update_name")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID, leagueName:"newName"})
             .expect(200)
             await request
                 .post("/league/get_league_name_description_type")
-                .set("Cookie", cookieUser1)
+                .set("Cookie", usersInfo[0].cookie)
                 .set('Accept', 'application/json')
                 .send({leagueID: leagueInfo.leagueID})
                 .then(res => {
@@ -186,17 +188,17 @@ describe('Testing league routes', () => {
                 })
         });
 
-        it("Test edit league description", async () => {
+        it("Test /update_description", async () => {
             await request
             .post("/league/update_description")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID, leagueDescription:"newDescription"})
             .expect(200)
 
             await request
                 .post("/league/get_league_name_description_type")
-                .set("Cookie", cookieUser1)
+                .set("Cookie", usersInfo[0].cookie)
                 .set('Accept', 'application/json')
                 .send({leagueID: leagueInfo.leagueID})
                 .then(res => {
@@ -204,26 +206,26 @@ describe('Testing league routes', () => {
                 })
         });
 
-        it("Test edit league picture", async () => {
+        it("Test /update_picture", async () => {
             await request
             .post("/league/update_picture")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID, leaguePicture:"https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png"})
             .expect(200)
         });
 
-        it("Test edit league type", async () => {
+        it("Test /update_type", async () => {
             await request
             .post("/league/update_type")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID, leagueType:"public"})
             .expect(200)
 
             await request
                 .post("/league/get_league_name_description_type")
-                .set("Cookie", cookieUser1)
+                .set("Cookie", usersInfo[0].cookie)
                 .set('Accept', 'application/json')
                 .send({leagueID: leagueInfo.leagueID})
                 .then(res => {
@@ -232,130 +234,138 @@ describe('Testing league routes', () => {
         });
     });
 
-    describe("Test user entry into private leagues when the user requests to join", async () => {
+    describe("Test user requests to join private league", async () => {
         let leagueInfo = {};
         beforeEach(async()=>{
             // Second User creates league
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            leagueInfo = await helpers.createLeague(cookieUser2, "n", "private", "desc");
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
+            leagueInfo = await helpers.createLeague(usersInfo[1].cookie, "n", "private", "desc");
         })
 
         afterEach(async() => {
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            await helpers.deleteLeague(cookieUser2, leagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[1].cookie, leagueInfo.leagueID);
         })
 
-        it("User requests to join", async function(){
+        it("Test /user_request_to_join", async function(){
             // User requests to join
             await request.post("/league/user_request_to_join")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .expect(200);
 
-            let role = await helpers.getRole(cookieUser1, leagueInfo.leagueID);
+            let role = await helpers.getRole(usersInfo[0].cookie, leagueInfo.leagueID);
 
             // The league is private, so the user should be not in the league
             expect(role).to.equal("none");
 
             // The league should appear in the user's sent requests
-            let leagues = await helpers.getSentLeagues(cookieUser1, leagueInfo.leagueID);
+            let leagues = await helpers.getSentLeagues(usersInfo[0].cookie);
 
             expect(leagues).to.deep.equal([
                 {
                   _id: leagueInfo.leagueID,
                   leagueName: 'n',
-                  members: [ username2 ],
+                  members: [ usersInfo[1].username ],
                   activeChallenges: 0
                 }
               ]);
         });
 
-        it("User requests to join and is refused", async function(){
-            await helpers.joinLeague(cookieUser1, leagueInfo.leagueID);
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
+        it("Test /decline_request", async function(){
+            await helpers.joinLeague(usersInfo[0].cookie, leagueInfo.leagueID);
 
             await request.post("/league/decline_request")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
-            .send({leagueID: leagueInfo.leagueID, recipient: username1})
+            .send({leagueID: leagueInfo.leagueID, recipient: usersInfo[0].username})
             .expect(200);
 
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
-            let leagues = await helpers.getSentLeagues(cookieUser1, leagueInfo.leagueID);
+            let leagues = await helpers.getSentLeagues(usersInfo[0].cookie);
             expect(leagues.length).to.equal(0);
 
-            leagues = await helpers.getAcceptedLeagues(cookieUser1, leagueInfo.leagueID);
+            leagues = await helpers.getAcceptedLeagues(usersInfo[0].cookie);
             expect(leagues.length).to.equal(0);
         });
 
-        it("User requests to join and is accepted", async function(){
-            await helpers.joinLeague(cookieUser1, leagueInfo.leagueID);
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
+        it("Test /accept_join_request", async function(){
+            await helpers.joinLeague(usersInfo[0].cookie, leagueInfo.leagueID);
 
             await request.post("/league/accept_join_request")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
-            .send({leagueID: leagueInfo.leagueID, recipient: username1})
+            .send({leagueID: leagueInfo.leagueID, recipient: usersInfo[0].username})
             .expect(200);
 
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
-            let leagues = await helpers.getSentLeagues(cookieUser1, leagueInfo.leagueID);
+            let leagues = await helpers.getSentLeagues(usersInfo[0].cookie);
             expect(leagues.length).to.equal(0);
 
-            leagues = await helpers.getAcceptedLeagues(cookieUser1, leagueInfo.leagueID);
+            leagues = await helpers.getAcceptedLeagues(usersInfo[0].cookie);
             expect(leagues.length).to.equal(1);
 
             expect(leagues).to.deep.equal([
                 {
                     _id: leagueInfo.leagueID,
                     leagueName: 'n',
-                    members: [ username2, username1 ],
+                    members: [ usersInfo[1].username, usersInfo[0].username ],
                     activeChallenges: 0
                   }
               ]);
         });
 
-        it("User requests to join and revokes the request", async function(){
-            await helpers.joinLeague(cookieUser1, leagueInfo.leagueID);
+        it("Test /user_undo_request", async function(){
+            await helpers.joinLeague(usersInfo[0].cookie, leagueInfo.leagueID);
 
             await request.post("/league/user_undo_request")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .expect(200);
 
-            let leagues = await helpers.getSentLeagues(cookieUser1, leagueInfo.leagueID);
+            let leagues = await helpers.getSentLeagues(usersInfo[0].cookie);
 
             expect(leagues.length).to.equal(0);
         });
+
+        it("Test /user_request_to_join after /invite_to_joing", async function(){
+            let newLeague = await helpers.createLeague(usersInfo[2].cookie, "n", "public", "d");
+            await request
+            .post("/league/invite_to_join")
+            .set("Cookie", usersInfo[2].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: newLeague.leagueID, recipient: usersInfo[1].username})
+            .expect(200);
+            
+            await request
+            .post("/league/user_request_to_join")
+            .set("Cookie", usersInfo[1].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: newLeague.leagueID})
+            .expect(200);
+
+            await helpers.deleteLeague(usersInfo[2].cookie, newLeague.leagueID)
+        });
     });
 
-    describe("Test user entry into league when the user is invited to join", async () => {
+    describe("Test invite user to join league", async () => {
         let leagueInfo = {};
+
         beforeEach(async()=>{
-            // Second User creates league
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            leagueInfo = await helpers.createLeague(cookieUser2, "n", "private", "desc");
+            leagueInfo = await helpers.createLeague(usersInfo[1].cookie, "n", "private", "desc");
         })
 
         afterEach(async() => {
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            await helpers.deleteLeague(cookieUser2, leagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[1].cookie, leagueInfo.leagueID);
         })
 
-        it("User is invited to join", async function(){
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
+        it("Test /invite_to_join", async function(){
             await request.post("/league/invite_to_join")
-                .set("Cookie", cookieUser2)
+                .set("Cookie", usersInfo[1].cookie)
                 .set('Accept', 'application/json')
-                .send({recipient: username1, leagueID: leagueInfo.leagueID})
+                .send({recipient: usersInfo[0].username, leagueID: leagueInfo.leagueID})
                 .expect(200);
 
             // User should see league in their received requests
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
-            let results = await helpers.getInvitedLeagues(cookieUser1, leagueInfo.leagueID);
+            let results = await helpers.getInvitedLeagues(usersInfo[0].cookie);
 
             expect(results.length).to.equal(1);
 
@@ -363,156 +373,144 @@ describe('Testing league routes', () => {
                 {
                     _id: leagueInfo.leagueID,
                     leagueName: 'n',
-                    members: [ username2 ],
+                    members: [ usersInfo[1].username ],
                     activeChallenges: 0
                   }
               ]);
         });
 
-        it("User is invited to join and accepts", async function(){
-            await helpers.inviteLeague(cookieUser2, leagueInfo.leagueID, username1);
+        it("Test /user_accept_invite", async function(){
+            await helpers.inviteLeague(usersInfo[1].cookie, leagueInfo.leagueID, usersInfo[0].username);
 
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
             await request.post("/league/user_accept_invite")
-                .set("Cookie", cookieUser1)
+                .set("Cookie", usersInfo[0].cookie)
                 .set('Accept', 'application/json')
                 .send({leagueID: leagueInfo.leagueID})
                 .expect(200);
 
-            let leagues = await helpers.getInvitedLeagues(cookieUser1, leagueInfo.leagueID);
+            let leagues = await helpers.getInvitedLeagues(usersInfo[0].cookie);
             expect(leagues.length).to.equal(0);
 
-            leagues = await helpers.getAcceptedLeagues(cookieUser1, leagueInfo.leagueID);
+            leagues = await helpers.getAcceptedLeagues(usersInfo[0].cookie);
             expect(leagues.length).to.equal(1);
 
             expect(leagues).to.deep.equal([
                 {
                     _id: leagueInfo.leagueID,
                     leagueName: 'n',
-                    members: [ username2, username1 ],
+                    members: [ usersInfo[1].username, usersInfo[0].username ],
                     activeChallenges: 0
                   }
               ]);
         });
 
-        it("User is invited to join and refuses", async function(){
-            await helpers.inviteLeague(cookieUser2, leagueInfo.leagueID, username1);
+        it("Test /user_decline_invite", async function(){
+            await helpers.inviteLeague(usersInfo[1].cookie, leagueInfo.leagueID, usersInfo[0].username);
 
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
             await request.post("/league/user_decline_invite")
-                .set("Cookie", cookieUser1)
+                .set("Cookie", usersInfo[0].cookie)
                 .set('Accept', 'application/json')
                 .send({leagueID: leagueInfo.leagueID})
                 .expect(200);
 
-            let leagues = await helpers.getInvitedLeagues(cookieUser1, leagueInfo.leagueID);
+            let leagues = await helpers.getInvitedLeagues(usersInfo[0].cookie);
             expect(leagues.length).to.equal(0);
 
-            leagues = await helpers.getAcceptedLeagues(cookieUser1, leagueInfo.leagueID);
+            leagues = await helpers.getAcceptedLeagues(usersInfo[0].cookie);
             expect(leagues.length).to.equal(0);
         });
 
-        it("User is invited to join and it is revoked", async function(){
-            await helpers.inviteLeague(cookieUser2, leagueInfo.leagueID, username1);
+        it("Test /undo_invite", async function(){
+            await helpers.inviteLeague(usersInfo[1].cookie, leagueInfo.leagueID, usersInfo[0].username);
 
             await request.post("/league/undo_invite")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
-            .send({leagueID: leagueInfo.leagueID, recipient: username1})
+            .send({leagueID: leagueInfo.leagueID, recipient: usersInfo[0].username})
             .expect(200);
 
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
-
-            let leagues = await helpers.getInvitedLeagues(cookieUser1, leagueInfo.leagueID);
+            let leagues = await helpers.getInvitedLeagues(usersInfo[0].cookie);
             expect(leagues.length).to.equal(0);
 
-            leagues = await helpers.getAcceptedLeagues(cookieUser1, leagueInfo.leagueID);
+            leagues = await helpers.getAcceptedLeagues(usersInfo[0].cookie);
             expect(leagues.length).to.equal(0);
-
         });
     });
 
-    describe("Test user entry into public league when user requests to join", async () => {
+    describe("Test user requests to join public league", async () => {
         let leagueInfo = {};
+
         before(async()=>{
-            // Second User creates league
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            leagueInfo = await helpers.createLeague(cookieUser2, "n", "public", "desc");
+            leagueInfo = await helpers.createLeague(usersInfo[1].cookie, "n", "public", "desc");
         })
 
         after(async() => {
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            await helpers.deleteLeague(cookieUser2, leagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[1].cookie, leagueInfo.leagueID);
         })
 
-        it("User requests to join", async function(){
+        it("Test /user_request_to_join", async function(){
             await request.post("/league/user_request_to_join")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .expect(200);
 
-            let role = await helpers.getRole(cookieUser1, leagueInfo.leagueID);
+            let role = await helpers.getRole(usersInfo[0].cookie, leagueInfo.leagueID);
 
             // The league is public, so the user should be a participant in the league
             expect(role).to.equal("participant");
 
             // The league should appear in the user's Accepted requests
-            let leagues = await helpers.getAcceptedLeagues(cookieUser1, leagueInfo.leagueID);
+            let leagues = await helpers.getAcceptedLeagues(usersInfo[0].cookie);
 
             expect(leagues).to.deep.equal([
                 {
                   _id: leagueInfo.leagueID,
                   leagueName: 'n',
-                  members: [ username2, username1 ],
+                  members: [ usersInfo[1].username, usersInfo[0].username ],
                   activeChallenges: 0
                 }
               ]);
         });
     });
 
-    describe("Test owner interacts with user role in league", async () => {
+    describe("Test user role changes in league", async () => {
         let leagueInfo = {};
         beforeEach(async()=>{
             // Second User creates league
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            leagueInfo = await helpers.createLeague(cookieUser2, "n", "public", "desc");
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
-            helpers.joinLeague(cookieUser1, leagueInfo.leagueID);
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
+            leagueInfo = await helpers.createLeague(usersInfo[1].cookie, "n", "public", "desc");
+            await helpers.joinLeague(usersInfo[0].cookie, leagueInfo.leagueID);
         })
 
         afterEach(async() => {
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            await helpers.deleteLeague(cookieUser2, leagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[1].cookie, leagueInfo.leagueID);
         })
 
-        it("Test ban user", async function(){
+        it("Test /ban_user", async function(){
             await request.post("/league/ban_user")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
-            .send({leagueID: leagueInfo.leagueID, recipient: username1})
+            .send({leagueID: leagueInfo.leagueID, recipient: usersInfo[0].username})
             .expect(200);
 
             await request.post("/league/get_member_list")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .then(res=>{
-                res._body.forEach((val) => expect(val.username).to.not.equal(username1))
+                res._body.forEach((val) => expect(val.username).to.not.equal(usersInfo[0].username))
             })
 
             await request.post("/league/get_banned_list")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .then(res=>{
-                expect(res._body[0].username).to.equal(username1);
+                expect(res._body[0].username).to.equal(usersInfo[0].username);
             })
 
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
             await request.post("/league/get_role")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .then(res=>{
@@ -521,45 +519,45 @@ describe('Testing league routes', () => {
 
         });
 
-        it("Test unban user", async function(){
+        it("Test /unban_user", async function(){
             await request.post("/league/ban_user")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
-            .send({leagueID: leagueInfo.leagueID, recipient: username1})
+            .send({leagueID: leagueInfo.leagueID, recipient: usersInfo[0].username})
             .expect(200);
 
             await request.post("/league/unban_user")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
-            .send({leagueID: leagueInfo.leagueID, recipient: username1})
+            .send({leagueID: leagueInfo.leagueID, recipient: usersInfo[0].username})
             .expect(200);
 
             await request.post("/league/get_banned_list")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .then(res=>{
-                expect(res._body).to.not.contain(username1);
+                expect(res._body).to.not.contain(usersInfo[0].username);
             })
         });
 
-        it("Test kick out user", async function(){
+        it("Test /kick_member", async function(){
             await request.post("/league/kick_member")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
-            .send({leagueID: leagueInfo.leagueID, recipient: username1})
+            .send({leagueID: leagueInfo.leagueID, recipient: usersInfo[0].username})
             .expect(200);
 
             await request.post("/league/get_member_list")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .then(res=>{
-                res._body.forEach((val) => expect(val.username).to.not.equal(username1))
+                res._body.forEach((val) => expect(val.username).to.not.equal(usersInfo[0].username))
             })
 
             await request.post("/league/get_banned_list")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .then(res=>{
@@ -567,16 +565,15 @@ describe('Testing league routes', () => {
             })
         });
 
-        it("Test add user to admin", async function(){
+        it("Test /add_admin", async function(){
             await request.post("/league/add_admin")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
-            .send({leagueID: leagueInfo.leagueID, recipient: username1})
+            .send({leagueID: leagueInfo.leagueID, recipient: usersInfo[0].username})
             .expect(200);
 
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
             await request.post("/league/get_role")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .then(res=>{
@@ -584,22 +581,21 @@ describe('Testing league routes', () => {
             })
         });
 
-        it("Test remove user from admin", async function(){
+        it("Test /remove_admin", async function(){
             await request.post("/league/add_admin")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
-            .send({leagueID: leagueInfo.leagueID, recipient: username1})
+            .send({leagueID: leagueInfo.leagueID, recipient: usersInfo[0].username})
             .expect(200);
 
             await request.post("/league/remove_admin")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
-            .send({leagueID: leagueInfo.leagueID, recipient: username1})
+            .send({leagueID: leagueInfo.leagueID, recipient: usersInfo[0].username})
             .expect(200);
 
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
             await request.post("/league/get_role")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .then(res=>{
@@ -608,49 +604,44 @@ describe('Testing league routes', () => {
         });
     });
 
-    describe("Test member actions in league", async () => {
+   describe("Test member actions in league", async () => {
         let leagueInfo = {};
         beforeEach(async()=>{
             // Second User creates league
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            leagueInfo = await helpers.createLeague(cookieUser2, "n", "public", "desc");
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
-            await helpers.joinLeague(cookieUser1, leagueInfo.leagueID);
+            leagueInfo = await helpers.createLeague(usersInfo[1].cookie, "n", "public", "desc");
+            await helpers.joinLeague(usersInfo[0].cookie, leagueInfo.leagueID);
         })
 
         afterEach(async() => {
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            await helpers.deleteLeague(cookieUser2, leagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[1].cookie, leagueInfo.leagueID);
         })
 
-        it("Test leave league", async function(){
+        it("Test /leave_league", async function(){
             await request.post("/league/leave_league")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .expect(200);
 
-            let leagues = await helpers.getAcceptedLeagues(cookieUser1, leagueInfo.leagueID);
+            let leagues = await helpers.getAcceptedLeagues(usersInfo[0].cookie);
             expect(leagues.length).to.equal(0);
         });
 
-        it("Test remove self as admin", async function(){
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
+        it("Test /user_remove_admin", async function(){
             await request.post("/league/add_admin")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
-            .send({leagueID: leagueInfo.leagueID, recipient: username1})
+            .send({leagueID: leagueInfo.leagueID, recipient: usersInfo[0].username})
             .expect(200);
 
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
             await request.post("/league/user_remove_admin")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .expect(200);
 
             await request.post("/league/get_role")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .then(res=>{
@@ -661,37 +652,32 @@ describe('Testing league routes', () => {
 
     describe("Test member roles in league", async () => {
         let leagueInfo = {};
+
         before(async()=>{
             // User 2 Creates the League
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            leagueInfo = await helpers.createLeague(cookieUser2, "n", "public", "desc");
+            leagueInfo = await helpers.createLeague(usersInfo[1].cookie, "n", "public", "desc");
 
             // User 1 is made into an admin
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
-            await helpers.joinLeague(cookieUser1, leagueInfo.leagueID);
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
+            await helpers.joinLeague(usersInfo[0].cookie, leagueInfo.leagueID);
             await request.post("/league/add_admin")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
-            .send({leagueID: leagueInfo.leagueID, recipient: username1})
+            .send({leagueID: leagueInfo.leagueID, recipient: usersInfo[0].username})
             .expect(200);
 
             // User 3 is just a user
-            cookieUser3 = await helpers.loginUser(user3, sandbox);
-            await helpers.joinLeague(cookieUser3, leagueInfo.leagueID);
+            await helpers.joinLeague(usersInfo[2].cookie, leagueInfo.leagueID);
 
             // User 4 has no relation to the league
         })
 
         after(async() => {
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            await helpers.deleteLeague(cookieUser2, leagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[1].cookie, leagueInfo.leagueID);
         })
 
-        it("Test member is owner", async function(){
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
+        it("Test /get_role when user is owner", async function(){
             await request.post("/league/get_role")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .then(res=>{
@@ -699,10 +685,9 @@ describe('Testing league routes', () => {
             })
         });
 
-        it("Test member is admin", async function(){
-            cookieUser1 = await helpers.loginUser(user1, sandbox);
+        it("Test /get_role when user is admin", async function(){
             await request.post("/league/get_role")
-            .set("Cookie", cookieUser1)
+            .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .then(res=>{
@@ -710,10 +695,9 @@ describe('Testing league routes', () => {
             })
         });
 
-        it("Test member is participant", async function(){
-            cookieUser3 = await helpers.loginUser(user3, sandbox);
+        it("Test /get_role when user is participant", async function(){
             await request.post("/league/get_role")
-            .set("Cookie", cookieUser3)
+            .set("Cookie", usersInfo[2].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .then(res=>{
@@ -721,10 +705,9 @@ describe('Testing league routes', () => {
             })
         });
 
-        it("Test member is no one", async function(){
-            cookieUser4 = await helpers.loginUser(user4, sandbox);
+        it("Test /get_role when user has no role", async function(){
             await request.post("/league/get_role")
-            .set("Cookie", cookieUser4)
+            .set("Cookie", usersInfo[3].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .then(res=>{
@@ -732,157 +715,797 @@ describe('Testing league routes', () => {
             })
         });
 
-        it("Test member list", async function(){
+        it("Test /get_member_list", async function(){
             await request.post("/league/get_member_list")
-            .set("Cookie", cookieUser2)
+            .set("Cookie", usersInfo[1].cookie)
             .set('Accept', 'application/json')
             .send({leagueID: leagueInfo.leagueID})
             .then(res=>{
-                expect(res._body).to.deep.equal(
+                expect(res._body).to.deep.equalInAnyOrder(
                     [
-                        { username: username3, displayName: 'Diana', role: 'participant' },
-                        { username: username1, displayName: 'Clark', role: 'admin' },
-                        { username: username2, displayName: 'Bruce', role: 'owner' }
+                        { username: usersInfo[2].username, displayName: 'Diana', role: 'participant' },
+                        { username: usersInfo[0].username, displayName: 'Clark', role: 'admin' },
+                        { username: usersInfo[1].username, displayName: 'Bruce', role: 'owner' }
                     ]
                 )
             })
         });
-    });*/
+    });
 
-    describe("Test get sections of leagues", async () => {
-        let leagues = [];
+    describe("Test user gets types of leagues", async () => {
+        let leagueInfo;
+        before(async function (){
+            // Owner: Username 1
+            leagueInfo = await helpers.createLeague(usersInfo[0].cookie, "n", "private", "desc");
+
+            // Admin: Username 2
+            await helpers.inviteLeague(usersInfo[0].cookie, leagueInfo.leagueID, usersInfo[1].username);
+            await helpers.acceptLeagueInvite(usersInfo[1].cookie, leagueInfo.leagueID);
+            await helpers.addAdmin(usersInfo[0].cookie, leagueInfo.leagueID, usersInfo[1].username);
+
+            // Participant: Username 3
+            await helpers.inviteLeague(usersInfo[0].cookie, leagueInfo.leagueID, usersInfo[2].username);
+            await helpers.acceptLeagueInvite(usersInfo[2].cookie, leagueInfo.leagueID);
+
+            // Invited: Username 4
+            await helpers.inviteLeague(usersInfo[0].cookie, leagueInfo.leagueID, usersInfo[3].username);
+
+            // Pending: Username 5
+            await helpers.joinLeague(usersInfo[4].cookie, leagueInfo.leagueID);
+
+            // Banned : Username 6
+            await helpers.banUser(usersInfo[0].cookie, leagueInfo.leagueID, usersInfo[5].username)
+        });
+
+        after(async function () {
+            await helpers.deleteLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+        })
+
+        it("Test /get_owned_leagues", async function () {
+            let results = await helpers.getOwnedLeagues(usersInfo[0].cookie);
+            expect(results).to.deep.equal([
+                {
+                  _id: leagueInfo.leagueID,
+                  leagueName: leagueInfo.leagueName,
+                  members: [ usersInfo[0].username, usersInfo[1].username, usersInfo[2].username ],
+                  activeChallenges: 0
+                }
+            ])
+
+            results = await helpers.getOwnedLeagues(usersInfo[1].cookie);
+            expect(results.length).to.equal(0);
+        });
+
+        it("Test /get_admin_leagues", async function () {
+            let results = await helpers.getAdminLeagues(usersInfo[0].cookie);
+            delete results[0].dateCreated;
+            expect(results).to.deep.equalInAnyOrder([
+                {
+                    _id: leagueInfo.leagueID,
+                    owner: usersInfo[0].username,
+                    leagueDescription: 'desc',
+                    leagueName: 'n',
+                    leagueType: 'private',
+                    pendingRequests: [ usersInfo[4].username ],
+                    sentRequests: [ usersInfo[3].username ],
+                    bannedUsers: [ usersInfo[5].username ],
+                    admin: [ usersInfo[0].username, usersInfo[1].username ],
+                    members: [ usersInfo[0].username, usersInfo[1].username, usersInfo[2].username ],
+                    __v: 0
+                }
+            ])
+
+            results = await helpers.getAdminLeagues(usersInfo[1].cookie);
+            delete results[0].dateCreated;
+
+            expect(results).to.deep.equal([
+                {
+                    _id: leagueInfo.leagueID,
+                    owner: usersInfo[0].username,
+                    leagueDescription: 'desc',
+                    leagueName: 'n',
+                    leagueType: 'private',
+                    pendingRequests: [ usersInfo[4].username ],
+                    sentRequests: [ usersInfo[3].username ],
+                    bannedUsers: [ usersInfo[5].username ],
+                    admin: [ usersInfo[0].username, usersInfo[1].username ],
+                    members: [ usersInfo[0].username, usersInfo[1].username, usersInfo[2].username ],
+                    __v: 0
+                }
+            ])
+
+            results = await helpers.getAdminLeagues(usersInfo[2].cookie);
+            expect(results.length).to.equal(0);
+        });
+
+        it("Test /get_admin_leagues_with_challenge_count",async function () {
+            let results = await helpers.getAdminLeaguesCount(usersInfo[0].cookie);
+            expect(results).to.deep.equal([
+                {
+                  _id: leagueInfo.leagueID,
+                  leagueName: leagueInfo.leagueName,
+                  members: [ usersInfo[0].username, usersInfo[1].username, usersInfo[2].username ],
+                  activeChallenges: 0
+                }
+            ])
+
+            results = await helpers.getAdminLeaguesCount(usersInfo[1].cookie);
+            expect(results).to.deep.equal([
+                {
+                  _id: leagueInfo.leagueID,
+                  leagueName: leagueInfo.leagueName,
+                  members: [ usersInfo[0].username, usersInfo[1].username, usersInfo[2].username ],
+                  activeChallenges: 0
+                }
+            ])
+
+            results = await helpers.getAdminLeaguesCount(usersInfo[2].cookie);
+            expect(results.length).to.equal(0);
+        });
+
+        it("Test /get_requested_leagues", async function () {
+            let results = await helpers.getSentLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(0);
+
+            results = await helpers.getSentLeagues(usersInfo[4].cookie);
+            expect(results).to.deep.equal([
+                {
+                  _id: leagueInfo.leagueID,
+                  leagueName: leagueInfo.leagueName,
+                  members: [ usersInfo[0].username, usersInfo[1].username, usersInfo[2].username ],
+                  activeChallenges: 0
+                }
+            ])
+        });
+
+        it("Test /get_invited_leagues", async function () {
+            let results = await helpers.getInvitedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(0);
+
+            results = await helpers.getInvitedLeagues(usersInfo[3].cookie);
+            expect(results).to.deep.equal([
+                {
+                  _id: leagueInfo.leagueID,
+                  leagueName: leagueInfo.leagueName,
+                  members: [ usersInfo[0].username, usersInfo[1].username, usersInfo[2].username ],
+                  activeChallenges: 0
+                }
+            ])
+        });
+
+        it("Test /get_leagues", async function () {
+            let results = await helpers.getAcceptedLeagues(usersInfo[0].cookie);
+            expect(results).to.deep.equal([
+                {
+                  _id: leagueInfo.leagueID,
+                  leagueName: leagueInfo.leagueName,
+                  members: [ usersInfo[0].username, usersInfo[1].username, usersInfo[2].username ],
+                  activeChallenges: 0
+                }
+            ])
+
+            results = await helpers.getAcceptedLeagues(usersInfo[2].cookie);
+            expect(results).to.deep.equal([
+                {
+                  _id: leagueInfo.leagueID,
+                  leagueName: leagueInfo.leagueName,
+                  members: [ usersInfo[0].username, usersInfo[1].username, usersInfo[2].username ],
+                  activeChallenges: 0
+                }
+            ])
+
+            results = await helpers.getAcceptedLeagues(usersInfo[3].cookie);
+            expect(results.length).to.equal(0);
+        });
+
+        it("Test /get_member_list", async function () {
+            let members = await helpers.getMemberListLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(members).to.deep.equalInAnyOrder([
+                { username: usersInfo[0].username, displayName: users[0].given_name, role: 'owner' },
+                { username: usersInfo[1].username, displayName: users[1].given_name, role: 'admin' },
+                { username: usersInfo[2].username, displayName: users[2].given_name, role: 'participant' }
+            ])
+        });
+
+        it("Test /get_banned_list", async function () {
+            let members = await helpers.getBannedListLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(members).to.deep.equalInAnyOrder([
+                { username: usersInfo[5].username, displayName: users[5].given_name}
+            ])
+        });
+
+        it("Test /get_sent_invite_list", async function () {
+            let members = await helpers.getSentInviteListLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(members).to.deep.equalInAnyOrder([
+                { username: usersInfo[3].username, displayName: users[3].given_name}
+            ])
+        });
+
+        it("Test /get_pending_request_list", async function () {
+            let members = await helpers.getReceivedInviteListLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(members).to.deep.equalInAnyOrder([
+                { username: usersInfo[4].username, displayName: users[4].given_name}
+            ])
+        });
+
+        it("Test that a banned user cannot request entry into a league", async function () {
+            await helpers.joinLeague(usersInfo[5].cookie, leagueInfo.leagueID);
+            let members = await helpers.getReceivedInviteListLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(members.length).to.equal(1);
+        });
+
+        it("Test that a user should be unbanned when a league invites them", async function () {
+            await helpers.inviteLeague(usersInfo[0].cookie, leagueInfo.leagueID, usersInfo[5].username);
+
+            let members = await helpers.getReceivedInviteListLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(members.length).to.equal(2);
+
+            let bannedMembers = await helpers.getBannedListLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(bannedMembers.length).to.equal(0);
+        });
+    });
+
+    describe("Test /get_league_active_challenges", async function () {
+        let leagueInfo;
+
+        before(async function (){
+            leagueInfo = await helpers.createLeague(usersInfo[0].cookie, "n", "private", "desc");
+        })
+
+        after(async function(){
+            await helpers.deleteLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+        });
+
+        it("Test league has no active challenges", async function () {
+            let results = await helpers.getActiveChallengesLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(results).to.equal(0);
+        });
+
+        it("Test league has multiple active challenges", async function () {
+            await helpers.sendLeagueChallenge(usersInfo[0].cookie, leagueInfo.leagueID);
+            await helpers.sendLeagueChallenge(usersInfo[0].cookie, leagueInfo.leagueID);
+            let results = await helpers.getActiveChallengesLeague(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(results).to.equal(2);
+        });
+    });
+
+    describe("Test /get_league_leaderboard", async function () {
+        let leagueInfo = {};
+        let exerciseData = [{
+            "amount": 10,
+            "unit":"m",
+            "exerciseName":"Running"
+        }, {
+            "amount": 10,
+            "unit":"m",
+            "exerciseName":"Jumping"
+        }, 
+        {
+            "amount": 10,
+            "unit":"m",
+            "exerciseName":"Swimming"
+        } ]
 
         before(async()=>{
-            // User 2 Makes several leagues
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            for(let i = 0; i < 10; i++){
-                leagues.push(await helpers.createLeague(cookieUser2, "n"+i, "private", "desc"));
-            }
-
-            it("Test owner list of leagues", async  function () {
-                cookieUser2 = await helpers.loginUser(user2, sandbox);
-                let results = await helpers.getOwnedLeagues(cookieUser2);
-                console.log(results);
-            })
-
-            it("Test admin list of leagues - all admin", async function () {
-
-            })
-
-            it("Test admin list of leagues - admin and owner mix", async function () {
-
-            })
-
-            it("Test admin list of leagues - all owner", async function () {
-
-            })
-
-            it("Test admin list of leagues with counts - all admin",async function () {
-
-            })
-
-            it("Test admin list of leagues with counts - admin and owner mix", async function () {
-
-            })
-
-            it("Test admin list of leagues with counts - all owner",async function () {
-
-            })
-
-            it("Test pending list of leagues", async function () {
-
-            })
-
-            it("Test invited list of leagues", async function () {
-
-            })
-
-            it("Test joined leagues", async function () {
-
-            })
-
+            leagueInfo = await helpers.createLeague(usersInfo[0].cookie, "n", "public", "desc");
+            await helpers.joinLeague(usersInfo[1].cookie, leagueInfo.leagueID);
+            await helpers.joinLeague(usersInfo[2].cookie, leagueInfo.leagueID);
+            await helpers.sendLeagueChallengeWithData(usersInfo[0].cookie, leagueInfo.leagueID, exerciseData[0]);
+            await helpers.sendLeagueChallengeWithData(usersInfo[0].cookie, leagueInfo.leagueID, exerciseData[1]);
+            await helpers.sendLeagueChallengeWithData(usersInfo[0].cookie, leagueInfo.leagueID, exerciseData[2]);
         })
 
         after(async() => {
-            cookieUser2 = await helpers.loginUser(user2, sandbox);
-            leagues.forEach(async (item) =>{await helpers.deleteLeague(cookieUser2, league.leagueID)})
+            await helpers.deleteLeague(usersInfo[0].cookie, leagueInfo.leagueID);
         })
 
-
-    });
-
-    describe("Test get league member information", async function () {
-        it("Test get all members", async function () {
-
+        it("Test when no member has completed a challenge", async function () {
+            let results = await helpers.getLeagueLeaderboard(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(results.length).to.equal(0);
         });
 
-        it("Test get banned list", async function () {
-
+        it("Test when one member has completed a challenge", async function () {
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            let results = await helpers.getLeagueLeaderboard(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(results.length).to.equal(1);
+            expect(results).to.deep.equal([[usersInfo[0].username, 1]]);
         });
 
-        it("Test get invited lists", async function () {
-
+        it("Test when one member has completed multiple challenge", async function () {
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[1]);
+            let results = await helpers.getLeagueLeaderboard(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(results.length).to.equal(1);
+            expect(results).to.deep.equal([[usersInfo[0].username, 2]]);
         });
 
-        it("Test get sent lists", async function () {
-
-        });
-    });
-
-    describe("Test get league active challenges", async function () {
-        it("Test no active challenges", async function () {
-
-        });
-
-        it("Test multiple active challenges", async function () {
-
-        });
-    });
-
-    describe("Test get league leaderboard", async function () {
-        it("Test no completed challenges", async function () {
-
-        });
-
-        it("Test one completed challenges", async function () {
-
-        });
-
-        it("Test everyone completed challenges", async function () {
+        it("Test when multiple members complete different amounts of challenges", async function () {
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[2]);
+            await helpers.sendExercise(usersInfo[1].cookie, exerciseData[1]);
+            await helpers.sendExercise(usersInfo[1].cookie, exerciseData[2]);
+            await helpers.sendExercise(usersInfo[2].cookie, exerciseData[1]);
+            let results = await helpers.getLeagueLeaderboard(usersInfo[0].cookie, leagueInfo.leagueID);
+            expect(results.length).to.equal(3);
+            expect(results).to.deep.equal([[usersInfo[0].username, 3], [usersInfo[1].username, 2], [usersInfo[2].username, 1]]);
 
         });
     });
+    
 
-    describe("Test League Recent Activity", async function () {
-        it("More than 5 Recent Activites", async function () {
+    describe("Test /get_recent_activity", async function () {
+        let usersRecentInfo = [];
+        let exerciseList = [];
+        let leagueInfo = {};
+        before(async function(){
+            await helpers.deleteUsers(usersInfo);
+            usersRecentInfo = await helpers.createGoogleUsers(users.slice(0, 3), sandbox);
+            leagueInfo = await helpers.createLeague(usersRecentInfo[0].cookie, "n", "public", "desc");
+            await helpers.joinLeague(usersRecentInfo[1].cookie, leagueInfo.leagueID);
+            await helpers.joinLeague(usersRecentInfo[2].cookie, leagueInfo.leagueID);
+            exerciseList =
+            [
+                {
+                    "username": usersRecentInfo[1].username,
+                    "exerciseName": "Archery",
+                    "amount": 10,
+                    "unit": "min"
+                },
+                {
+                    "username": usersRecentInfo[2].username,
+                    "exerciseName": "Barre",
+                    "amount": 10,
+                    "unit": "min"
+                },
+                {
+                    "username": usersRecentInfo[2].username,
+                    "exerciseName": "Bocce",
+                    "amount": 10,
+                    "unit": "min"
+                },
+                {
+                    "username": usersRecentInfo[1].username,
+                    "exerciseName": "Soccer",
+                    "amount": 10,
+                    "unit": "min"
+                },
+                {
+                    "username": usersRecentInfo[1].username,
+                    "exerciseName": "Skateboarding",
+                    "amount": 10,
+                    "unit": "min"
+                },
+                {
+                    "username": usersRecentInfo[1].username,
+                    "exerciseName": "Sky Diving",
+                    "amount": 10,
+                    "unit": "min"
+                }
+            ]
+        });
 
+        after(async () => {
+            await helpers.deleteUsers(usersRecentInfo);
         });
 
         it("0 Recent Activities", async function () {
-
+            let results = await helpers.getRecentActivityLeague(usersRecentInfo[0].cookie);
+            expect(results.length).to.equal(0);
         });
 
-        it("Exactly 5 Recent Activities", async function () {
+        it("1 Recent Activity", async function () {
+            // User 2 logs an exercise
+            await helpers.sendExercise(usersRecentInfo[1].cookie, exerciseList[0]);
 
+            let results = await helpers.getRecentActivityLeague(usersRecentInfo[0].cookie);
+            expect(results.length).to.equal(1);
+            results = helpers.cleanRecentResults(results);
+            expect(results).to.deep.equalInAnyOrder([exerciseList[0]]);
+        });
+
+        it("5 Recent Activities", async function () {
+            await helpers.sendExercise(usersRecentInfo[2].cookie, exerciseList[1]);
+            await helpers.sendExercise(usersRecentInfo[2].cookie, exerciseList[2]);
+            await helpers.sendExercise(usersRecentInfo[1].cookie, exerciseList[3]);
+            await helpers.sendExercise(usersRecentInfo[1].cookie, exerciseList[4]);
+
+            let results = await helpers.getRecentActivityLeague(usersRecentInfo[0].cookie);
+            expect(results.length).to.equal(5);
+            results = helpers.cleanRecentResults(results);
+            expect(results).to.deep.equalInAnyOrder(exerciseList.slice(0,5));
+        });
+
+        it("6 Recent Activites", async function () {
+            await helpers.sendExercise(usersRecentInfo[1].cookie, exerciseList[5]);
+
+            let results = await helpers.getRecentActivityLeague(usersRecentInfo[0].cookie);
+            expect(results.length).to.equal(5);
         });
     });
+    
 
-    describe("Test Recommended Leagues", async function () {
-        it("Test Situation with No Recommneded Leagues", async function () {
+    describe("Test /get_recommended", async function () {
+        let usersInfo = {};
 
+        let exerciseData = [{
+            "amount": 10,
+            "unit":"m",
+            "exerciseName":"Running"
+        }, {
+            "amount": 10,
+            "unit":"m",
+            "exerciseName":"Jumping"
+        },
+        {
+            "amount": 10,
+            "unit":"m",
+            "exerciseName":"Swimming"
+        }];
+
+        before(async function(){
+            usersInfo = await helpers.createGoogleUsers(users, sandbox);
+        })
+
+        after(async function(){
+            await helpers.deleteUsers(usersInfo)
+        })
+
+        // check that public no show
+        it("Test Situation with 0 Recommended Leagues because there are no leagues", async function () {
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(0);
         });
 
-        it("Test Situation with One Recommneded Leagues", async function () {
-
+        it("Test Situation with 0 Recommended Leagues because the league is private ", async function () {
+            let privateLeagueInfo = await helpers.createLeague(usersInfo[1].cookie, "l1", "private", "descr");
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo.leagueID, exerciseData[0]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(0);
+            await helpers.deleteLeague(usersInfo[1].cookie, privateLeagueInfo.leagueID);
         });
 
-        it("Test Situation with Multiple (<5) Recommneded Leagues", async function () {
-
+        it("Test Situation with 0 Recommended Leagues because the league is doing a different exercise ", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+            let privateLeagueInfo = await helpers.createLeague(usersInfo[1].cookie, "l1", "public", "descr");
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo.leagueID, exerciseData[0]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[1]);
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(0);
+            await helpers.deleteLeague(usersInfo[1].cookie, privateLeagueInfo.leagueID);
         });
 
-        it("Test Situation with More than 5 Recommneded Leagues", async function () {
+        it("Test Situation with 1 Recommended League", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+            let privateLeagueInfo = await helpers.createLeague(usersInfo[1].cookie, "l1", "public", "descr");
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo.leagueID, exerciseData[0]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(1);
+            expect(results[0].leagueName).to.equal("l1");
+            expect(results[0]._id).to.equal(privateLeagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[1].cookie, privateLeagueInfo.leagueID);
+        });
 
+        it("Test Situation with 1 Recommended League", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+            let privateLeagueInfo = await helpers.createLeague(usersInfo[1].cookie, "l1", "public", "descr");
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo.leagueID, exerciseData[0]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(1);
+            expect(results[0].leagueName).to.equal("l1");
+            expect(results[0]._id).to.equal(privateLeagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[1].cookie, privateLeagueInfo.leagueID);
+        });
+
+        it("Test Situation with with two overlapping exercises in the same league", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+            let privateLeagueInfo = await helpers.createLeague(usersInfo[1].cookie, "l1", "public", "descr");
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo.leagueID, exerciseData[0]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo.leagueID, exerciseData[1]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[1]);
+
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(1);
+            expect(results[0].leagueName).to.equal("l1");
+            expect(results[0]._id).to.equal(privateLeagueInfo.leagueID);
+            await helpers.deleteLeague(usersInfo[1].cookie, privateLeagueInfo.leagueID);
+        });
+
+        it("Test Situation with with two exercises in the different leagues", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+
+            let privateLeagueInfo1 = await helpers.createLeague(usersInfo[1].cookie, "l1", "public", "descr");
+            let privateLeagueInfo2 = await helpers.createLeague(usersInfo[2].cookie, "l2", "public", "descr");
+
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo1.leagueID, exerciseData[0]);
+            await helpers.sendLeagueChallengeWithData(usersInfo[2].cookie, privateLeagueInfo2.leagueID, exerciseData[1]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[1]);
+
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(2);
+            let expectedValues = [
+                { _id: privateLeagueInfo1.leagueID, leagueName: privateLeagueInfo1.leagueName },
+                { _id: privateLeagueInfo2.leagueID, leagueName: privateLeagueInfo2.leagueName }
+            ]
+            expect(results).to.deep.equalInAnyOrder(expectedValues);
+
+            await helpers.deleteLeague(usersInfo[1].cookie, privateLeagueInfo1.leagueID);
+            await helpers.deleteLeague(usersInfo[2].cookie, privateLeagueInfo2.leagueID);
+        });
+
+        it("Test Situation with with one league with two exercises", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+
+            let privateLeagueInfo1 = await helpers.createLeague(usersInfo[1].cookie, "l1", "public", "descr");
+
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo1.leagueID, exerciseData[0]);
+            await helpers.sendLeagueChallengeWithData(usersInfo[1].cookie, privateLeagueInfo1.leagueID, exerciseData[1]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            await helpers.sendExercise(usersInfo[0].cookie, exerciseData[1]);
+
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(1);
+            let expectedValues = [
+                { _id: privateLeagueInfo1.leagueID, leagueName: privateLeagueInfo1.leagueName }
+            ]
+            expect(results).to.deep.equalInAnyOrder(expectedValues);
+
+            await helpers.deleteLeague(usersInfo[1].cookie, privateLeagueInfo1.leagueID);
+        });
+
+        it("Test Situation with with five leagues", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+
+            let privateLeagueInfos = [];
+
+            for(let i = 1; i < 6; i++){
+                privateLeagueInfos.push(await helpers.createLeague(usersInfo[i].cookie, "l"+i, "public", "descr"));
+                await helpers.sendLeagueChallengeWithData(usersInfo[i].cookie, privateLeagueInfos[i-1].leagueID, exerciseData[0]);
+                await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            }
+
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(5);
+            let expectedValues = [
+                { _id: privateLeagueInfos[0].leagueID, leagueName: privateLeagueInfos[0].leagueName },
+                { _id: privateLeagueInfos[1].leagueID, leagueName: privateLeagueInfos[1].leagueName },
+                { _id: privateLeagueInfos[2].leagueID, leagueName: privateLeagueInfos[2].leagueName },
+                { _id: privateLeagueInfos[3].leagueID, leagueName: privateLeagueInfos[3].leagueName },
+                { _id: privateLeagueInfos[4].leagueID, leagueName: privateLeagueInfos[4].leagueName }
+            ]
+            expect(results).to.deep.equalInAnyOrder(expectedValues);
+
+            for(let i = 1; i < 6; i++){
+                await helpers.deleteLeague(usersInfo[i].cookie, privateLeagueInfos[i-1].leagueID);
+            }
+        });
+
+        it("Test Situation with with more than 5 leagues", async function () {
+            await helpers.deleteUser(usersInfo[0].cookie);
+            usersInfo[0].cookie = await helpers.createGoogleUser(users[0], sandbox);
+
+            let privateLeagueInfos = [];
+
+            for(let i = 1; i < 7; i++){
+                privateLeagueInfos.push(await helpers.createLeague(usersInfo[i].cookie, "l"+i, "public", "descr"));
+                await helpers.sendLeagueChallengeWithData(usersInfo[i].cookie, privateLeagueInfos[i-1].leagueID, exerciseData[0]);
+                await helpers.sendExercise(usersInfo[0].cookie, exerciseData[0]);
+            }
+
+            let results = await helpers.getRecommendedLeagues(usersInfo[0].cookie);
+            expect(results.length).to.equal(5);
+
+            for(let i = 1; i < 7; i++){
+                await helpers.deleteLeague(usersInfo[i].cookie, privateLeagueInfos[i-1].leagueID);
+            }
         });
     });
+    })
+
+    describe("Test league failures", async function(){
+        let usersFailInfo = [];
+        let leagueInfo = {};
+
+        before(async function(){
+            await helpers.deleteUsers(usersInfo)
+            usersFailInfo = await helpers.createGoogleUsers(users.slice(0,3), sandbox);
+            leagueInfo = await helpers.createLeague(usersFailInfo[0].cookie, "n", "private", "desc");
+
+        })
+
+        after(async function(){
+            await helpers.deleteLeague(usersFailInfo[0].cookie);
+            await helpers.deleteUsers(usersFailInfo)
+        })
+
+        
+        it("/create_league fails due to leagueDescription being too long", async function(){
+            let inputData = {"leagueName": "n",
+            "leagueType": "private",
+            "leagueDescription": "desciiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+            "leaguePicture": "fake photo"};
+            let info = {};
+
+            await request.post("/league/create_league")
+                .set("Cookie",usersFailInfo[0].cookie)
+                .set("Accept", "application/json")
+                .send(inputData)
+                .expect(500)
+        })
+
+        it("League Upload Image fails in /update_picture", async function(){
+            await request
+                .post("/league/update_picture")
+                .set("Cookie", usersFailInfo[0].cookie)
+                .set('Accept', 'application/json')
+                .send({leagueID: leagueInfo.leagueID, leaguePicture:"bad image"})
+                .expect(400)
+        })
+
+        it("User attempts to update photo for unowned league", async function(){
+            await request
+                .post("/league/update_picture")
+                .set("Cookie", usersFailInfo[1].cookie)
+                .set('Accept', 'application/json')
+                .send({leagueID: leagueInfo.leagueID, leaguePicture:"photo.png"})
+                .expect(401)
+        })
+
+        it("/create_league fails to upload a photo", async function(){
+            let inputData = {"leagueName": "n",
+            "leagueType": "private",
+            "leagueDescription": "desc",
+            "leaguePicture": "fake photo"};
+            let info = {};
+
+            await request.post("/league/create_league")
+                .set("Cookie",usersFailInfo[0].cookie)
+                .set("Accept", "application/json")
+                .send(inputData)
+                .expect(500)
+        })
+
+        it("Challenge Progress delete many fails in /delete_league", async function(){
+            let deletableLeague = await helpers.createLeague(usersFailInfo[1].cookie, "n", "private", "desc");
+
+            deleteStub = sandbox.stub(Challenge_progress, "deleteMany").throws("Err - cannot delete");
+            await request.post("/league/delete_league")
+                .set("Cookie", usersFailInfo[1].cookie)
+                .set("Accept", "application/json")
+                .send({leagueID: deletableLeague.leagueID})
+                .expect(400)
+
+            sandbox.restore();
+            await helpers.deleteLeague(usersFailInfo[0].cookie, deletableLeague.leagueID);
+        });
+
+        it("League Update One Fails in /update_name", async function(){
+            sandbox.restore();
+
+            deleteStub = sandbox.stub(League, "updateOne").throws("Err - cannot update");
+
+            await request
+            .post("/league/update_name")
+            .set("Cookie", usersFailInfo[0].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: leagueInfo.leagueID, leagueName:"newName"})
+            .expect(400);
+
+            sandbox.restore();
+        });
+
+        it("League Update One Fails in /invite_to_join", async function(){
+            sandbox.restore();
+
+            deleteStub = sandbox.stub(League, "updateOne").throws("Err - cannot update");
+
+            await request
+            .post("/league/invite_to_join")
+            .set("Cookie", usersFailInfo[0].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: leagueInfo.leagueID, recipient: usersFailInfo[1].cookie})
+            .expect(400);
+
+            sandbox.restore();
+        });
+
+        it("/invite_to_join fails in findOne", async function(){
+            sandbox.restore();
+
+            deleteStub = sandbox.stub(League, "findOne").throws("Err - cannot find");
+
+            await request
+            .post("/league/invite_to_join")
+            .set("Cookie", usersFailInfo[0].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: leagueInfo.leagueID, recipient: usersFailInfo[1].cookie})
+            .expect(400);
+
+            sandbox.restore();
+        });
+
+        it("/invite_to_join fails because the recipient does not exist", async function(){
+           await request
+            .post("/league/invite_to_join")
+            .set("Cookie", usersFailInfo[0].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: leagueInfo.leagueID, recipient: "fakeUser"})
+            .expect(400);
+
+        });
+
+        it("League Update One Fails in /user_request_to_join", async function(){
+            sandbox.restore();
+
+            deleteStub = sandbox.stub(League, "updateOne").throws("Err - cannot update");
+
+            await request
+            .post("/league/user_request_to_join")
+            .set("Cookie", usersFailInfo[1].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: leagueInfo.leagueID})
+            .expect(500);
+
+            sandbox.restore();
+        });
+
+        describe("Attempt to get list of league entries for a league that does not exist", async function(){
+            before(async function(){
+                sandbox.restore();
+                let leanStub = sandbox.stub().resolves(null);
+                deleteStub = sandbox.stub(League, "findOne").returns({lean:leanStub});
+            })
+
+            after(async function(){
+                sandbox.restore();
+            })
+            it("/get_member_list", async function(){
+                await request.post("/league/get_member_list")
+                .set("Cookie", usersFailInfo[1].cookie)
+                .set('Accept', 'application/json')
+                .send({leagueID: leagueInfo.leagueID})
+                .expect(404)
+            })
+
+            it("/get_banned_list", async function(){
+                await request.post("/league/get_banned_list")
+                .set("Cookie", usersFailInfo[1].cookie)
+                .set('Accept', 'application/json')
+                .send({leagueID: "9"})
+                .expect(404)
+            })
+
+            it("/get_pending_request_list", async function(){
+                await request.post("/league/get_pending_request_list")
+                .set("Cookie", usersFailInfo[1].cookie)
+                .set('Accept', 'application/json')
+                .send({leagueID: "fake league"})
+                .expect(404)
+            })
+
+            it("/get_sent_invite_list", async function(){
+                await request.post("/league/get_sent_invite_list")
+                .set("Cookie", usersFailInfo[1].cookie)
+                .set('Accept', 'application/json')
+                .send({leagueID: "fake league"})
+                .expect(404)
+            })
+        });
+
+        it("Test no user in leagues for /get_recent_activity", async function(){
+            let results = await helpers.getRecentActivityLeague(usersFailInfo[2].cookie);
+            expect(results.length).to.equal(0);
+        })
+    })
+
 });
 

@@ -29,19 +29,18 @@ const userSchema = new Schema(
   {
     authenticationSource: {
       type: String,
-      enum: ['google'],
-      requried: true,
+      enum: ['google', 'apple'],
+      required: true,
     },
     authenticationID: {
       type: String,
-      requried: true,
+      required: true,
     },
     givenName: String,
     familyName: String,
     email: String,
     username: {
       type: String,
-      requried: true,
       default: null,
       index: {
         unique: true,
@@ -53,11 +52,7 @@ const userSchema = new Schema(
     displayName: {
       type: String,
       default: "",
-      required: true,
-      validate: {
-        validator: isValidDisplayName,
-        message: () => 'must be valid display name'
-      }
+      required: true
     },
     picture: {
       type: String,
@@ -80,4 +75,4 @@ const User = mongoose.model("User", userSchema);
 
 module.exports = User;
 module.exports.isValidUsername = isValidUsername;
-
+module.exports.isValidDisplayName = isValidDisplayName;
