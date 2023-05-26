@@ -306,7 +306,6 @@ router.route('/decline_friend_challenge').post(async (req, res) => {
 
 router.route('/get_challenge_leaderboard').post(async (req, res) => {
     // need to verify user is in challenge for leaderboard
-    console.log("get challenge leaderboard runs")
     const username = req.session.username;
     const challengeID = req.body.challengeID;
 

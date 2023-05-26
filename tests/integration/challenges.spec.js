@@ -49,13 +49,45 @@ describe('Testing /challenges', () => {
             }
             await request.post("/challenges/add_self_challenge")
             .set("Cookie", usersInfo[0].cookie)
-            .set('Accept', 'application/json')
+            .set('Asccept', 'application/json')
             .send(inputData)
             .expect(200);
 
             let results = await helpers.getIssuedChallenges(usersInfo[0].cookie);
 
             expect(results.length).to.equal(1);
+        });
+
+        it("Test /add_self_challenge with an invalid amount", async () => {
+            let inputData = {
+                receivedUser: usersInfo[0].username,
+                issueDate: helpers.getIssueDate(),
+                dueDate: helpers.getDueDate(),
+                unit: "m",
+                amount: -1,
+                exerciseName: "Badminton"
+            }
+            await request.post("/challenges/add_self_challenge")
+            .set("Cookie", usersInfo[0].cookie)
+            .set('Accept', 'application/json')
+            .send(inputData)
+            .expect(500);
+        });
+
+        it("Test /add_self_challenge with an invalid dueDate", async () => {
+            let inputData = {
+                receivedUser: usersInfo[0].username,
+                issueDate: Date.now() + 20*60*1000,
+                dueDate: Date.now() + 10*60*1000,
+                unit: "m",
+                amount: 10,
+                exerciseName: "Badminton"
+            }
+            await request.post("/challenges/add_self_challenge")
+            .set("Cookie", usersInfo[0].cookie)
+            .set('Accept', 'application/json')
+            .send(inputData)
+            .expect(500);
         });
 
         it("Test /add_friend_challenge", async () => {

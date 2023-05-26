@@ -52,11 +52,7 @@ const userSchema = new Schema(
     displayName: {
       type: String,
       default: "",
-      required: true,
-      validate: {
-        validator: isValidDisplayName,
-        message: () => 'must be valid display name'
-      }
+      required: true
     },
     picture: {
       type: String,
@@ -79,4 +75,4 @@ const User = mongoose.model("User", userSchema);
 
 module.exports = User;
 module.exports.isValidUsername = isValidUsername;
-
+module.exports.isValidDisplayName = isValidDisplayName;
