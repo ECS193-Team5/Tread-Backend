@@ -57,7 +57,7 @@ challengeProgress.index({
   username: 1,
   'exercise.exerciseName': 1,
   'exercise.unitType' : 1,
-  issuedDate: -1,
+  issueDate: -1,
   dueDate: -1
 });
 

@@ -52,7 +52,6 @@ const userSchema = new Schema(
     displayName: {
       type: String,
       default: "",
-      required: true
     },
     picture: {
       type: String,
