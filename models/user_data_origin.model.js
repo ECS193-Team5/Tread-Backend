@@ -12,7 +12,7 @@ const userDataOriginSchema = new Schema(
         healthKitAnchor: {
             type: String,
             required: true,
-            default: Date.now
+            default: ""
         },
         healthConnectAnchor: {
             type: Date,
