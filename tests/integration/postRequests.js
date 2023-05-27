@@ -269,7 +269,7 @@ function findMatchingChallenge(challengeList, data){
 /* Data Origin Functions */
 async function getDataOriginLastDate(cookie, dataOrigin){
     let results = {};
-    await request.post("/data_origin/get_origin_last_import_date")
+    await request.post("/data_origin/get_origin_anchor")
         .set("Cookie", cookie)
         .set('Accept', 'application/json')
         .send({dataOrigin:dataOrigin})
@@ -333,13 +333,13 @@ function getUniqueExercises(exerciseList){
     });
     return uniqueExerciseList;
 }
-async function sendExerciseList(cookie, dataOrigin, exerciseList){
+async function sendExerciseList(cookie, dataOrigin, anchor, exerciseList){
     let uniqueExercises = getUniqueExercises(exerciseList);
     let status = "";
     await request.post("/exercise_log/add_exercise_list")
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
-    .send({dataOrigin: dataOrigin, exerciseList: exerciseList, uniqueExercises:uniqueExercises})
+    .send({dataOrigin: dataOrigin, exerciseList: exerciseList, uniqueExercises:uniqueExercises, anchor:anchor})
     .then(res => {status = res.status})
     return status;
 }

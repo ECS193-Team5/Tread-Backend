@@ -87,7 +87,7 @@ describe('Testing /exercise_log routes', () => {
                     .expect(500);
             })
         });
-        
+
         describe("Test challenge updates", async function () {
             describe("Test exercise does not effect a challenge", async function(){
                 let usersInfo = [];
@@ -237,7 +237,7 @@ describe('Testing /exercise_log routes', () => {
 
                     let results = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                     let challenge = helpers.findMatchingChallenge(results, inputData[2]);
-                  
+
                     expect(challenge[0].progress.progress).to.equal(2);
                     expect(challenge[0].progress.completed).to.equal(true);
                     expect(challenge.length).to.equal(1);
@@ -380,8 +380,8 @@ describe('Testing /exercise_log routes', () => {
                 })
             })
         });
-        
-        
+
+
         describe("Test global challenges updates", async function(){
             let usersInfo = [];
             let globalChallengeData = [
@@ -480,8 +480,8 @@ describe('Testing /exercise_log routes', () => {
                 expect(challenge[0].completed).to.equal(true);
             });
         });
-        
-       
+
+
         describe("Test Add Exercise Effect on Medals", async function(){
             let usersInfo = [];
 
@@ -545,11 +545,11 @@ describe('Testing /exercise_log routes', () => {
                 expect(completeMedals.length).to.equal(2);
             })
         });
-        
+
     });
 
     describe("Test /add_exercise_list", async function(){
-        
+
         describe("Test add simple sets of exercises", async function(){
             let usersInfo = [];
             let mainExerciseList = [
@@ -567,17 +567,17 @@ describe('Testing /exercise_log routes', () => {
 
             it("Test no exercises in list", async function(){
                 let exericseList = [];
-                let status = await helpers.sendExerciseList(usersInfo[0].cookie, "healthConnect", exericseList);
+                let status = await helpers.sendExerciseList(usersInfo[0].cookie, "healthConnect",Date.now(), exericseList);
                 expect(status).to.equal(200);
             });
             it("Test only one exercise in list", async function(){
                 let exerciseList = mainExerciseList.slice(0,1)
-                let status = await helpers.sendExerciseList(usersInfo[0].cookie, "healthConnect", exerciseList);
+                let status = await helpers.sendExerciseList(usersInfo[0].cookie, "healthConnect",Date.now(), exerciseList);
                 expect(status).to.equal(200);
             });
             it("Test multiple exercises in list", async function(){
                 let exerciseList = mainExerciseList.slice(0,2)
-                let status = await helpers.sendExerciseList(usersInfo[0].cookie, "healthConnect", exerciseList);
+                let status = await helpers.sendExerciseList(usersInfo[0].cookie, "healthConnect",Date.now(), exerciseList);
                 expect(status).to.equal(200);
             });
             it("Test multiple exercises in list with overlap", async function(){
@@ -614,7 +614,7 @@ describe('Testing /exercise_log routes', () => {
 
             it("Test no exercises in list", async function(){
                 await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[0]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", []);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", []);
                 let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
 
                 for(let i = 0; i< challenges.length; i++){
@@ -625,7 +625,7 @@ describe('Testing /exercise_log routes', () => {
             it("Test only one challenge is effected", async function(){
                 let exerciseList = mainExerciseList.slice(0,1);
                 await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[4]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
                 let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[4]);
                 expect(challenge.length).to.equal(1);
@@ -636,7 +636,7 @@ describe('Testing /exercise_log routes', () => {
                 let exerciseList = mainExerciseList.slice(0,1);
                 await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[4]);
                 await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[4]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
                 let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[4]);
                 expect(challenge.length).to.equal(2);
@@ -647,7 +647,7 @@ describe('Testing /exercise_log routes', () => {
             it("Test two exercises complete a challenge exactly", async function(){
                 let exerciseList =  [mainExerciseList[2], mainExerciseList[2]];
                 await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[5]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
                 let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[5]);
                 expect(challenge.length).to.equal(1);
@@ -657,7 +657,7 @@ describe('Testing /exercise_log routes', () => {
             it("Test two exercises overcomplete a challenge", async function(){
                 let exerciseList =  [mainExerciseList[2], mainExerciseList[2]];
                 await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[6]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
                 let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[6]);
                 expect(challenge.length).to.equal(1);
@@ -667,7 +667,7 @@ describe('Testing /exercise_log routes', () => {
             it("Test an exercise on an already completed challenge", async function(){
                 let exerciseList =  [mainExerciseList[2], mainExerciseList[2], mainExerciseList[2]];
                 await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[6]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
                 let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[6]);
                 expect(challenge.length).to.equal(1);
@@ -715,7 +715,7 @@ describe('Testing /exercise_log routes', () => {
             it("Test only one challenge is effected", async function(){
                 let exerciseList = mainExerciseList.slice(0,1);
                 await helpers.addGlobalChallenge(usersInfo[0].cookie, inputData[4]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", "",exerciseList);
                 let challenges = await helpers.getGlobalChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[4]);
                 expect(challenge.length).to.equal(1);
@@ -725,7 +725,7 @@ describe('Testing /exercise_log routes', () => {
             it("Test two exercises complete a challenge exactly", async function(){
                 let exerciseList =  [mainExerciseList[2], mainExerciseList[2]];
                 await helpers.addGlobalChallenge(usersInfo[0].cookie, inputData[5]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
                 let challenges = await helpers.getGlobalChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[5]);
                 expect(challenge.length).to.equal(1);
@@ -735,7 +735,7 @@ describe('Testing /exercise_log routes', () => {
             it("Test two exercises overcomplete a challenge", async function(){
                 let exerciseList =  [mainExerciseList[2], mainExerciseList[2]];
                 await helpers.addGlobalChallenge(usersInfo[0].cookie, inputData[6]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
                 let challenges = await helpers.getGlobalChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[6]);
                 expect(challenge.length).to.equal(1);
@@ -745,7 +745,7 @@ describe('Testing /exercise_log routes', () => {
             it("Test an exercise on an already completed challenge", async function(){
                 let exerciseList =  [mainExerciseList[2], mainExerciseList[2], mainExerciseList[2]];
                 await helpers.addGlobalChallenge(usersInfo[0].cookie, inputData[6]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", "",exerciseList);
                 let challenges = await helpers.getGlobalChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[6]);
                 expect(challenge.length).to.equal(1);
@@ -753,11 +753,11 @@ describe('Testing /exercise_log routes', () => {
                 expect(challenge[0].completed).to.equal(true);
             });
         });
-        
+
 
         describe("Test effect of exercise list on medals", async function(){
             let usersInfo = [];
-            let potentialExercises = 
+            let potentialExercises =
             [
                 {"exercise":{"exerciseName":"Running", "unit":"km", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
                 {"exercise":{"exerciseName":"Walking", "unit":"hr", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
@@ -775,7 +775,7 @@ describe('Testing /exercise_log routes', () => {
 
             it("Test no medals are effected", async function(){
                 let exerciseList = [potentialExercises[1]];
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
 
                 let inProgressMedals = await helpers.getMedalsInProgress(usersInfo[0].cookie);
                 let completeMedals = await helpers.getMedalsComplete(usersInfo[0].cookie);
@@ -785,7 +785,7 @@ describe('Testing /exercise_log routes', () => {
             });
             it("Test complete a medal using one exercise", async function(){
                 let exerciseList = [potentialExercises[0]];
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
 
                 let inProgressMedals = await helpers.getMedalsInProgress(usersInfo[0].cookie);
                 let completeMedals = await helpers.getMedalsComplete(usersInfo[0].cookie);
@@ -795,7 +795,7 @@ describe('Testing /exercise_log routes', () => {
             });
             it("Test complete two types of medals", async function(){
                 let exerciseList = [potentialExercises[0], potentialExercises[2]];
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", exerciseList);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
 
                 let inProgressMedals = await helpers.getMedalsInProgress(usersInfo[0].cookie);
                 let completeMedals = await helpers.getMedalsComplete(usersInfo[0].cookie);
@@ -804,12 +804,12 @@ describe('Testing /exercise_log routes', () => {
                 expect(completeMedals.length).to.equal(4);
             });
         });
-        
+
 
 
         describe("Test failures", async function(){
             let usersInfo = [];
-            let potentialExercises = 
+            let potentialExercises =
             [
                 {"exercise":{"exerciseName":"Running", "unit":"km", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
                 {"exercise":{"exerciseName":"Walking", "unit":"hr", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
