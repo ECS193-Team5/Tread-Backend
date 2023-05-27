@@ -32,8 +32,11 @@ describe('Testing /sign_up routes', async function () {
                 await request.post("/sign_up/sign_up")
                     .set('Accept', 'application/json')
                     .set('Cookie', cookie)
-                    .send({ "username": user.given_name, "displayName": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
+                    .send({ "username": user.given_name, "displayName": "overwriteDisplay", "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
                     .expect(200);
+                let displayName = await helpers.getDisplayName(cookie);
+                let username = await helpers.getUsername(cookie);
+                expect(displayName.displayName).to.equal("overwriteDisplay");
                 await helpers.deleteUser(cookie);
             })
 
@@ -177,4 +180,5 @@ describe('Testing /sign_up routes', async function () {
             await helpers.deleteUser(cookie);
         });
     })
+
 });
