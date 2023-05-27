@@ -95,7 +95,8 @@ router.route('/get_profile_photo').post(
 
     const userIdentifiers = {
       authenticationSource : req.session.authenticationSource,
-      authenticationID : req.session.authenticationID
+      authenticationID : req.session.authenticationID,
+      displayName: displayName
     }
 
     let profileInfo = {};
