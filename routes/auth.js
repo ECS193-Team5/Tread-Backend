@@ -54,16 +54,22 @@ async function createUser(userInfo) {
 }
 
 async function createAppleUser(userInfoFromAuth, fullName) {
-
   let userInfo = {
     authenticationSource: 'apple',
     authenticationID: userInfoFromAuth.sub,
-    displayName: fullName.givenName,
-    given_name: fullName.givenName,
-    family_name: fullName.familyName,
     email: userInfoFromAuth.email,
     picture: DEFAULT_PROFILE_IMAGE_URL,
   }
+
+  if(fullName && fullName.givenName){
+    userInfo.displayName =  fullName.givenName
+    userInfo.given_name =  fullName.givenName
+  }
+
+  if(fullName && fullName.family_name){
+    userInfo.family_name = fullName.familyName
+  }
+
   await createUser(userInfo);
 }
 
