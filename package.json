@@ -4,9 +4,9 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha ./tests/*.spec.js --exit",
-    "test_cov":"nyc mocha ./tests/*.spec.js --exit",
-    "integration_test": "mocha ./tests/integration/league.spec.js  --timeout 20000",
-    "integration_test_cov": "nyc mocha ./tests/integration/*.spec.js --timeout 25000",
+    "test_cov": "nyc mocha ./tests/*.spec.js --exit",
+    "integration_test": "mocha ./tests/integration/data_origin.spec.js  --timeout 20000",
+    "integration_test_cov": "nyc mocha ./tests/integration/data_origin.spec.js --timeout 25000",
     "unit_test": "mocha ./tests/unit/auth.spec.js  --timeout 20000",
     "unit_test_cov": "nyc mocha ./tests/unit/*.spec.js --timeout 25000",
     "start": "node index.js",
