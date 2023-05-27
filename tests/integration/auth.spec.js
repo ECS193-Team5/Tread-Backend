@@ -121,7 +121,6 @@ describe('Testing authentication routes', () => {
             username1 = await getUsername(cookieUser1);
             cookieUser2 =  await createAppleUser(user2, sandbox);
             username2 = await getUsername(cookieUser2);
-            console.log(username1, username2);
         });
 
         after(async () => {
