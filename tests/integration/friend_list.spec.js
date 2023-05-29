@@ -545,7 +545,7 @@ describe('Testing friend_list routes', () => {
             .set('Accept', 'application/json')
             .send({friendName: usersInfo[1].username})
             .then(res => {
-                expect(res._body).to.equal("Already sent");
+                expect(res._body).to.equal("You have already sent "+usersInfo[1].username + " a friend request.");
             })
 
             await helpers.revokeFriendRequest(usersInfo[0].cookie, usersInfo[1].username);
@@ -558,14 +558,13 @@ describe('Testing friend_list routes', () => {
             .set('Accept', 'application/json')
             .send({friendName: usersInfo[1].username})
             .then(res => {
-                expect(res._body).to.equal("You are already a friend");
+                expect(res._body).to.equal("You were already friends with " + usersInfo[1].username + ".");
             })
 
             await helpers.unFriend(usersInfo[0].cookie, usersInfo[1].username);
         })
 
         it("Test try to friend a user who does not exist", async function(){
-            await helpers.sendFriendRequest(usersInfo[0].cookie, "fakeUser");
             await request.post("/friend_list/send_friend_request")
             .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
@@ -574,7 +573,6 @@ describe('Testing friend_list routes', () => {
         })
 
         it("Test try to friend yourself", async function(){
-            await helpers.sendFriendRequest(usersInfo[0].cookie, usersInfo[0].username);
             await request.post("/friend_list/send_friend_request")
             .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')

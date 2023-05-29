@@ -5,6 +5,7 @@ const { expect, assert } = require("chai");
 const rewire = require("rewire");
 const mongoose = require("mongoose");
 const { OAuth2Client,   LoginTicket } = require('google-auth-library');
+const appleSignin = require("apple-signin-auth");
 var sandbox = require("sinon").createSandbox();
 
 describe('Testing authentication', () => {
@@ -98,30 +99,85 @@ describe('Testing authentication', () => {
         });
     });
 
-    describe("Testing verify()", () => {
+    describe("Testing googleVerify()", () => {
         const token = 'eyJhbGciOiJSUzI1NiIsImtpZCI6Ijk2OTcxODA4Nzk2ODI5YTk3MmU3OWE5ZDFhOWZmZjExY2Q2MWIxZTMiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJuYmYiOjE2ODIwMzI1MzQsImF1ZCI6IjE3MTU3MTY1Mzg2OS1sczVpcWRsbzFib2U2aXNqN3Ixa29vMnR2aTU3ZzYybS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjEwODg3NjU4MDczNDk0MTE3OTkyNCIsImVtYWlsIjoiaG93YXJkdzExN0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXpwIjoiMTcxNTcxNjUzODY5LWxzNWlxZGxvMWJvZTZpc2o3cjFrb28ydHZpNTdnNjJtLmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tIiwibmFtZSI6Ikhvd2FyZCBXYW5nIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FHTm15eGJqZENkZW5OdF9yc2g2d0tHS0ZxSElzbm1XUjNxcmM0b0ZlY2c4a3c9czk2LWMiLCJnaXZlbl9uYW1lIjoiSG93YXJkIiwiZmFtaWx5X25hbWUiOiJXYW5nIiwiaWF0IjoxNjgyMDMyODM0LCJleHAiOjE2ODIwMzY0MzQsImp0aSI6ImY3NWVjZDI0MGE1YzkwNmIzNjI1OTliOWE0ZWUwNDE2YjQ3ZDVlMTIifQ.qeFtF3_9zlCbexLZzr6iEGz4RXWU2aCSCl9MDddTYzR0hfXMc4S_bpEH1FtFXELhB3zozzMKH-ox3xBU7lLzwFj29jPPkHZOhU-V6GldSwZbVl7iSpm2Sfek9Xw_NW012wEi9CpKSKDlpFIxmGEyGDUBa5lpdowRAbdwVX43Pq_mo_H-tSqfwzI3Gb55CinbABqRHO1yRV_KReKQ0fsi28kuNhMdEtszYJq79XfvdAKpyi7lcghYfU5l-Vsz58VfB9X1AnRDj-Rfn8nGBrLangRfKfYgFTWNTtetXzLlugcif8UseK1AgrhIcIb3f4h2MAXvVXjV8N2b1GUVmyzy6A';
         const IDInfo = {"iss":"https://accounts.google.com","nbf":1682032534,"aud":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","sub":"108876580734941179924","email":"howardw117@gmail.com","email_verified":true,"azp":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","name":"Howard Wang","picture":"https://lh3.googleusercontent.com/a/AGNmyxbjdCdenNt_rsh6wKGKFqHIsnmWR3qrc4oFecg8kw=s96-c","given_name":"Howard","family_name":"Wang","iat":1682032834,"exp":1682036434,"jti":"f75ecd240a5c906b362599b9a4ee0416b47d5e12"};
         const ticket = new LoginTicket();
-        let verify;
+        let googleVerify;
         let OAuthStub;
 
         beforeEach(() => {
-            verify = auth.__get__("verify");
+            googleVerify = auth.__get__("googleVerify");
             sandbox.stub(LoginTicket.prototype, "getPayload").resolves(IDInfo);
             OAuthStub = sandbox.stub(OAuth2Client.prototype, "verifyIdToken")
         });
 
         it("verify should return the proper information", async function() {
             OAuthStub.resolves(ticket);
-            const result = await verify(token);
+            const result = await googleVerify(token);
             expect(result).to.deep.equal({"iss":"https://accounts.google.com","nbf":1682032534,"aud":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","sub":"108876580734941179924","email":"howardw117@gmail.com","email_verified":true,"azp":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","name":"Howard Wang","picture":"https://lh3.googleusercontent.com/a/AGNmyxbjdCdenNt_rsh6wKGKFqHIsnmWR3qrc4oFecg8kw=s96-c","given_name":"Howard","family_name":"Wang","iat":1682032834,"exp":1682036434,"jti":"f75ecd240a5c906b362599b9a4ee0416b47d5e12"})
         });
 
         it("verify should throw correctly", async function() {
             OAuthStub.rejects(ticket);
-            let verifySpy = sandbox.spy(verify);
+            let verifySpy = sandbox.spy(googleVerify);
             try {
-                await verify(token);
+                await googleVerify(token);
+            } catch {
+                expect(verifySpy).to.have.thrown;
+                return;
+            }
+            expect(4).to.equal(5);
+        });
+
+    });
+
+    describe("Testing appleVerify()", () => {
+        const token = 'eyJhbGciOiJSUzI1NiIsImtpZCI6Ijk2OTcxODA4Nzk2ODI5YTk3MmU3OWE5ZDFhOWZmZjExY2Q2MWIxZTMiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJuYmYiOjE2ODIwMzI1MzQsImF1ZCI6IjE3MTU3MTY1Mzg2OS1sczVpcWRsbzFib2U2aXNqN3Ixa29vMnR2aTU3ZzYybS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjEwODg3NjU4MDczNDk0MTE3OTkyNCIsImVtYWlsIjoiaG93YXJkdzExN0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXpwIjoiMTcxNTcxNjUzODY5LWxzNWlxZGxvMWJvZTZpc2o3cjFrb28ydHZpNTdnNjJtLmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tIiwibmFtZSI6Ikhvd2FyZCBXYW5nIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FHTm15eGJqZENkZW5OdF9yc2g2d0tHS0ZxSElzbm1XUjNxcmM0b0ZlY2c4a3c9czk2LWMiLCJnaXZlbl9uYW1lIjoiSG93YXJkIiwiZmFtaWx5X25hbWUiOiJXYW5nIiwiaWF0IjoxNjgyMDMyODM0LCJleHAiOjE2ODIwMzY0MzQsImp0aSI6ImY3NWVjZDI0MGE1YzkwNmIzNjI1OTliOWE0ZWUwNDE2YjQ3ZDVlMTIifQ.qeFtF3_9zlCbexLZzr6iEGz4RXWU2aCSCl9MDddTYzR0hfXMc4S_bpEH1FtFXELhB3zozzMKH-ox3xBU7lLzwFj29jPPkHZOhU-V6GldSwZbVl7iSpm2Sfek9Xw_NW012wEi9CpKSKDlpFIxmGEyGDUBa5lpdowRAbdwVX43Pq_mo_H-tSqfwzI3Gb55CinbABqRHO1yRV_KReKQ0fsi28kuNhMdEtszYJq79XfvdAKpyi7lcghYfU5l-Vsz58VfB9X1AnRDj-Rfn8nGBrLangRfKfYgFTWNTtetXzLlugcif8UseK1AgrhIcIb3f4h2MAXvVXjV8N2b1GUVmyzy6A';
+        const IDInfo = {
+            "iss": "https://appleid.apple.com",
+            "aud": "run.tread.treadmobile",
+            "exp": 1685061766,
+            "iat": 1684975366,
+            "sub": "001728.c8c64b151d4e4cc5af3c3e193dcd0a80.2044",
+            "nonce": "8ee67ef6184c0fa2273264bcbc9dcff886eba620770d46d0d4d162c61da8d7da",
+            "c_hash": "C9BZX97Q0seXMPu7PQLpLw",
+            "email": "kaushiknambi@gmail.com",
+            "email_verified": "true",
+            "auth_time": 1684975366,
+            "nonce_supported": true
+          };
+        let appleVerify;
+        let OAuthStub;
+
+        beforeEach(() => {
+            appleVerify = auth.__get__("appleVerify");
+            OAuthStub = sandbox.stub(appleSignin, "verifyIdToken");
+        });
+
+        it("verify should return the proper information", async function() {
+            OAuthStub.resolves(IDInfo);
+            const result = await appleVerify(token);
+            expect(result).to.deep.equal({
+                "iss": "https://appleid.apple.com",
+                "aud": "run.tread.treadmobile",
+                "exp": 1685061766,
+                "iat": 1684975366,
+                "sub": "001728.c8c64b151d4e4cc5af3c3e193dcd0a80.2044",
+                "nonce": "8ee67ef6184c0fa2273264bcbc9dcff886eba620770d46d0d4d162c61da8d7da",
+                "c_hash": "C9BZX97Q0seXMPu7PQLpLw",
+                "email": "kaushiknambi@gmail.com",
+                "email_verified": "true",
+                "auth_time": 1684975366,
+                "nonce_supported": true
+              });
+        });
+
+        it("verify should throw correctly", async function() {
+            OAuthStub.rejects("");
+            let verifySpy = sandbox.spy(appleVerify);
+            try {
+                await appleVerify(token);
             } catch {
                 expect(verifySpy).to.have.thrown;
                 return;
@@ -203,6 +259,10 @@ describe('Testing authentication', () => {
             let createNewUserIfNecessary;
             let isNewUserStub;
             let createGoogleUserStub;
+            let createAppleUserStub;
+            let authenticationSource;
+            let userDoc;
+
 
             beforeEach(() => {
                 createNewUserIfNecessary = auth.__get__("createNewUserIfNecessary");
@@ -210,12 +270,13 @@ describe('Testing authentication', () => {
                 createGoogleUserStub = sandbox.stub();
                 auth.__set__('isNewUser', isNewUserStub);
                 auth.__set__('createGoogleUser', createGoogleUserStub);
-                res.locals.userInfoFromAuth = {"iss":"https://accounts.google.com","nbf":1682032534,"aud":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","sub":"108876580734941179924","email":"howardw117@gmail.com","email_verified":true,"azp":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","name":"Howard Wang","picture":"https://lh3.googleusercontent.com/a/AGNmyxbjdCdenNt_rsh6wKGKFqHIsnmWR3qrc4oFecg8kw=s96-c","given_name":"Howard","family_name":"Wang","iat":1682032834,"exp":1682036434,"jti":"f75ecd240a5c906b362599b9a4ee0416b47d5e12"};
+                auth.__set__('createAppleUser', createAppleUserStub);
             });
 
-            it("Skips createGoogleUser() if isNewUser() returns false", async function() {
+            it("Skips creating new user if isNewUser() returns false", async function() {
                 isNewUserStub.returns(false);
                 createGoogleUserStub.rejects();
+                createAppleUserStub.rejects();
                 await createNewUserIfNecessary(req, res, next);
                 expect(createGoogleUserStub).to.not.have.been.called;
                 expect(isNewUserStub).to.have.been.called;
@@ -254,9 +315,12 @@ describe('Testing authentication', () => {
                 registerDeviceTokenStub = sandbox.stub();
                 auth.__set__('hasUsernameFromDoc', hasUsernameFromDocStub);
                 auth.__set__('registerDeviceToken', registerDeviceTokenStub);
-                res.locals.usernameDoc = {username: "User#2222"};
-                res.locals.userInfoFromAuth = {"iss":"https://accounts.google.com","nbf":1682032534,"aud":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","sub":"108876580734941179924","email":"howardw117@gmail.com","email_verified":true,"azp":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","name":"Howard Wang","picture":"https://lh3.googleusercontent.com/a/AGNmyxbjdCdenNt_rsh6wKGKFqHIsnmWR3qrc4oFecg8kw=s96-c","given_name":"Howard","family_name":"Wang","iat":1682032834,"exp":1682036434,"jti":"f75ecd240a5c906b362599b9a4ee0416b47d5e12"};
-                req.body.deviceToken = "cIn_pQAWKDe7-_qUzYcF1I:APA91bGBrIU-Ldd0Le9aDPeYJXT2AaUoI3El7FImQacGJMSRsfvJOr3jBWtYVMpmfDEopu42NbGD4ZJGGqJg4cM1ODt04SPyqkjrlCWz-uvaqvf-5_dGH1QHMGi_3ClrFn6Xr_UlP83Y";
+                res.locals.sessionNeededInfo = {
+                    authenticationSource: "google",
+                    userDoc: {username: "User#2222"},
+                    sub: "108876580734941179924",
+                    deviceToken: "cIn_pQAWKDe7-_qUzYcF1I:APA91bGBrIU-Ldd0Le9aDPeYJXT2AaUoI3El7FImQacGJMSRsfvJOr3jBWtYVMpmfDEopu42NbGD4ZJGGqJg4cM1ODt04SPyqkjrlCWz-uvaqvf-5_dGH1QHMGi_3ClrFn6Xr_UlP83Y"
+                }
             });
 
             it("generateLoggedInSession() returns successfully", async function() {

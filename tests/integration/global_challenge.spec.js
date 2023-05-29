@@ -74,6 +74,7 @@ describe('Testing /global_challenge routes', async function () {
         await helpers.deleteUsers(usersInfo);
     })
 
+    
     describe("Test /add_challenge", async function(){
         it("Test succesful creation of challenge", async function(){
             await helpers.addGlobalChallenge(usersInfo[0].cookie, globalChallengeExercise[0])
@@ -98,30 +99,35 @@ describe('Testing /global_challenge routes', async function () {
             await helpers.addGlobalChallenge(usersInfo[0].cookie, globalChallengeExercise[1]);
         })
 
+        
         it("Test when user has no exercises on global challenges", async function(){
-            exercise = {
+            let exercise = {
+                exercise : {
                 exerciseName: "Walking",
                 amount: 5,
-                unit:"m"
-            };
-            await helpers.sendExercise(usersInfo[0].cookie, );
+                unit:"m",
+                }, loggedDate: Date.now()};
+
             await helpers.sendExercise(usersInfo[0].cookie, exercise);
             let results = await helpers.getGlobalChallenges(usersInfo[0].cookie);
             expect(results.length).to.equal(2);
             helpers.expectChallengeValues(results[0], false, 0);
             helpers.expectChallengeValues(results[1], false, 0);
         });
+        
 
         it("Test when user has effected one, but not all global challenges", async function(){
             let exercise = {
                 exerciseName: "Running",
                 amount: 5,
-                unit:"m"
+                unit:"m",
+                loggedDate: Date.now(),
+                dataOrigin: "web",
+                amchor:"ex"
             };
             await helpers.sendExercise(usersInfo[0].cookie, exercise);
             let results = await helpers.getGlobalChallenges(usersInfo[0].cookie);
             expect(results.length).to.equal(2);
-
             let challenge = helpers.findMatchingChallenge(results, globalChallengeExercise[0]);
             helpers.expectChallengeValues(challenge[0], false, 5);
             challenge = helpers.findMatchingChallenge(results, globalChallengeExercise[1]);
@@ -133,12 +139,14 @@ describe('Testing /global_challenge routes', async function () {
                 {
                     exerciseName: "Running",
                     amount: 5,
-                    unit:"m"
+                    unit:"m",
+                    loggedDate: Date.now()
                 },
                 {
                     exerciseName: "Swimming",
                     amount: 6,
-                    unit:"min"
+                    unit:"min",
+                    loggedDate: Date.now()
                 }
             ]
             await helpers.sendExercise(usersInfo[0].cookie, exercises[0]);
@@ -154,7 +162,8 @@ describe('Testing /global_challenge routes', async function () {
             let exercise = {
                 exerciseName: "Swimming",
                 amount: 10,
-                unit:"hr"
+                unit:"hr",
+                loggedDate: Date.now()
             };
             await helpers.sendExercise(usersInfo[0].cookie, exercise);
             let results = await helpers.getGlobalChallenges(usersInfo[0].cookie);
@@ -165,6 +174,7 @@ describe('Testing /global_challenge routes', async function () {
             helpers.expectChallengeValues(challenge[0], true, 600);
         });
     });
+
 
     describe("Test /get_leaderboard", async function(){
         let challenge = "";
@@ -219,7 +229,8 @@ describe('Testing /global_challenge routes', async function () {
                 await helpers.sendExercise(usersInfo[0].cookie,     {
                     unit: "km",
                     amount: 30,
-                    exerciseName: "Running"
+                    exerciseName: "Running",
+                    loggedDate: Date.now()
                 });
                 await helpers.bulkUserSendExercises(usersInfo.slice(1,7), globalChallengeExercise[0]);
                 let results = await helpers.getGlobalLeaderboard(usersInfo[0].cookie, challenge[0].challengeID);

@@ -42,28 +42,6 @@ describe('Testing Medals System', () => {
         sandbox.restore();
     })
 
-    describe("Test addMedal()", () => {
-        let addMedal;
-        beforeEach(() => {
-            req = { "body" :{"unit":"m", "amount": 10, "exerciseName":"Basketball", "level":1}};
-            saveStub = sandbox.stub(mongoose.Model.prototype, 'save');
-            addMedal = medals.__get__("addMedal");
-        });
-
-        it("test addMedal on save success", async function () {
-            saveStub.resolves("");
-            await addMedal(req, res);
-            expect(res.status).to.equal(200);
-        });
-
-        it("test addMedal on save failure", async function () {
-            // invalid unit: l
-            saveStub.rejects("");
-            await addMedal(req, res);
-            expect(res.status).to.equal(500);
-        });
-    });
-
     describe("Test getting medals", () => {
         let medalsList;
         let leanStub;

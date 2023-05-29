@@ -340,7 +340,7 @@ async function sendExerciseList(cookie, dataOrigin, anchor, exerciseList){
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
     .send({dataOrigin: dataOrigin, exerciseList: exerciseList, uniqueExercises:uniqueExercises, anchor:anchor})
-    .then(res => {status = res.status})
+    .then(res => {status =  res.status})
     return status;
 }
 
@@ -553,6 +553,7 @@ function expectChallengeValues(challenge, expectedCompleted, expectedProgress){
 }
 
 async function bulkUserSendExercises(usersInfo, data){
+    data.loggedDate = Date.now()
     for(let i = 0; i< usersInfo.length; i++){
         data.amount = i + 1;
         await sendExercise(usersInfo[i].cookie,data);

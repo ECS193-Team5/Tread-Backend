@@ -51,6 +51,7 @@ async function updateGlobalChallenges(username, exerciseLog) {
     const incrementObj = {
         progress : exerciseLog.exercise.convertedAmount
     }
+  
     const needUpdatingGlobalChallenge = await Global_challenge.findOne({
         'exercise.exerciseName' : exerciseLog.exercise.exerciseName,
         'exercise.unitType' : exerciseLog.exercise.unitType,
@@ -134,8 +135,7 @@ async function addExerciseToLog(req, res, next) {
             newExerciseLog.save(),
             updateChallenges(username,  newExerciseLog),
             updateGlobalChallenges(username, newExerciseLog),
-            updateMedalsWithExercise(username, newExerciseLog.exercise),
-            touchDataOriginAnchor(username, dataOrigin, anchor)
+            updateMedalsWithExercise(username, newExerciseLog.exercise)
         ]);
     } catch (err) {
         return res.status(500).json("Error: " + err);
@@ -196,6 +196,7 @@ function getManyChallengeCompletionQuery(username, uniqueExercises) {
 
 async function updateManyChallengesAndCompletion(updateChallengeQuery, challengeCompletionQuery) {
     const updateResults = await Challenge_progress.bulkWrite(updateChallengeQuery, {ordered: false});
+
     if(updateResults.modifiedCount === 0){
         return
     }

@@ -5,8 +5,8 @@
   "scripts": {
     "test": "mocha ./tests/*.spec.js --exit",
     "test_cov": "nyc mocha ./tests/*.spec.js --exit",
-    "integration_test": "mocha ./tests/integration/sign_up.spec.js  --timeout 20000",
-    "integration_test_cov": "nyc mocha ./tests/integration/auth.spec.js --timeout 25000",
+    "integration_test": "mocha ./tests/integration/*.spec.js  --timeout 20000",
+    "integration_test_cov": "nyc mocha ./tests/integration/*.js --timeout 25000",
     "unit_test": "mocha ./tests/unit/auth.spec.js  --timeout 20000",
     "unit_test_cov": "nyc mocha ./tests/unit/*.spec.js --timeout 25000",
     "start": "node index.js",

@@ -4,7 +4,6 @@ const { registerDeviceToken, removeDeviceToken } = require("./notifications.js")
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require("crypto");
 const appleSignin = require("apple-signin-auth");
-const { userInfo } = require("os");
 const CLIENT_ID = process.env.CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
 const APPLE_SERVICE_ID = 'run.tread.applesignin';
@@ -34,11 +33,18 @@ async function appleVerify(token, nonce){
   return userInfoFromAuth;
 }
 
-function hasUsernameFromDoc(userDoc) {
-  if (userDoc === null || userDoc.username === null) {
-    return false;
+async function verify(authenticationSource, IDToken, nonce) {
+  if(authenticationSource === 'google') {
+    return await googleVerify(IDToken);
+  } else if (authenticationSource === 'apple') {
+    return await appleVerify(IDToken, nonce);
   }
-  return true;
+}
+
+async function getUserDocFromAuthSub(authenticationSource, authenticationSub) {
+  return await User.findOne(
+    { authenticationSource: authenticationSource, authenticationID: authenticationSub },
+    'username').lean();
 }
 
 function isNewUser(userDoc) {
@@ -87,18 +93,16 @@ async function createGoogleUser(userInfoFromAuth) {
   await createUser(userInfo);
 }
 
-async function verify(authenticationSource, IDToken, nonce) {
-  if(authenticationSource === 'google') {
-    return await googleVerify(IDToken);
-  } else if (authenticationSource === 'apple') {
-    return await appleVerify(IDToken, nonce);
+async function createNewUserIfNecessary(authenticationSource, userInfoFromAuth, userDoc, fullName) {
+  if(!isNewUser(userDoc)) {
+    return
   }
-}
 
-async function getUserDocFromAuthSub(authenticationSource, authenticationSub) {
-  return await User.findOne(
-    { authenticationSource: authenticationSource, authenticationID: authenticationSub },
-    'username').lean();
+  if (authenticationSource === 'google') {
+    await createGoogleUser(userInfoFromAuth);
+  } else if (authenticationSource === 'apple') {
+    await createAppleUser(userInfoFromAuth, fullName)
+  }
 }
 
 async function login(authenticationSource, IDToken, nonce, fullName) {
@@ -114,18 +118,6 @@ async function login(authenticationSource, IDToken, nonce, fullName) {
   }
 
   return sessionNeededInfo;
-}
-
-async function createNewUserIfNecessary(authenticationSource, userInfoFromAuth, userDoc, fullName) {
-  if(!isNewUser(userDoc)) {
-    return
-  }
-
-  if (authenticationSource === 'google') {
-    await createGoogleUser(userInfoFromAuth);
-  } else if (authenticationSource === 'apple') {
-    await createAppleUser(userInfoFromAuth, fullName)
-  }
 }
 
 async function appleLogin(req, res, next) {
@@ -160,6 +152,12 @@ async function googleLogin(req, res, next) {
   }
 }
 
+function hasUsernameFromDoc(userDoc) {
+  if (userDoc === null || userDoc.username === null) {
+    return false;
+  }
+  return true;
+}
 
 async function generateLoggedInSession(req, res, next) {
 
