@@ -21,19 +21,21 @@ describe("Testing notifications", () => {
     describe("Testing registerDeviceToken()", () => {
         let registerDeviceToken;
         let updateStub;
+        let dateStub;
         const twoMonthsInMiliSeconds = 1000*60*60*24*60;4444;
         const username = 'user#2222';
         const deviceToken = 'eyJhbGciOiJSUzI1NiIsImtpZCI6Ijk2OTcxODA4Nzk2ODI5YTk3MmU3OWE5ZDFhOWZmZjExY2Q2MWIxZTMiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJuYmYiOjE2ODIwMzI1MzQsImF1ZCI6IjE3MTU3MTY1Mzg2OS1sczVpcWRsbzFib2U2aXNqN3Ixa29vMnR2aTU3ZzYybS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjEwODg3NjU4MDczNDk0MTE3OTkyNCIsImVtYWlsIjoiaG93YXJkdzExN0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXpwIjoiMTcxNTcxNjUzODY5LWxzNWlxZGxvMWJvZTZpc2o3cjFrb28ydHZpNTdnNjJtLmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tIiwibmFtZSI6Ikhvd2FyZCBXYW5nIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FHTm15eGJqZENkZW5OdF9yc2g2d0tHS0ZxSElzbm1XUjNxcmM0b0ZlY2c4a3c9czk2LWMiLCJnaXZlbl9uYW1lIjoiSG93YXJkIiwiZmFtaWx5X25hbWUiOiJXYW5nIiwiaWF0IjoxNjgyMDMyODM0LCJleHAiOjE2ODIwMzY0MzQsImp0aSI6ImY3NWVjZDI0MGE1YzkwNmIzNjI1OTliOWE0ZWUwNDE2YjQ3ZDVlMTIifQ.qeFtF3_9zlCbexLZzr6iEGz4RXWU2aCSCl9MDddTYzR0hfXMc4S_bpEH1FtFXELhB3zozzMKH-ox3xBU7lLzwFj29jPPkHZOhU-V6GldSwZbVl7iSpm2Sfek9Xw_NW012wEi9CpKSKDlpFIxmGEyGDUBa5lpdowRAbdwVX43Pq_mo_H-tSqfwzI3Gb55CinbABqRHO1yRV_KReKQ0fsi28kuNhMdEtszYJq79XfvdAKpyi7lcghYfU5l-Vsz58VfB9X1AnRDj-Rfn8nGBrLangRfKfYgFTWNTtetXzLlugcif8UseK1AgrhIcIb3f4h2MAXvVXjV8N2b1GUVmyzy6A'
         beforeEach(() => {
             registerDeviceToken = notifications.__get__("registerDeviceToken");
             updateStub = sandbox.stub(mongoose.Model, "updateOne");
+            dateStub = sandbox.stub(Date, "now").returns(1);
         });
 
         it("calls updateOne()", async function() {
             await registerDeviceToken(username, deviceToken);
             expect(updateStub).to.have.been.calledWith({
                 deviceToken: deviceToken,
-            }, {username: username, expires: Date.now() + twoMonthsInMiliSeconds},
+            }, {username: username, expires: 1 + twoMonthsInMiliSeconds},
             {upsert: true});
         });
 
@@ -47,7 +49,7 @@ describe("Testing notifications", () => {
             expect(registerDeviceTokenSpy).to.have.been.thrown;
             expect(updateStub).to.have.been.calledWith({
                 deviceToken: deviceToken,
-            }, {username: username, expires: Date.now() + twoMonthsInMiliSeconds},
+            }, {username: username, expires: 1 + twoMonthsInMiliSeconds},
             {upsert: true});
         });
     });

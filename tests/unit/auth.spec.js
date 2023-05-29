@@ -262,12 +262,15 @@ describe('Testing authentication', () => {
             let createAppleUserStub;
             let authenticationSource;
             let userDoc;
+            let userInfoFromAuth = {"iss":"https://accounts.google.com","nbf":1682032534,"aud":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","sub":"108876580734941179924","email":"howardw117@gmail.com","email_verified":true,"azp":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","name":"Howard Wang","picture":"https://lh3.googleusercontent.com/a/AGNmyxbjdCdenNt_rsh6wKGKFqHIsnmWR3qrc4oFecg8kw=s96-c","given_name":"Howard","family_name":"Wang","iat":1682032834,"exp":1682036434,"jti":"f75ecd240a5c906b362599b9a4ee0416b47d5e12"};
+            let fullName;
 
 
             beforeEach(() => {
                 createNewUserIfNecessary = auth.__get__("createNewUserIfNecessary");
                 isNewUserStub = sandbox.stub();
                 createGoogleUserStub = sandbox.stub();
+                createAppleUserStub = sandbox.stub();
                 auth.__set__('isNewUser', isNewUserStub);
                 auth.__set__('createGoogleUser', createGoogleUserStub);
                 auth.__set__('createAppleUser', createAppleUserStub);
@@ -277,30 +280,56 @@ describe('Testing authentication', () => {
                 isNewUserStub.returns(false);
                 createGoogleUserStub.rejects();
                 createAppleUserStub.rejects();
-                await createNewUserIfNecessary(req, res, next);
+                await createNewUserIfNecessary(authenticationSource, userInfoFromAuth, userDoc);
                 expect(createGoogleUserStub).to.not.have.been.called;
                 expect(isNewUserStub).to.have.been.called;
-                expect(next).to.have.been.called;
             });
 
-            it("Returns status 500 if createGoogleUser() rejects", async function() {
-                isNewUserStub.returns(true);
-                createGoogleUserStub.rejects("error");
-                await createNewUserIfNecessary(req, res, next);
-                expect(createGoogleUserStub).to.have.been.called;
-                expect(isNewUserStub).to.have.been.called;
-                expect(next).to.not.have.been.called;
-                expect(res.status).to.equal(500);
-                expect(JSON.parse(res.data)).to.deep.equal("Error: error");
+            describe("createGoogleUser() branch", () => {
+                beforeEach(() => {
+                    authenticationSource = "google";
+                })
+                it(" if createGoogleUser() rejects", async function() {
+                    isNewUserStub.returns(true);
+                    createGoogleUserStub.rejects("error");
+                    try {
+                        await createNewUserIfNecessary(authenticationSource, userInfoFromAuth, userDoc);
+                    } catch {}
+                    expect(createGoogleUserStub).to.have.thrown;
+                    expect(isNewUserStub).to.have.been.called;
+                });
+
+                it("CreateNewUserIftNecessary() returns successfully", async function() {
+                    isNewUserStub.returns(true);
+                    createGoogleUserStub.resolves();
+                    await createNewUserIfNecessary(authenticationSource, userInfoFromAuth, userDoc);
+                    expect(createGoogleUserStub).to.have.been.called;
+                    expect(isNewUserStub).to.have.been.called;
+                });
             });
 
-            it("CreateNewUserIftNecessary() returns successfully", async function() {
-                isNewUserStub.returns(true);
-                createGoogleUserStub.resolves();
-                await createNewUserIfNecessary(req, res, next);
-                expect(createGoogleUserStub).to.have.been.called;
-                expect(isNewUserStub).to.have.been.called;
-                expect(next).to.have.been.called;
+            describe("createAppleUser() branch", () => {
+                beforeEach(() => {
+                    authenticationSource = "apple";
+                    fullName = { givenName: "John", familyName: "Doe" }
+                })
+                it("Returns status 500 if createAppleUser() rejects", async function() {
+                    isNewUserStub.returns(true);
+                    createAppleUserStub.rejects("error");
+                    try {
+                        await createNewUserIfNecessary(authenticationSource, userInfoFromAuth, userDoc, fullName);
+                    } catch {}
+                    expect(createAppleUserStub).to.have.thrown;
+                    expect(isNewUserStub).to.have.been.called;
+                });
+
+                it("CreateNewUserIftNecessary() returns successfully", async function() {
+                    isNewUserStub.returns(true);
+                    createAppleUserStub.resolves();
+                    await createNewUserIfNecessary(authenticationSource, userInfoFromAuth, userDoc, fullName);
+                    expect(createAppleUserStub).to.have.been.called;
+                    expect(isNewUserStub).to.have.been.called;
+                });
             });
         });
 
