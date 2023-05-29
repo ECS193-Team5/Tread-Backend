@@ -224,34 +224,71 @@ describe('Testing authentication', () => {
             next = sandbox.stub();
         });
 
-        describe("Testing verifyUserAndFindUsername()", () => {
+        describe("Testing login()", () => {
+            let login;
             let verifyStub;
-            let findOneStub;
-            let verifyUserAndFindUsername;
-            let leanStub;
+            let getUserDocFromAuthSubStub;
+            let authenticationSource = "google";
+            let createNewUserIfNecessaryStub;
+            let nonce;
+            let fullName;
+            let IDToken = 'eyJhbGciOiJSUzI1NiIsImtpZCI6Ijk2OTcxODA4Nzk2ODI5YTk3MmU3OWE5ZDFhOWZmZjExY2Q2MWIxZTMiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJuYmYiOjE2ODIwMzI1MzQsImF1ZCI6IjE3MTU3MTY1Mzg2OS1sczVpcWRsbzFib2U2aXNqN3Ixa29vMnR2aTU3ZzYybS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjEwODg3NjU4MDczNDk0MTE3OTkyNCIsImVtYWlsIjoiaG93YXJkdzExN0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXpwIjoiMTcxNTcxNjUzODY5LWxzNWlxZGxvMWJvZTZpc2o3cjFrb28ydHZpNTdnNjJtLmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tIiwibmFtZSI6Ikhvd2FyZCBXYW5nIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FHTm15eGJqZENkZW5OdF9yc2g2d0tHS0ZxSElzbm1XUjNxcmM0b0ZlY2c4a3c9czk2LWMiLCJnaXZlbl9uYW1lIjoiSG93YXJkIiwiZmFtaWx5X25hbWUiOiJXYW5nIiwiaWF0IjoxNjgyMDMyODM0LCJleHAiOjE2ODIwMzY0MzQsImp0aSI6ImY3NWVjZDI0MGE1YzkwNmIzNjI1OTliOWE0ZWUwNDE2YjQ3ZDVlMTIifQ.qeFtF3_9zlCbexLZzr6iEGz4RXWU2aCSCl9MDddTYzR0hfXMc4S_bpEH1FtFXELhB3zozzMKH-ox3xBU7lLzwFj29jPPkHZOhU-V6GldSwZbVl7iSpm2Sfek9Xw_NW012wEi9CpKSKDlpFIxmGEyGDUBa5lpdowRAbdwVX43Pq_mo_H-tSqfwzI3Gb55CinbABqRHO1yRV_KReKQ0fsi28kuNhMdEtszYJq79XfvdAKpyi7lcghYfU5l-Vsz58VfB9X1AnRDj-Rfn8nGBrLangRfKfYgFTWNTtetXzLlugcif8UseK1AgrhIcIb3f4h2MAXvVXjV8N2b1GUVmyzy6A';
 
             beforeEach(() => {
-                req.headers.authorization = 'eyJhbGciOiJSUzI1NiIsImtpZCI6Ijk2OTcxODA4Nzk2ODI5YTk3MmU3OWE5ZDFhOWZmZjExY2Q2MWIxZTMiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJuYmYiOjE2ODIwMzI1MzQsImF1ZCI6IjE3MTU3MTY1Mzg2OS1sczVpcWRsbzFib2U2aXNqN3Ixa29vMnR2aTU3ZzYybS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjEwODg3NjU4MDczNDk0MTE3OTkyNCIsImVtYWlsIjoiaG93YXJkdzExN0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXpwIjoiMTcxNTcxNjUzODY5LWxzNWlxZGxvMWJvZTZpc2o3cjFrb28ydHZpNTdnNjJtLmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tIiwibmFtZSI6Ikhvd2FyZCBXYW5nIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FHTm15eGJqZENkZW5OdF9yc2g2d0tHS0ZxSElzbm1XUjNxcmM0b0ZlY2c4a3c9czk2LWMiLCJnaXZlbl9uYW1lIjoiSG93YXJkIiwiZmFtaWx5X25hbWUiOiJXYW5nIiwiaWF0IjoxNjgyMDMyODM0LCJleHAiOjE2ODIwMzY0MzQsImp0aSI6ImY3NWVjZDI0MGE1YzkwNmIzNjI1OTliOWE0ZWUwNDE2YjQ3ZDVlMTIifQ.qeFtF3_9zlCbexLZzr6iEGz4RXWU2aCSCl9MDddTYzR0hfXMc4S_bpEH1FtFXELhB3zozzMKH-ox3xBU7lLzwFj29jPPkHZOhU-V6GldSwZbVl7iSpm2Sfek9Xw_NW012wEi9CpKSKDlpFIxmGEyGDUBa5lpdowRAbdwVX43Pq_mo_H-tSqfwzI3Gb55CinbABqRHO1yRV_KReKQ0fsi28kuNhMdEtszYJq79XfvdAKpyi7lcghYfU5l-Vsz58VfB9X1AnRDj-Rfn8nGBrLangRfKfYgFTWNTtetXzLlugcif8UseK1AgrhIcIb3f4h2MAXvVXjV8N2b1GUVmyzy6A';
-                verifyUserAndFindUsername = auth.__get__("verifyUserAndFindUsername");
+                login = auth.__get__("login");
                 verifyStub = sandbox.stub();
+                getUserDocFromAuthSubStub = sandbox.stub();
+                createNewUserIfNecessaryStub = sandbox.stub();
                 auth.__set__('verify', verifyStub);
-                leanStub = sandbox.stub();
-                findOneStub = sandbox.stub(mongoose.Model, "findOne").returns({lean: leanStub});
+                auth.__set__('getUserDocFromAuthSub', getUserDocFromAuthSubStub);
+                auth.__set__('createNewUserIfNecessary', createNewUserIfNecessaryStub);
             });
-            it("verifyUserAndFindUsername should return 401 if verify() fails", async function() {
+
+            it("login() should throw verify() rejects", async function() {
                 verifyStub.rejects('test error');
-                leanStub.resolves('should not appear');
-                await verifyUserAndFindUsername(req, res, next);
-                expect(res.status).to.equal(401);
-                expect(JSON.parse(res.data)).to.equal('Error: test error')
-                expect(res.locals.usernameDoc).to.not.equal('should not appear')
+                getUserDocFromAuthSubStub.resolves('should not appear');
+                createNewUserIfNecessaryStub.resolves('');
+                try {
+                    await login(req, res, next);
+                } catch {}
+                expect(verifyStub).to.have.thrown;
+                expect(getUserDocFromAuthSubStub).to.not.have.been.called;
+                expect(createNewUserIfNecessaryStub).to.not.have.been.called;
             });
-            it("verifyUserAndFindUsername returns correctly", async function() {
+
+            it("login() should throw getUserDocFromAuthSub() rejects", async function() {
                 verifyStub.resolves({"iss":"https://accounts.google.com","nbf":1682032534,"aud":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","sub":"108876580734941179924","email":"howardw117@gmail.com","email_verified":true,"azp":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","name":"Howard Wang","picture":"https://lh3.googleusercontent.com/a/AGNmyxbjdCdenNt_rsh6wKGKFqHIsnmWR3qrc4oFecg8kw=s96-c","given_name":"Howard","family_name":"Wang","iat":1682032834,"exp":1682036434,"jti":"f75ecd240a5c906b362599b9a4ee0416b47d5e12"});
-                leanStub.resolves({username: "test#2222"});
-                await verifyUserAndFindUsername(req, res, next);
-                expect(res.locals.userInfoFromAuth).to.deep.equal({"iss":"https://accounts.google.com","nbf":1682032534,"aud":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","sub":"108876580734941179924","email":"howardw117@gmail.com","email_verified":true,"azp":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","name":"Howard Wang","picture":"https://lh3.googleusercontent.com/a/AGNmyxbjdCdenNt_rsh6wKGKFqHIsnmWR3qrc4oFecg8kw=s96-c","given_name":"Howard","family_name":"Wang","iat":1682032834,"exp":1682036434,"jti":"f75ecd240a5c906b362599b9a4ee0416b47d5e12"})
-                expect(res.locals.usernameDoc).to.deep.equal({username: 'test#2222'});
+                getUserDocFromAuthSubStub.rejects();
+                createNewUserIfNecessaryStub.resolves('');
+                try {
+                    await login(req, res, next);
+                } catch {}
+                expect(verifyStub).to.have.been.called;
+                expect(getUserDocFromAuthSubStub).to.have.thrown;
+                expect(createNewUserIfNecessaryStub).to.not.have.been.called;
+            });
+
+            it("login() should throw getUserDocFromAuthSub() rejects", async function() {
+                verifyStub.resolves({"iss":"https://accounts.google.com","nbf":1682032534,"aud":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","sub":"108876580734941179924","email":"howardw117@gmail.com","email_verified":true,"azp":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","name":"Howard Wang","picture":"https://lh3.googleusercontent.com/a/AGNmyxbjdCdenNt_rsh6wKGKFqHIsnmWR3qrc4oFecg8kw=s96-c","given_name":"Howard","family_name":"Wang","iat":1682032834,"exp":1682036434,"jti":"f75ecd240a5c906b362599b9a4ee0416b47d5e12"});
+                getUserDocFromAuthSubStub.resolves({username: "test#2222"});
+                createNewUserIfNecessaryStub.rejects('');
+                try {
+                    await login(req, res, next);
+                } catch {}
+                expect(verifyStub).to.have.been.called;
+                expect(getUserDocFromAuthSubStub).to.have.been.called;
+                expect(createNewUserIfNecessaryStub).to.have.thrown;
+            });
+
+            it("login() returns correctly", async function() {
+                verifyStub.resolves({"iss":"https://accounts.google.com","nbf":1682032534,"aud":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","sub":"108876580734941179924","email":"howardw117@gmail.com","email_verified":true,"azp":"171571653869-ls5iqdlo1boe6isj7r1koo2tvi57g62m.apps.googleusercontent.com","name":"Howard Wang","picture":"https://lh3.googleusercontent.com/a/AGNmyxbjdCdenNt_rsh6wKGKFqHIsnmWR3qrc4oFecg8kw=s96-c","given_name":"Howard","family_name":"Wang","iat":1682032834,"exp":1682036434,"jti":"f75ecd240a5c906b362599b9a4ee0416b47d5e12"});
+                getUserDocFromAuthSubStub.resolves({username: "test#2222"});
+                const sessionNeededInfo = await login(authenticationSource, IDToken, nonce, fullName);
+                expect(sessionNeededInfo).to.deep.equal({
+                    authenticationSource: "google",
+                    userDoc: {username: "test#2222"},
+                    sub: "108876580734941179924",
+                });
             });
         });
 
@@ -289,7 +326,7 @@ describe('Testing authentication', () => {
                 beforeEach(() => {
                     authenticationSource = "google";
                 })
-                it(" if createGoogleUser() rejects", async function() {
+                it("Throws if createGoogleUser() rejects", async function() {
                     isNewUserStub.returns(true);
                     createGoogleUserStub.rejects("error");
                     try {
@@ -313,7 +350,7 @@ describe('Testing authentication', () => {
                     authenticationSource = "apple";
                     fullName = { givenName: "John", familyName: "Doe" }
                 })
-                it("Returns status 500 if createAppleUser() rejects", async function() {
+                it("Throws if createAppleUser() rejects", async function() {
                     isNewUserStub.returns(true);
                     createAppleUserStub.rejects("error");
                     try {
@@ -347,9 +384,9 @@ describe('Testing authentication', () => {
                 res.locals.sessionNeededInfo = {
                     authenticationSource: "google",
                     userDoc: {username: "User#2222"},
-                    sub: "108876580734941179924",
-                    deviceToken: "cIn_pQAWKDe7-_qUzYcF1I:APA91bGBrIU-Ldd0Le9aDPeYJXT2AaUoI3El7FImQacGJMSRsfvJOr3jBWtYVMpmfDEopu42NbGD4ZJGGqJg4cM1ODt04SPyqkjrlCWz-uvaqvf-5_dGH1QHMGi_3ClrFn6Xr_UlP83Y"
+                    sub: "108876580734941179924"
                 }
+                req.body.deviceToken = "cIn_pQAWKDe7-_qUzYcF1I:APA91bGBrIU-Ldd0Le9aDPeYJXT2AaUoI3El7FImQacGJMSRsfvJOr3jBWtYVMpmfDEopu42NbGD4ZJGGqJg4cM1ODt04SPyqkjrlCWz-uvaqvf-5_dGH1QHMGi_3ClrFn6Xr_UlP83Y";
             });
 
             it("generateLoggedInSession() returns successfully", async function() {
