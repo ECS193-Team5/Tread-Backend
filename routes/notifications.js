@@ -67,18 +67,18 @@ async function updateNotificationLog(usernames, message) {
         username: username,
         message: message
     }));
-    try {
-        await Notifications.insertMany(notificationLogs, {ordered: false});
-    } catch(err){
-        console.log(err);
-    }
+    await Notifications.insertMany(notificationLogs, {ordered: false});
 }
 
 async function sendNotificationToUsers(usernames, message, page) {
-    await Promise.all([
-        sendPushNotificationToUsers(usernames, message, page),
-        updateNotificationLog(usernames, message)
-    ])
+    try {
+        await Promise.all([
+            sendPushNotificationToUsers(usernames, message, page),
+            updateNotificationLog(usernames, message)
+        ]);
+    } catch (err) {
+        console.log(err);
+    }
 }
 
 async function getNotifications(req, res) {

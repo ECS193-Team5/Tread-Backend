@@ -265,7 +265,7 @@ describe("Testing notifications", () => {
         });
     });
 
-    describe("Testing sendPushNotitficationToUsers()", () => {
+    describe("Testing sendPushNotificationToUsers()", () => {
         let usernames = ['user1', 'user2'];
         let messageBody = 'notification body';
         let page = 'page';
@@ -330,6 +330,212 @@ describe("Testing notifications", () => {
         let usernames;
         let message;
         let insertManyStub;
-        
+        let updateNotificationLog;
+
+        beforeEach(() => {
+            updateNotificationLog = notifications.__get__("updateNotificationLog");
+            insertManyStub = sandbox.stub(mongoose.Model, "insertMany");
+        });
+
+        it("updateNotificationLog() inserts notifications correctly", async function() {
+            usernames = ["user1", "user2"];
+            message = "message";
+            insertManyStub.resolves();
+            await updateNotificationLog(usernames, message);
+            expect(insertManyStub).to.have.been.calledWith([
+                { username: "user1", message: "message" },
+                { username: "user2", message: "message" }
+            ], {ordered: false});
+        });
+
+        it("updateNotificationLog() throws when insertMany() rejects", async function() {
+            usernames = ["user1", "user2"];
+            message = "message";
+            insertManyStub.rejects();
+            try {
+                await updateNotificationLog(usernames, message);
+            } catch { }
+            expect(insertManyStub).to.have.been.calledWith([
+                { username: "user1", message: "message" },
+                { username: "user2", message: "message" }
+            ], {ordered: false});
+            expect(insertManyStub).to.have.thrown;
+        });
+    });
+
+    describe("Testing sendNotificationToUsers", () => {
+        let sendNotificationToUsers;
+        const usernames = ["user1", "user2"];
+        const message = "message";
+        const page = "page";
+        let sendPushNotificationToUsersStub;
+        let updateNotificationLogStub;
+
+        beforeEach(() => {
+            sendNotificationToUsers = notifications.__get__("sendNotificationToUsers");
+            sendPushNotificationToUsersStub = sandbox.stub();
+            updateNotificationLogStub = sandbox.stub();
+            notifications.__set__("sendPushNotificationToUsers", sendPushNotificationToUsersStub);
+            notifications.__set__("updateNotificationLog", updateNotificationLogStub);
+        });
+
+        it("sendNotificationToUsers() runs correctly", async function() {
+            await sendNotificationToUsers(usernames, message, page);
+            expect(sendPushNotificationToUsersStub).to.have.been.calledWith(
+                usernames, message, page
+            );
+            expect(updateNotificationLogStub).to.have.been.calledWith(
+                usernames, message
+            );
+        });
+
+        it("sendNotificationToUsers() throws when sendPushNotificationToUsers throws", async function() {
+            sendPushNotificationToUsersStub.rejects();
+            updateNotificationLogStub.resolves();
+            await sendNotificationToUsers(usernames, message, page);
+            expect(sendPushNotificationToUsersStub).to.have.been.calledWith(
+                usernames, message, page
+            );
+            expect(updateNotificationLogStub).to.have.been.calledWith(
+                usernames, message
+            );
+            expect(sendPushNotificationToUsersStub).to.have.thrown;
+        });
+
+        it("sendNotificationToUsers() throws when updateNotificationLog throws", async function() {
+            sendPushNotificationToUsersStub.rejects();
+            updateNotificationLogStub.resolves();
+            await sendNotificationToUsers(usernames, message, page);
+            expect(sendPushNotificationToUsersStub).to.have.been.calledWith(
+                usernames, message, page
+            );
+            expect(updateNotificationLogStub).to.have.been.calledWith(
+                usernames, message
+            );
+            expect(updateNotificationLogStub).to.have.thrown;
+        });
+    });
+
+    describe("Functions that use req, res", () => {
+        beforeEach(() => {
+            req = {
+                body: {},
+                session: {}
+            }
+
+            res = {
+                query: {},
+                headers: {},
+                data: null,
+                status: 0,
+                json(payload) {
+                    this.data = JSON.stringify(payload)
+                    return this
+                },
+                cookie(name, value, options) {
+                    this.headers[name] = value
+                },
+                sendStatus(x) {
+                    this.status = x
+                },
+                status(x) {
+                    this.status = x
+                    return this
+                }
+            }
+        });
+
+        describe("Testing getNotifications()", () => {
+            let findStub;
+            let sortStub;
+            let leanStub;
+            let getNotifications;
+
+            beforeEach(() => {
+                req.session.username = "user";
+                getNotifications = notifications.__get__("getNotifications")
+                leanStub = sandbox.stub();
+                sortStub = sandbox.stub().returns({lean: leanStub});
+                findStub = sandbox.stub(mongoose.Model, "find").returns({sort: sortStub});
+            });
+
+            it("getNotifications() returns correctly", async function() {
+                leanStub.resolves("data");
+                await getNotifications(req, res);
+                expect(findStub).to.have.been.calledWith({username: req.session.username});
+                expect(res.status).to.equal(200);
+                expect(JSON.parse(res.data)).to.deep.equal("data");
+            });
+            it("getNotifications() returns 500 on error", async function() {
+                leanStub.rejects();
+                await getNotifications(req, res);
+                expect(findStub).to.have.been.calledWith({username: req.session.username});
+                expect(res.status).to.equal(500);
+            });
+        });
+
+        describe("Testing deleteNotification()", () => {
+            let deleteOneStub;
+            let leanStub;
+            let deleteNotification;
+
+            beforeEach(() => {
+                req.session.username = "user";
+                req.body.notificationID = "a12345";
+                deleteNotification = notifications.__get__("deleteNotification")
+                leanStub = sandbox.stub();
+                deleteOneStub = sandbox.stub(mongoose.Model, "deleteOne").returns({lean: leanStub});
+            });
+
+            it("deleteNotification() returns correctly", async function() {
+                leanStub.resolves("data");
+                await deleteNotification(req, res);
+                expect(deleteOneStub).to.have.been.calledWith({
+                    _id: req.body.notificationID,
+                    username: req.session.username
+                });
+                expect(res.status).to.equal(200);
+            });
+            it("deleteNotification() returns 500 on error", async function() {
+                leanStub.rejects();
+                await deleteNotification(req, res);
+                expect(deleteOneStub).to.have.been.calledWith({
+                    _id: req.body.notificationID,
+                    username: req.session.username
+                });
+                expect(res.status).to.equal(500);
+            });
+        });
+
+        describe("Testing deleteAllNotifications()", () => {
+            let deleteOneStub;
+            let leanStub;
+            let deleteAllNotifications;
+
+            beforeEach(() => {
+                req.session.username = "user";
+                req.body.notificationID = "a12345";
+                deleteAllNotifications = notifications.__get__("deleteAllNotifications")
+                leanStub = sandbox.stub();
+                deleteOneStub = sandbox.stub(mongoose.Model, "deleteMany").returns({lean: leanStub});
+            });
+
+            it("deleteAllNotifications() returns correctly", async function() {
+                leanStub.resolves("data");
+                await deleteAllNotifications(req, res);
+                expect(deleteOneStub).to.have.been.calledWith({
+                    username: req.session.username
+                });
+                expect(res.status).to.equal(200);
+            });
+            it("deleteAllNotifications() returns 500 on error", async function() {
+                leanStub.rejects();
+                await deleteAllNotifications(req, res);
+                expect(deleteOneStub).to.have.been.calledWith({
+                    username: req.session.username
+                });
+                expect(res.status).to.equal(500);
+            });
+        });
     });
 });
