@@ -61,7 +61,9 @@ describe("Testing cloudinary", () =>{
     describe("Testing deleteImage()", () => {
         let deleteImage;
         let destroyStub;
+        const folder = 'folder';
         const publicID = "User#2222";
+        const path = folder + '/' + publicID;
         const deleteOptions = {
             resource_type: 'image',
             type: 'upload',
@@ -73,19 +75,19 @@ describe("Testing cloudinary", () =>{
         });
 
         it("destroy() is called", async function() {
-            await deleteImage(publicID);
-            expect(destroyStub).to.have.been.calledWith(publicID, deleteOptions);
+            await deleteImage(publicID, folder);
+            expect(destroyStub).to.have.been.calledWith(path, deleteOptions);
         });
 
         it("rejects when destroy() rejects", async function() {
             let deleteImageSpy = sandbox.spy(deleteImage);
             destroyStub.rejects();
             try {
-                await deleteImage(publicID);
+                await deleteImage(publicID, folder);
             } catch {
             }
             expect(deleteImageSpy).to.have.thrown;
-            expect(destroyStub).to.have.been.calledWith(publicID, deleteOptions);
+            expect(destroyStub).to.have.been.calledWith(path, deleteOptions);
         });
     });
 });

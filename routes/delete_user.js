@@ -12,6 +12,7 @@ const User_data_origin = require("../models/user_data_origin.model");
 const Notifications = require("../models/notifications.model");
 const { logout } = require("./auth.js");
 const { deleteImage } = require("./cloudinary.js")
+const { deleteLeagueAndInformation } = require("./league.js")
 
 
 
@@ -59,7 +60,12 @@ async function deleteUserChallenges(username) {
 
 async function removeUserFromLeagues(username) {
     let leagueQueries = [];
-    leagueQueries.push(createQueryToDeleteMany({ owner: username }));
+
+    const ownedLeagueIDs = await League.find({ owner: username }, { "_id" : 1 });
+    const deleteLeaguePromises = ownedLeagueIDs.map( leagueIDDoc =>
+        deleteLeagueAndInformation(username, leagueIDDoc._id.toString())
+    );
+    await Promise.all(deleteLeaguePromises);
     leagueQueries.push(createQueryToPullFieldFromMany({ admin: username }));
     leagueQueries.push(createQueryToPullFieldFromMany({ members: username }));
     leagueQueries.push(createQueryToPullFieldFromMany({ sentRequests: username }));
@@ -80,7 +86,7 @@ router.delete('/', async (req, res, next) => {
             Medal_progress.deleteMany({ username: username }),
             User_devices.deleteMany({ username: username }),
             Exercise_log.deleteMany({ username: username }),
-            deleteImage(username.replace('#', '_')),
+            deleteImage(username.replace('#', '_'), 'profilePictures'),
             User_data_origin.deleteOne({ username: username }),
             Notifications.deleteMany({ username: username })
         ]);

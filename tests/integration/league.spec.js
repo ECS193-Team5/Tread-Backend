@@ -74,7 +74,7 @@ describe('Testing /league routes', () => {
                 "leagueName": "name",
                 "leagueType": "public",
                 "leagueDescription": "description",
-                "leaguePicture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png"
+                "leaguePicture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_6380.png"
             };
 
             await request.post("/league/create_league")
@@ -211,7 +211,7 @@ describe('Testing /league routes', () => {
             .post("/league/update_picture")
             .set("Cookie", usersInfo[0].cookie)
             .set('Accept', 'application/json')
-            .send({leagueID: leagueInfo.leagueID, leaguePicture:"https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png"})
+            .send({leagueID: leagueInfo.leagueID, leaguePicture:"https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_6380.png"})
             .expect(200)
         });
 

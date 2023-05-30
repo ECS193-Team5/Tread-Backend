@@ -23,6 +23,8 @@ describe("Testing notifications", () => {
         let updateStub;
         let dateStub;
         const twoMonthsInMiliSeconds = 1000*60*60*24*60;4444;
+        const badUsername = "";
+        const badDeviceToken = "";
         const username = 'user#2222';
         const deviceToken = 'eyJhbGciOiJSUzI1NiIsImtpZCI6Ijk2OTcxODA4Nzk2ODI5YTk3MmU3OWE5ZDFhOWZmZjExY2Q2MWIxZTMiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJuYmYiOjE2ODIwMzI1MzQsImF1ZCI6IjE3MTU3MTY1Mzg2OS1sczVpcWRsbzFib2U2aXNqN3Ixa29vMnR2aTU3ZzYybS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjEwODg3NjU4MDczNDk0MTE3OTkyNCIsImVtYWlsIjoiaG93YXJkdzExN0BnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiYXpwIjoiMTcxNTcxNjUzODY5LWxzNWlxZGxvMWJvZTZpc2o3cjFrb28ydHZpNTdnNjJtLmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tIiwibmFtZSI6Ikhvd2FyZCBXYW5nIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FHTm15eGJqZENkZW5OdF9yc2g2d0tHS0ZxSElzbm1XUjNxcmM0b0ZlY2c4a3c9czk2LWMiLCJnaXZlbl9uYW1lIjoiSG93YXJkIiwiZmFtaWx5X25hbWUiOiJXYW5nIiwiaWF0IjoxNjgyMDMyODM0LCJleHAiOjE2ODIwMzY0MzQsImp0aSI6ImY3NWVjZDI0MGE1YzkwNmIzNjI1OTliOWE0ZWUwNDE2YjQ3ZDVlMTIifQ.qeFtF3_9zlCbexLZzr6iEGz4RXWU2aCSCl9MDddTYzR0hfXMc4S_bpEH1FtFXELhB3zozzMKH-ox3xBU7lLzwFj29jPPkHZOhU-V6GldSwZbVl7iSpm2Sfek9Xw_NW012wEi9CpKSKDlpFIxmGEyGDUBa5lpdowRAbdwVX43Pq_mo_H-tSqfwzI3Gb55CinbABqRHO1yRV_KReKQ0fsi28kuNhMdEtszYJq79XfvdAKpyi7lcghYfU5l-Vsz58VfB9X1AnRDj-Rfn8nGBrLangRfKfYgFTWNTtetXzLlugcif8UseK1AgrhIcIb3f4h2MAXvVXjV8N2b1GUVmyzy6A'
         beforeEach(() => {
@@ -37,6 +39,16 @@ describe("Testing notifications", () => {
                 deviceToken: deviceToken,
             }, {username: username, expires: 1 + twoMonthsInMiliSeconds},
             {upsert: true});
+        });
+
+        it("returns if token not vaild not vaild", async function() {
+            await registerDeviceToken(username, badDeviceToken);
+            expect(updateStub).to.not.have.been.called;
+        });
+
+        it("returns if token not vaild not vaild", async function() {
+            await registerDeviceToken(badUsername, deviceToken);
+            expect(updateStub).to.not.have.been.called;
         });
 
         it("throws when updateOne rejects", async function() {
@@ -152,7 +164,7 @@ describe("Testing notifications", () => {
                 page: 'thisPage'
             }
         }
-        let firebaseStub;
+
         beforeEach(() => {
             sendMessageToDevices = notifications.__get__('sendMessageToDevices');
             sendMulticastStub = sandbox.stub();
@@ -251,5 +263,73 @@ describe("Testing notifications", () => {
             expect(removeMultipleDeviceTokensStub).to.have.been.calledWith([]);
             expect(sendMessageToDevicesStub).to.have.thrown;
         });
+    });
+
+    describe("Testing sendPushNotitficationToUsers()", () => {
+        let usernames = ['user1', 'user2'];
+        let messageBody = 'notification body';
+        let page = 'page';
+        let getDeviceTokensStub;
+        let sendMessageToDevices;
+        let sendPushNotificationToUsers
+
+        beforeEach(() => {
+            getDeviceTokensStub = sandbox.stub();
+            sendMessageToDevices = sandbox.stub();
+            sendPushNotificationToUsers = notifications.__get__('sendPushNotificationToUsers');
+            notifications.__set__('getDeviceTokens', getDeviceTokensStub);
+            notifications.__set__('sendMessageToDevices', sendMessageToDevices);
+        });
+
+        it("sendPushNotificationToUsers() returns successfully", async function() {
+            getDeviceTokensStub.resolves(["token1", "token2"]);
+            sendMessageToDevices.resolves();
+            await sendPushNotificationToUsers(usernames, messageBody, page);
+            expect(getDeviceTokensStub).to.have.been.calledWith(['user1', 'user2']);
+            expect(sendMessageToDevices).to.have.been.calledWith({
+                tokens: ["token1", "token2"],
+                notification:{
+                    title: "Tread",
+                    body: 'notification body'
+                },
+                data: {
+                    page: 'page'
+                }
+            });
+        });
+
+        it("sendPushNotificationToUsers() returns if no tokens", async function() {
+            getDeviceTokensStub.resolves([]);
+            sendMessageToDevices.resolves();
+            await sendPushNotificationToUsers(usernames, messageBody, page);
+            expect(sendMessageToDevices).to.not.have.been.called;
+        });
+
+        it("sendPushNotificationToUsers() throws if getDeviceTokens throws", async function() {
+            getDeviceTokensStub.rejects([]);
+            sendMessageToDevices.resolves();
+            try {
+                await sendPushNotificationToUsers(usernames, messageBody, page);
+            } catch {}
+            expect(getDeviceTokensStub).to.have.thrown;
+            expect(sendMessageToDevices).to.not.have.been.called;
+        });
+
+        it("sendPushNotificationToUsers() throws if sendMessageToDevices throws", async function() {
+            getDeviceTokensStub.resolves(['token']);
+            sendMessageToDevices.resolves();
+            try {
+                await sendPushNotificationToUsers(usernames, messageBody, page);
+            } catch {}
+            expect(getDeviceTokensStub).to.have.been.called;
+            expect(sendMessageToDevices).to.have.thrown;
+        });
+    });
+
+    describe("Testing updateNotificationLog()", () => {
+        let usernames;
+        let message;
+        let insertManyStub;
+        
     });
 });

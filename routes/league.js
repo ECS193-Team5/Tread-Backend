@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const multer = require("multer");
-const { uploadImage } = require('./cloudinary.js');
+const { uploadImage, deleteImage } = require('./cloudinary.js');
 const League = require("../models/league.model");
 const Challenge = require("../models/challenge.model");
 const Challenge_progress = require("../models/challenge_progress.model");
@@ -36,31 +36,35 @@ router.route("/create_league").post(multer().array(), async (req, res) => {
     return res.sendStatus(200);
 });
 
+async function deleteLeagueAndInformation(username, leagueID) {
+    const activeChallenges = await Challenge.find({
+        receivedUser: leagueID,
+        dueDate: { $gte: Date.now() }
+    }).distinct("_id");
+    await Promise.all([
+        League.deleteOne({
+            _id: ObjectId(leagueID),
+            owner: username,
+        }),
+        Challenge.deleteMany({
+            receivedUser: leagueID,
+            dueDate: { $gte: Date.now() }
+        }).lean(),
+        Challenge_progress.deleteMany({
+            challengeID: { $in: activeChallenges }
+        }).lean(),
+        deleteImage(leagueID, 'leaguePicture')
+    ]);
+}
+
 router.route("/delete_league").post(
     checkLeagueID,
     async (req, res, next) => {
         const leagueID = req.body.leagueID
+        const username = req.session.username;
 
         try {
-            const deletedInfo = await League.deleteOne({
-                _id: ObjectId(leagueID),
-                owner: req.session.username,
-            });
-
-
-            const activeChallenges = await Challenge.find({
-                receivedUser: leagueID,
-                dueDate: { $gte: Date.now() }
-            }).distinct("_id");
-            await Promise.all([
-                Challenge.deleteMany({
-                    receivedUser: leagueID,
-                    dueDate: { $gte: Date.now() }
-                }).lean(),
-                Challenge_progress.deleteMany({
-                    challengeID: { $in: activeChallenges }
-                }).lean()
-            ]);
+            await deleteLeagueAndInformation(username, leagueID);
         }
         catch (err) {
             console.log(err);
@@ -839,3 +843,4 @@ async function updateType(req, res) {
 router.route('/update_type').post(checkLeagueID, updateType);
 
 module.exports = router;
+module.exports.deleteLeagueAndInformation = deleteLeagueAndInformation;
