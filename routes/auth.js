@@ -106,18 +106,17 @@ async function createNewUserIfNecessary(authenticationSource, userInfoFromAuth, 
 }
 
 async function login(authenticationSource, IDToken, nonce, fullName) {
-
   const userInfoFromAuth = await verify(authenticationSource, IDToken, nonce);
   const userDoc = await getUserDocFromAuthSub(authenticationSource, userInfoFromAuth.sub);
   await createNewUserIfNecessary(authenticationSource, userInfoFromAuth, userDoc, fullName);
 
-  const sessionNeededInfo = {
+  const infoNeededForSession = {
     sub: userInfoFromAuth.sub,
     userDoc: userDoc,
     authenticationSource: authenticationSource
   }
 
-  return sessionNeededInfo;
+  return infoNeededForSession;
 }
 
 async function appleLogin(req, res, next) {
@@ -126,10 +125,9 @@ async function appleLogin(req, res, next) {
   const nonce = req.body.nonce;
   const fullName = req.body.fullName;
 
-  // need to add csrf preventions
   try {
-    const createSessionInfo = await login('apple', IDToken, nonce, fullName);
-    res.locals.sessionNeededInfo = createSessionInfo;
+    const infoNeededForSession = await login('apple', IDToken, nonce, fullName);
+    res.locals.infoNeededForSession = infoNeededForSession;
     return next();
   } catch (err) {
     console.log(err);
@@ -140,11 +138,10 @@ async function appleLogin(req, res, next) {
 
 async function googleLogin(req, res, next) {
   const IDToken = req.headers.authorization;
-  // need to add csrf preventions
 
   try {
-    const createSessionInfo = await login('google', IDToken);
-    res.locals.sessionNeededInfo = createSessionInfo;
+    const infoNeededForSession = await login('google', IDToken);
+    res.locals.infoNeededForSession = infoNeededForSession;
     return next()
   } catch (err) {
     console.log(err);
@@ -161,10 +158,10 @@ function hasUsernameFromDoc(userDoc) {
 
 async function generateLoggedInSession(req, res, next) {
 
-  const userDoc = res.locals.sessionNeededInfo.userDoc;
+  const userDoc = res.locals.infoNeededForSession.userDoc;
   const hasUsername = hasUsernameFromDoc(userDoc);
-  const authSub = res.locals.sessionNeededInfo.sub;
-  const authenticationSource = res.locals.sessionNeededInfo.authenticationSource;
+  const authSub = res.locals.infoNeededForSession.sub;
+  const authenticationSource = res.locals.infoNeededForSession.authenticationSource;
   const deviceToken = req.body.deviceToken;
 
   req.session.regenerate(async function (err) {
@@ -173,7 +170,7 @@ async function generateLoggedInSession(req, res, next) {
     req.session.authenticationSource = authenticationSource;
     req.session.authenticationID = authSub;
     if (hasUsername) {
-      req.session.username = res.locals.sessionNeededInfo.userDoc.username;
+      req.session.username = res.locals.infoNeededForSession.userDoc.username;
       await registerDeviceToken(req.session.username, deviceToken);
     } else {
       req.session.username = null;
