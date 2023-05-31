@@ -19,7 +19,41 @@ describe('Testing authentication', () => {
         sandbox.restore();
     })
 
-    /* Test verify */
+    describe("Testing getUserDocFromAuthSub()", () => {
+        let findOneStub;
+        let getUserDocFromAuthSub;
+        let leanStub;
+        const authenticationSource = "source";
+        const authenticationSub = "sub";
+
+        beforeEach(() => {
+            leanStub = sandbox.stub();
+            findOneStub = sandbox.stub(mongoose.Model, "findOne").returns({lean: leanStub});
+            getUserDocFromAuthSub = auth.__get__("getUserDocFromAuthSub");
+        });
+
+        it("getUserDocFromAuthSub() runs successfully", async function(){
+            await getUserDocFromAuthSub(authenticationSource, authenticationSub);
+            expect(findOneStub).to.have.been.calledWith({
+                authenticationSource: authenticationSource,
+                authenticationID: authenticationSub },
+                'username');
+        });
+
+        it("getUserDocFromAuthSub() throws if findOne() fails.", async function(){
+            findOneStub.rejects();
+            try {
+                await getUserDocFromAuthSub(authenticationSource, authenticationSub);
+            } catch {}
+            expect(findOneStub).to.have.been.calledWith({
+                authenticationSource: authenticationSource,
+                authenticationID: authenticationSub },
+                'username');
+            expect(findOneStub).to.have.thrown;
+        });
+
+
+    });
 
     describe("Testing hasUsernameFromDoc()", () => {
         let hasUsernameFromDoc;
@@ -62,13 +96,48 @@ describe('Testing authentication', () => {
         });
     });
 
+    describe("Testing createUser()", () => {
+        let saveStub;
+        let createUser;
+        const userDoc = {
+            username: "user"
+        }
+
+        beforeEach(() => {
+            saveStub = sandbox.stub(mongoose.Model.prototype, "save");
+            createUser = auth.__get__("createUser");
+        });
+
+        it("createUser() runs successfully", async function(){
+            await createUser(userDoc);
+            expect(saveStub).to.have.been.called;
+        });
+
+        it("createUser() throws if save fails.", async function(){
+            saveStub.rejects();
+            try {
+                await createUser(userDoc);
+            } catch {}
+            expect(saveStub).to.have.thrown;
+        });
+
+
+    });
+
     describe("Testing createGoogleUser()", () => {
         let createGoogleUser;
-        let saveStub;
+        let createUserStub;
         let userInfo =  {
             authenticationSource: 'google',
             authenticationID: "authID",
             displayName: "Howard",
+            givenName: "Howard",
+            familyName: "Wang",
+            email: "sirwang@ucdavis.edu",
+            picture: "photo",
+        };
+        let userInfoFromAuth = {
+            sub: "authID",
             given_name: "Howard",
             family_name: "Wang",
             email: "sirwang@ucdavis.edu",
@@ -77,25 +146,114 @@ describe('Testing authentication', () => {
 
         beforeEach(() => {
             createGoogleUser = auth.__get__("createGoogleUser");
-            saveStub = sandbox.stub(mongoose.Model.prototype, 'save')
+            createUserStub = sandbox.stub();
+            auth.__set__("createUser", createUserStub)
         });
 
         it("createGoogleUser should succesfully make an object given clean data", async function (){
-            saveStub.resolves("");
-            let ret = await createGoogleUser(userInfo);
+            createUserStub.resolves("");
+            let ret = await createGoogleUser(userInfoFromAuth);
+            expect(createUserStub).to.have.been.calledWith(userInfo);
         });
 
         it("createGoogleUser should throw an error when the document cannot save", async function (){
-            saveStub.rejects("err");
+            createUserStub.rejects("err");
             let createGoogleUserSpy = sandbox.spy(createGoogleUser);
             try{
-                await createGoogleUser(userInfo);
+                await createGoogleUser(userInfoFromAuth);
             }
-            catch(err){
-                expect(createGoogleUserSpy).to.have.thrown;
-                return;
+            catch(err){}
+            expect(createGoogleUserSpy).to.have.thrown;
+            expect(createUserStub).to.have.been.calledWith(userInfo);
+        });
+    });
+
+    describe("Testing createAppleUser()", () => {
+        let createAppleUser;
+        let createUserStub;
+        const userInfo =  {
+            authenticationSource: 'apple',
+            authenticationID: "authID",
+            displayName: "Howard",
+            givenName: "Howard",
+            familyName: "Wang",
+            email: "sirwang@ucdavis.edu",
+            picture: "https://i.imgur.com/XY9rcVx.png",
+        }
+        const userInfoFromAuth =  {
+            sub: "authID",
+            email: "sirwang@ucdavis.edu",
+        }
+        let fullName;
+
+        beforeEach(() => {
+            fullName = {};
+            createAppleUser = auth.__get__("createAppleUser");
+            createUserStub = sandbox.stub();
+            auth.__set__("createUser", createUserStub);
+        });
+
+        it("createAppleUser should succesfully make an object given clean data", async function (){
+            fullName.givenName = "Howard";
+            fullName.familyName = "Wang";
+            createUserStub.resolves("");
+            let ret = await createAppleUser(userInfoFromAuth, fullName);
+            expect(createUserStub).to.have.been.calledWith(userInfo);
+        });
+
+        it("createAppleUser should succesfully make an object no familyName", async function (){
+            fullName.givenName = "Howard";
+            let changedInfo = {
+                authenticationSource: 'apple',
+                authenticationID: "authID",
+                displayName: "Howard",
+                givenName: "Howard",
+                email: "sirwang@ucdavis.edu",
+                picture: "https://i.imgur.com/XY9rcVx.png",
             }
-            expect(4).to.equal(5);
+            createUserStub.resolves("");
+            let ret = await createAppleUser(userInfoFromAuth, fullName);
+            expect(createUserStub).to.have.been.calledWith(changedInfo);
+        });
+
+        it("createAppleUser should succesfully make an object given no givenName", async function (){
+            fullName.familyName = "Wang";
+
+            let changedInfo = {
+                authenticationSource: 'apple',
+                authenticationID: "authID",
+                familyName: "Wang",
+                email: "sirwang@ucdavis.edu",
+                picture: "https://i.imgur.com/XY9rcVx.png",
+            }
+            createUserStub.resolves("");
+            let ret = await createAppleUser(userInfoFromAuth, fullName);
+            expect(createUserStub).to.have.been.calledWith(changedInfo);
+        });
+
+        it("createAppleUser should succesfully make an object given no fullName", async function (){
+            let changedInfo = {
+                authenticationSource: 'apple',
+                authenticationID: "authID",
+                email: "sirwang@ucdavis.edu",
+                picture: "https://i.imgur.com/XY9rcVx.png",
+            }
+            createUserStub.resolves("");
+            let ret = await createAppleUser(userInfoFromAuth);
+            expect(createUserStub).to.have.been.calledWith(changedInfo);
+        });
+
+        it("createAppleUser should throw an error when the document cannot save", async function (){
+            fullName.givenName = "Howard";
+            fullName.familyName = "Wang";
+            createUserStub.rejects("err");
+            let createAppleUserSpy = sandbox.spy(createAppleUser);
+            try{
+                await createAppleUser(userInfoFromAuth, fullName);
+            }
+            catch(err){}
+            expect(createAppleUserSpy).to.have.thrown;
+            expect(createUserStub).to.have.been.calledWith(userInfo);
         });
     });
 

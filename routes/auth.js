@@ -69,11 +69,11 @@ async function createAppleUser(userInfoFromAuth, fullName) {
 
   if(fullName && fullName.givenName){
     userInfo.displayName =  fullName.givenName
-    userInfo.given_name =  fullName.givenName
+    userInfo.givenName =  fullName.givenName
   }
 
-  if(fullName && fullName.family_name){
-    userInfo.family_name = fullName.familyName
+  if(fullName && fullName.familyName){
+    userInfo.familyName = fullName.familyName
   }
 
   await createUser(userInfo);
@@ -84,8 +84,8 @@ async function createGoogleUser(userInfoFromAuth) {
     authenticationSource: 'google',
     authenticationID: userInfoFromAuth.sub,
     displayName: userInfoFromAuth.given_name,
-    given_name: userInfoFromAuth.given_name,
-    family_name: userInfoFromAuth.family_name,
+    givenName: userInfoFromAuth.given_name,
+    familyName: userInfoFromAuth.family_name,
     email: userInfoFromAuth.email,
     picture: userInfoFromAuth.picture,
   }
