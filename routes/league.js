@@ -11,12 +11,12 @@ const { isExistingUser } = require("./user.js");
 const { sendNotificationToUsers } = require("./notifications.js");
 const { getSortedFieldFrequency } = require("./helpers.js");
 
-async function createLeague(leagueInfo) {
+async function createLeagueDocument(leagueInfo) {
     const newUser = new League(leagueInfo);
     return newUser.save()
 }
 
-router.route("/create_league").post(multer().array(), async (req, res) => {
+async function createLeague(req, res){
     const leaguePicture = req.body.leaguePicture;
     leagueInfo = {
         owner: req.session.username,
@@ -26,7 +26,7 @@ router.route("/create_league").post(multer().array(), async (req, res) => {
     }
 
     try {
-        leagueDocument = await createLeague(leagueInfo);
+        leagueDocument = await createLeagueDocument(leagueInfo);
         await uploadImage(leaguePicture, "leaguePicture", leagueDocument["_id"]);
     } catch (err) {
         console.log(err)
@@ -34,13 +34,16 @@ router.route("/create_league").post(multer().array(), async (req, res) => {
     }
 
     return res.sendStatus(200);
-});
+}
+
+router.route("/create_league").post(multer().array(), createLeague);
 
 async function deleteLeagueAndInformation(username, leagueID) {
     const activeChallenges = await Challenge.find({
         receivedUser: leagueID,
         dueDate: { $gte: Date.now() }
     }).distinct("_id");
+
     await Promise.all([
         League.deleteOne({
             _id: ObjectId(leagueID),
@@ -57,23 +60,22 @@ async function deleteLeagueAndInformation(username, leagueID) {
     ]);
 }
 
-router.route("/delete_league").post(
-    checkLeagueID,
-    async (req, res, next) => {
-        const leagueID = req.body.leagueID
-        const username = req.session.username;
+async function deleteLeagueIfPossible(req, res, next){
+    const leagueID = req.body.leagueID
+    const username = req.session.username;
 
-        try {
-            await deleteLeagueAndInformation(username, leagueID);
-        }
-        catch (err) {
-            console.log(err);
-            return res.sendStatus(400);
-        }
+    try {
+        await deleteLeagueAndInformation(username, leagueID);
+    }
+    catch (err) {
+        console.log(err);
+        return res.sendStatus(400);
+    }
 
-        return res.sendStatus(200);
+    return res.sendStatus(200);
 
-    });
+}
+router.route("/delete_league").post(checkLeagueID, deleteLeagueIfPossible);
 
 async function updateLeague(req, res, next) {
     await League.updateOne(res.locals.filter, res.locals.updates).lean();

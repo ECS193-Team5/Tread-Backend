@@ -7,31 +7,37 @@ async function isExistingUser(username) {
   return (await User.exists({username: username}).lean() !== null);
 }
 
-router.route('/check_username_exist').post(async (req, res) => {
+async function checkUsernameExist(req, res) {
   return res.json(await isExistingUser(req.body.username));
-});
+}
+
+router.route('/check_username_exist').post(checkUsernameExist);
 
 
 async function getPropertyOfUser(username, property) {
   return User.findOne({username: username }, property).lean();
 }
 
-router.route('/get_display_name').post(async (req, res) => {
+async function getDisplayName(req, res) {
   return res.json(await getPropertyOfUser(req.session.username, 'displayName'));
-});
-
-router.route('/get_username').post(async (req, res) => {
-  return res.json(req.session.username);
-});
-
-async function updateProfileField(username, updates) {
-  return User.findOneAndUpdate(
-    {username: username},
-    updates, {runValidators: true}
-  );
 }
 
-router.route('/update_picture').post(multer().array(), async (req, res) => {
+router.route('/get_display_name').post(getDisplayName);
+
+async function getUsername(req, res) {
+  return res.json(req.session.username);
+}
+
+router.route('/get_username').post(getUsername);
+
+async function updateProfileField(username, updates) {
+  return User.updateOne(
+    {username: username},
+    updates, {runValidators: true}
+  ).lean();
+}
+
+async function updatePicture(req, res) {
   const picture = req.body.picture;
   const username = req.session.username;
 
@@ -46,9 +52,11 @@ router.route('/update_picture').post(multer().array(), async (req, res) => {
     return res.status(400).json("picture upload error");
   }
   return res.sendStatus(200);
-})
+}
 
-router.route('/update_display_name').post(async (req, res) => {
+router.route('/update_picture').post(multer().array(), updatePicture);
+
+async function updateDisplayName(req, res) {
   const displayName = req.body.displayName;
   const username = req.session.username;
 
@@ -63,7 +71,9 @@ router.route('/update_display_name').post(async (req, res) => {
   await updateProfileField(username, update);
 
   return res.sendStatus(200);
-});
+}
+
+router.route('/update_display_name').post(updateDisplayName);
 
 module.exports = router;
 module.exports.isExistingUser = isExistingUser;
