@@ -365,7 +365,7 @@ describe('Testing notifications', () => {
             await request.post("/sign_up/sign_up")
                 .set('Accept', 'application/json')
                 .set('Cookie', cookie1)
-                .send({ "username": user1.given_name, "displayName": user1.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png", deviceToken: VALID_DEVICE_TOKEN })
+                .send({ "username": user1.given_name, "displayName": user1.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_6380.png", deviceToken: VALID_DEVICE_TOKEN })
                 .expect(200);
 
             await helpers.sendFriendRequest(cookie2, username1);
@@ -396,7 +396,7 @@ describe('Testing notifications', () => {
                 .send({
                     "username": user1.given_name,
                     "displayName": user1.given_name,
-                    "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png",
+                    "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_6380.png",
                     deviceToken: VALID_DEVICE_TOKEN
                 })
                 .expect(200)
@@ -409,7 +409,7 @@ describe('Testing notifications', () => {
                 given_name: user1.given_name,
                 family_name: user1.family_name,
                 email: "testemail" + user1.sub + "@gmail.com",
-                picture: "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png"
+                picture: "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_6380.png"
             }
             let payloadStub = sandbox.stub().returns(userVal)
             sandbox.stub(googleauth.OAuth2Client.prototype, "verifyIdToken").resolves({ getPayload: payloadStub });
@@ -446,7 +446,7 @@ describe('Testing notifications', () => {
                 .send({
                     "username": user1.given_name,
                     "displayName": user1.given_name,
-                    "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png",
+                    "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_6380.png",
                     deviceToken: VALID_DEVICE_TOKEN
                 })
                 .expect(200)
@@ -459,7 +459,7 @@ describe('Testing notifications', () => {
                 given_name: user1.given_name,
                 family_name: user1.family_name,
                 email: "testemail" + user1.sub + "@gmail.com",
-                picture: "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png"
+                picture: "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_6380.png"
             }
             let payloadStub = sandbox.stub().returns(userVal)
             sandbox.stub(googleauth.OAuth2Client.prototype, "verifyIdToken").resolves({ getPayload: payloadStub });

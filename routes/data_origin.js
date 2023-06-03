@@ -9,7 +9,7 @@ async function getOriginAnchor(req, res) {
 
     const lastImportDateFromOrigin = await User_data_origin.findOne({
         username: username
-    }, fieldToReturn);
+    }, fieldToReturn).lean();
 
     return res.status(200).json(lastImportDateFromOrigin);
 }
@@ -23,6 +23,8 @@ async function touchDataOriginAnchor(username, dataOrigin, anchor) {
         updateQueryField.healthKitAnchor = anchor;
     } else if (dataOrigin === 'healthConnect') {
         updateQueryField.healthConnectAnchor = anchor;
+    } else {
+        return;
     }
 
     await User_data_origin.updateOne({

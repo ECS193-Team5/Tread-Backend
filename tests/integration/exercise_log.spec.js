@@ -15,7 +15,6 @@ chai.use(deepEqualInAnyOrder);
 const {expect} = chai;
 
 
-const LOGGED_TIMESTAMP_EXAMPLE = 1684630800000;
 
 describe('Testing /exercise_log routes', () => {
     let users = [{
@@ -42,11 +41,12 @@ describe('Testing /exercise_log routes', () => {
 
             it("Test add a single, working exercise", async function () {
                 let exerciseExample = {
-                    loggedDate: LOGGED_TIMESTAMP_EXAMPLE,
+                    loggedDate: Date.now(),
                     amount: 10,
                     exerciseName: "Basketball",
                     unit: "m",
-                    dataOrigin:"web"
+                    dataOrigin:"web",
+                    anchor: ""
                 }
 
                 await request.post("/exercise_log/add")
@@ -58,10 +58,11 @@ describe('Testing /exercise_log routes', () => {
 
             it("Test add an exercise that is missing amount", async function () {
                 let exerciseExample = {
-                    loggedDate: LOGGED_TIMESTAMP_EXAMPLE,
+                    loggedDate: Date.now(),
                     exerciseName: "Basketball",
                     unit: "m",
-                    dataOrigin:"web"
+                    dataOrigin:"web",
+                    anchor: ""
                 }
 
                 await request.post("/exercise_log/add")
@@ -73,11 +74,12 @@ describe('Testing /exercise_log routes', () => {
 
             it("Test add an exercise that doesn't have a valid unit", async function () {
                 let exerciseExample = {
-                    loggedDate: LOGGED_TIMESTAMP_EXAMPLE,
+                    loggedDate: Date.now(),
                     exerciseName: "Basketball",
                     unit: "mir",
                     dataOrigin:"web",
-                    amount: 10
+                    amount: 10,
+                    anchor: ""
                 }
 
                 await request.post("/exercise_log/add")
@@ -142,7 +144,7 @@ describe('Testing /exercise_log routes', () => {
                     {
                         unit: "sec",
                         amount:50,
-                        exerciseName: "Baseball"
+                        exerciseName: "Baseball",
                     },
                     {
                         unit: "sec",
@@ -197,7 +199,8 @@ describe('Testing /exercise_log routes', () => {
                         amount: 10,
                         exerciseName: "Baseball",
                         unit: "sec",
-                        dataOrigin:"web"
+                        dataOrigin:"web",
+                        anchor:""
                     }
                     await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
@@ -214,7 +217,8 @@ describe('Testing /exercise_log routes', () => {
                         amount: 10,
                         exerciseName: "Basketball",
                         unit: "min",
-                        dataOrigin:"web"
+                        dataOrigin:"web",
+                        anchor:""
                     }
                     await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
@@ -231,7 +235,8 @@ describe('Testing /exercise_log routes', () => {
                         amount: 2,
                         exerciseName: "Barre",
                         unit: "min",
-                        dataOrigin:"web"
+                        dataOrigin:"web",
+                        anchor:""
                     }
                     await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
@@ -249,7 +254,8 @@ describe('Testing /exercise_log routes', () => {
                         amount: 3,
                         exerciseName: "Archery",
                         unit: "min",
-                        dataOrigin:"web"
+                        dataOrigin:"web",
+                        anchor:""
                     }
                     await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
@@ -267,7 +273,8 @@ describe('Testing /exercise_log routes', () => {
                         amount: 3,
                         exerciseName: "Bocce",
                         unit: "min",
-                        dataOrigin:"web"
+                        dataOrigin:"web",
+                        anchor:""
                     }
                     await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
                     exerciseExample = {
@@ -275,7 +282,8 @@ describe('Testing /exercise_log routes', () => {
                         amount: 3,
                         exerciseName: "Bocce",
                         unit: "min",
-                        dataOrigin:"web"
+                        dataOrigin:"web",
+                        anchor:""
                     }
                     await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
@@ -292,7 +300,8 @@ describe('Testing /exercise_log routes', () => {
                         amount: 3,
                         exerciseName: "Skiing",
                         unit: "min",
-                        dataOrigin:"web"
+                        dataOrigin:"web",
+                        anchor:""
                     }
                     await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
                     exerciseExample = {
@@ -317,7 +326,8 @@ describe('Testing /exercise_log routes', () => {
                         amount: 8,
                         exerciseName: "Punt",
                         unit: "min",
-                        dataOrigin:"web"
+                        dataOrigin:"web",
+                        anchor:""
                     }
                     await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
                     exerciseExample = {
@@ -325,7 +335,8 @@ describe('Testing /exercise_log routes', () => {
                         amount: 3,
                         exerciseName: "Punt",
                         unit: "min",
-                        dataOrigin:"web"
+                        dataOrigin:"web",
+                        anchor:""
                     }
                     await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
@@ -368,7 +379,8 @@ describe('Testing /exercise_log routes', () => {
                         amount: 1,
                         exerciseName: "Baseball",
                         unit: "hr",
-                        dataOrigin:"web"
+                        dataOrigin:"web",
+                        anchor:""
                     }
                     await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
@@ -420,7 +432,8 @@ describe('Testing /exercise_log routes', () => {
                     amount: 10,
                     exerciseName: "Baseball",
                     unit: "sec",
-                    dataOrigin:"web"
+                    dataOrigin:"web",
+                    anchor:""
                 }
                 await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
@@ -435,7 +448,8 @@ describe('Testing /exercise_log routes', () => {
                     amount: 1,
                     exerciseName: "Running",
                     unit: "km",
-                    dataOrigin:"web"
+                    dataOrigin:"web",
+                    anchor:""
                 }
                 await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
@@ -452,7 +466,8 @@ describe('Testing /exercise_log routes', () => {
                     amount: 1,
                     exerciseName: "Swimming",
                     unit: "hr",
-                    dataOrigin:"web"
+                    dataOrigin:"web",
+                    anchor:""
                 }
                 await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
                 await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
@@ -469,7 +484,8 @@ describe('Testing /exercise_log routes', () => {
                     amount: 60,
                     exerciseName: "Walking",
                     unit: "km",
-                    dataOrigin:"web"
+                    dataOrigin:"web",
+                    anchor:""
                 }
                 await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
@@ -500,7 +516,8 @@ describe('Testing /exercise_log routes', () => {
                     amount: 10,
                     exerciseName: "Baseball",
                     unit: "m",
-                    dataOrigin:"web"
+                    dataOrigin:"web",
+                    anchor:""
                 }
                 await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
@@ -517,7 +534,8 @@ describe('Testing /exercise_log routes', () => {
                     amount: 30,
                     exerciseName: "Swim",
                     unit: "min",
-                    dataOrigin:"web"
+                    dataOrigin:"web",
+                    anchor:""
                 }
                 await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
@@ -534,7 +552,8 @@ describe('Testing /exercise_log routes', () => {
                     amount: 20,
                     exerciseName: "Running",
                     unit: "km",
-                    dataOrigin:"web"
+                    dataOrigin:"web",
+                    anchor:""
                 }
                 await helpers.sendExercise(usersInfo[0].cookie, exerciseExample);
 
@@ -546,16 +565,16 @@ describe('Testing /exercise_log routes', () => {
             })
         });
 
-    });
+    }); 
 
     describe("Test /add_exercise_list", async function(){
 
         describe("Test add simple sets of exercises", async function(){
             let usersInfo = [];
             let mainExerciseList = [
-                {"exercise":{"exerciseName":"Bocce", "unit":"ct", "amount":10}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
-                {"exercise":{"exerciseName":"Archery", "unit":"hr", "amount":10}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
-                {"exercise":{"exerciseName":"Archery", "unit":"min", "amount":10}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE}
+                {"exercise":{"exerciseName":"Bocce", "unit":"ct", "amount":10}, "loggedDate":Date.now()},
+                {"exercise":{"exerciseName":"Archery", "unit":"hr", "amount":10}, "loggedDate":Date.now()},
+                {"exercise":{"exerciseName":"Archery", "unit":"min", "amount":10}, "loggedDate":Date.now()}
             ]
             before(async function(){
                 usersInfo = await helpers.createGoogleUsers(users, sandbox);
@@ -567,7 +586,7 @@ describe('Testing /exercise_log routes', () => {
 
             it("Test no exercises in list", async function(){
                 let exericseList = [];
-                let status = await helpers.sendExerciseList(usersInfo[0].cookie, "healthConnect",Date.now(), exericseList);
+                let status = await helpers.sendExerciseList(usersInfo[0].cookie, "healthConnect", Date.now() , exericseList);
                 expect(status).to.equal(200);
             });
             it("Test only one exercise in list", async function(){
@@ -582,7 +601,7 @@ describe('Testing /exercise_log routes', () => {
             });
             it("Test multiple exercises in list with overlap", async function(){
                 let exerciseList = mainExerciseList.slice(0,3)
-                let status = await helpers.sendExerciseList(usersInfo[0].cookie, "healthConnect", exerciseList);
+                let status = await helpers.sendExerciseList(usersInfo[0].cookie, "healthConnect", Date.now(),exerciseList);
                 expect(status).to.equal(200);
             });
         });
@@ -599,9 +618,9 @@ describe('Testing /exercise_log routes', () => {
                 { unit: "min", amount: 7, exerciseName: "Bocce"}
             ]
             let mainExerciseList = [
-                {"exercise":{"exerciseName":"Archery", "unit":"min", "amount":10}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
-                {"exercise":{"exerciseName":"Archery", "unit":"min", "amount":4}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
-                {"exercise":{"exerciseName":"Bocce", "unit":"min", "amount":4}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE}
+                {"exercise":{"exerciseName":"Archery", "unit":"min", "amount":10}},
+                {"exercise":{"exerciseName":"Archery", "unit":"min", "amount":4}},
+                {"exercise":{"exerciseName":"Bocce", "unit":"min", "amount":4}}
             ]
 
             beforeEach(async function(){
@@ -623,20 +642,25 @@ describe('Testing /exercise_log routes', () => {
             });
 
             it("Test only one challenge is effected", async function(){
-                let exerciseList = mainExerciseList.slice(0,1);
                 await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[4]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
+            
+                let exerciseList = mainExerciseList.slice(0,1);
+                exerciseList[0].loggedDate = Date.now()
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","anchorEx", exerciseList);
                 let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[4]);
+
                 expect(challenge.length).to.equal(1);
                 expect(challenge[0].progress.progress).to.equal(10);
             });
 
             it("Test multiple challenges effected by the same exercise", async function(){
+                await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[4]);
+                await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[4]);
+
                 let exerciseList = mainExerciseList.slice(0,1);
-                await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[4]);
-                await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[4]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
+                exerciseList[0].loggedDate = Date.now()
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","anchorEx", exerciseList);
                 let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[4]);
                 expect(challenge.length).to.equal(2);
@@ -645,9 +669,14 @@ describe('Testing /exercise_log routes', () => {
             });
 
             it("Test two exercises complete a challenge exactly", async function(){
-                let exerciseList =  [mainExerciseList[2], mainExerciseList[2]];
                 await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[5]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
+
+                let exerciseList =  [mainExerciseList[2], mainExerciseList[2]];
+                exerciseList[0].loggedDate = Date.now()
+                exerciseList[1].loggedDate = Date.now()
+
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","anchorEx", exerciseList);
+
                 let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[5]);
                 expect(challenge.length).to.equal(1);
@@ -655,9 +684,13 @@ describe('Testing /exercise_log routes', () => {
                 expect(challenge[0].progress.completed).to.equal(true);
             });
             it("Test two exercises overcomplete a challenge", async function(){
-                let exerciseList =  [mainExerciseList[2], mainExerciseList[2]];
                 await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[6]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
+
+                 let exerciseList =  [mainExerciseList[2], mainExerciseList[2]];
+                exerciseList[0].loggedDate = Date.now()
+                exerciseList[1].loggedDate = Date.now()
+
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","anchorEx", exerciseList);
                 let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[6]);
                 expect(challenge.length).to.equal(1);
@@ -665,9 +698,14 @@ describe('Testing /exercise_log routes', () => {
                 expect(challenge[0].progress.completed).to.equal(true);
             });
             it("Test an exercise on an already completed challenge", async function(){
-                let exerciseList =  [mainExerciseList[2], mainExerciseList[2], mainExerciseList[2]];
                 await helpers.sendSelfChallengeWithData(usersInfo[0].cookie, inputData[6]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
+                
+                let exerciseList =  [mainExerciseList[2], mainExerciseList[2], mainExerciseList[2]];
+                exerciseList[0].loggedDate = Date.now()
+                exerciseList[1].loggedDate = Date.now()
+                exerciseList[2].loggedDate = Date.now()
+                
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","anchorEx", exerciseList);
                 let challenges = await helpers.getIssuedChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[6]);
                 expect(challenge.length).to.equal(1);
@@ -676,6 +714,7 @@ describe('Testing /exercise_log routes', () => {
             });
         });
 
+        
         describe("Test effect of exercise list on global challenges", async function(){
             let usersInfo = [];
             let inputData = [
@@ -688,9 +727,9 @@ describe('Testing /exercise_log routes', () => {
                 { unit: "min", amount: 7, exerciseName: "Bocce"}
             ]
             let mainExerciseList = [
-                {"exercise":{"exerciseName":"Archery", "unit":"min", "amount":10}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
-                {"exercise":{"exerciseName":"Archery", "unit":"min", "amount":4}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
-                {"exercise":{"exerciseName":"Bocce", "unit":"min", "amount":4}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE}
+                {"exercise":{"exerciseName":"Archery", "unit":"min", "amount":10}, "loggedDate":Date.now()},
+                {"exercise":{"exerciseName":"Archery", "unit":"min", "amount":4}, "loggedDate":Date.now()},
+                {"exercise":{"exerciseName":"Bocce", "unit":"min", "amount":4}, "loggedDate":Date.now()}
             ]
 
             beforeEach(async function(){
@@ -704,7 +743,7 @@ describe('Testing /exercise_log routes', () => {
 
             it("Test no exercises in list", async function(){
                 await helpers.addGlobalChallenge(usersInfo[0].cookie, inputData[0]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", []);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", "anchorEx", []);
                 let challenges = await helpers.getGlobalChallenges(usersInfo[0].cookie);
 
                 for(let i = 0; i< challenges.length; i++){
@@ -713,9 +752,12 @@ describe('Testing /exercise_log routes', () => {
             });
 
             it("Test only one challenge is effected", async function(){
-                let exerciseList = mainExerciseList.slice(0,1);
                 await helpers.addGlobalChallenge(usersInfo[0].cookie, inputData[4]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", "",exerciseList);
+
+                let exerciseList = mainExerciseList.slice(0,1);
+                exerciseList[0].loggedDate = Date.now();
+
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", "anchorEx",exerciseList);
                 let challenges = await helpers.getGlobalChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[4]);
                 expect(challenge.length).to.equal(1);
@@ -723,19 +765,27 @@ describe('Testing /exercise_log routes', () => {
             });
 
             it("Test two exercises complete a challenge exactly", async function(){
-                let exerciseList =  [mainExerciseList[2], mainExerciseList[2]];
                 await helpers.addGlobalChallenge(usersInfo[0].cookie, inputData[5]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
+                let exerciseList = [mainExerciseList[2], mainExerciseList[2]];
+                exerciseList[0].loggedDate = Date.now();
+                exerciseList[1].loggedDate = Date.now();
+
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","anchorEx", exerciseList);
                 let challenges = await helpers.getGlobalChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[5]);
                 expect(challenge.length).to.equal(1);
                 expect(challenge[0].progress).to.equal(8);
                 expect(challenge[0].completed).to.equal(true);
             });
+
             it("Test two exercises overcomplete a challenge", async function(){
-                let exerciseList =  [mainExerciseList[2], mainExerciseList[2]];
                 await helpers.addGlobalChallenge(usersInfo[0].cookie, inputData[6]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
+
+                let exerciseList =  [mainExerciseList[2], mainExerciseList[2]];
+                exerciseList[0].loggedDate = Date.now();
+                exerciseList[1].loggedDate = Date.now();
+
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","anchorEx", exerciseList);
                 let challenges = await helpers.getGlobalChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[6]);
                 expect(challenge.length).to.equal(1);
@@ -743,9 +793,15 @@ describe('Testing /exercise_log routes', () => {
                 expect(challenge[0].completed).to.equal(true);
             });
             it("Test an exercise on an already completed challenge", async function(){
-                let exerciseList =  [mainExerciseList[2], mainExerciseList[2], mainExerciseList[2]];
                 await helpers.addGlobalChallenge(usersInfo[0].cookie, inputData[6]);
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", "",exerciseList);
+
+                let exerciseList =  [mainExerciseList[2], mainExerciseList[2], mainExerciseList[2]];
+                exerciseList[0].loggedDate = Date.now();
+                exerciseList[1].loggedDate = Date.now();
+                exerciseList[2].loggedDate = Date.now();
+
+
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit", "anchorEx",exerciseList);
                 let challenges = await helpers.getGlobalChallenges(usersInfo[0].cookie);
                 let challenge = helpers.findMatchingChallenge(challenges, inputData[6]);
                 expect(challenge.length).to.equal(1);
@@ -754,14 +810,15 @@ describe('Testing /exercise_log routes', () => {
             });
         });
 
+        
 
         describe("Test effect of exercise list on medals", async function(){
             let usersInfo = [];
             let potentialExercises =
             [
-                {"exercise":{"exerciseName":"Running", "unit":"km", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
-                {"exercise":{"exerciseName":"Walking", "unit":"hr", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
-                {"exercise":{"exerciseName":"Swim", "unit":"hr", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE}
+                {"exercise":{"exerciseName":"Running", "unit":"km", "amount":6}, "loggedDate":Date.now()},
+                {"exercise":{"exerciseName":"Walking", "unit":"hr", "amount":6}, "loggedDate":Date.now()},
+                {"exercise":{"exerciseName":"Swim", "unit":"hr", "amount":6}, "loggedDate":Date.now()}
             ];
 
             beforeEach(async function(){
@@ -775,7 +832,7 @@ describe('Testing /exercise_log routes', () => {
 
             it("Test no medals are effected", async function(){
                 let exerciseList = [potentialExercises[1]];
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","anchorEx", exerciseList);
 
                 let inProgressMedals = await helpers.getMedalsInProgress(usersInfo[0].cookie);
                 let completeMedals = await helpers.getMedalsComplete(usersInfo[0].cookie);
@@ -785,7 +842,7 @@ describe('Testing /exercise_log routes', () => {
             });
             it("Test complete a medal using one exercise", async function(){
                 let exerciseList = [potentialExercises[0]];
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","anchorEx", exerciseList);
 
                 let inProgressMedals = await helpers.getMedalsInProgress(usersInfo[0].cookie);
                 let completeMedals = await helpers.getMedalsComplete(usersInfo[0].cookie);
@@ -795,7 +852,7 @@ describe('Testing /exercise_log routes', () => {
             });
             it("Test complete two types of medals", async function(){
                 let exerciseList = [potentialExercises[0], potentialExercises[2]];
-                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","", exerciseList);
+                await helpers.sendExerciseList(usersInfo[0].cookie, "healthKit","anchorEx", exerciseList);
 
                 let inProgressMedals = await helpers.getMedalsInProgress(usersInfo[0].cookie);
                 let completeMedals = await helpers.getMedalsComplete(usersInfo[0].cookie);
@@ -811,9 +868,9 @@ describe('Testing /exercise_log routes', () => {
             let usersInfo = [];
             let potentialExercises =
             [
-                {"exercise":{"exerciseName":"Running", "unit":"km", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
-                {"exercise":{"exerciseName":"Walking", "unit":"hr", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE},
-                {"exercise":{"exerciseName":"Swim", "unit":"hr", "amount":6}, "loggedDate":LOGGED_TIMESTAMP_EXAMPLE}
+                {"exercise":{"exerciseName":"Running", "unit":"km", "amount":6}, "loggedDate":Date.now()},
+                {"exercise":{"exerciseName":"Walking", "unit":"hr", "amount":6}, "loggedDate":Date.now()},
+                {"exercise":{"exerciseName":"Swim", "unit":"hr", "amount":6}, "loggedDate":Date.now()}
             ];
 
             beforeEach(async function(){
@@ -838,5 +895,7 @@ describe('Testing /exercise_log routes', () => {
                 sandbox.restore()
             });
         });
+
+        
     });
 });

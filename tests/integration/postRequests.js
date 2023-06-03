@@ -69,7 +69,7 @@ async function loginGoogleUser(user, sandbox) {
         given_name: user.given_name,
         family_name: user.family_name,
         email: "testemail" + user.sub + "@gmail.com",
-        picture: "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png"
+        picture: "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_6380.png"
     }
     sandbox.restore();
     let payloadStub = sandbox.stub().returns(userVal)
@@ -340,7 +340,7 @@ async function sendExerciseList(cookie, dataOrigin, anchor, exerciseList){
     .set("Cookie", cookie)
     .set('Accept', 'application/json')
     .send({dataOrigin: dataOrigin, exerciseList: exerciseList, uniqueExercises:uniqueExercises, anchor:anchor})
-    .then(res => {status = res.status})
+    .then(res => {status =  res.status})
     return status;
 }
 
@@ -553,6 +553,7 @@ function expectChallengeValues(challenge, expectedCompleted, expectedProgress){
 }
 
 async function bulkUserSendExercises(usersInfo, data){
+    data.loggedDate = Date.now()
     for(let i = 0; i< usersInfo.length; i++){
         data.amount = i + 1;
         await sendExercise(usersInfo[i].cookie,data);
@@ -575,7 +576,7 @@ async function createLeague(cookie, leagueName, leagueType, leagueDescription) {
     let inputData = {"leagueName": leagueName,
      "leagueType": leagueType,
       "leagueDescription": leagueDescription,
-      "leaguePicture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png"};
+      "leaguePicture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_6380.png"};
     let info = {};
 
     await request.post("/league/create_league")
@@ -878,7 +879,7 @@ async function createGoogleUser(user, sandbox) {
     await request.post("/sign_up/sign_up")
         .set('Accept', 'application/json')
         .set('Cookie', cookie)
-        .send({"username": user.given_name, "displayName": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
+        .send({"username": user.given_name, "displayName": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_6380.png" })
         .then(res => {
         })
     return cookie;
@@ -889,7 +890,7 @@ async function createAppleUser(user, sandbox) {
     await request.post("/sign_up/sign_up")
         .set('Accept', 'application/json')
         .set('Cookie', cookie)
-        .send({"username": user.given_name, "displayName": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png" })
+        .send({"username": user.given_name, "displayName": user.given_name, "picture": "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_6380.png" })
         .then(res => {
         })
     return cookie;

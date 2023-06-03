@@ -84,7 +84,6 @@ async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
 
 router.route('/get_challenges').post(getGlobalChallengesAndInsertIfDoesntExist);
 
-// untested
 async function getLeaderboard(req, res, next) {
 
     const username = req.session.username;

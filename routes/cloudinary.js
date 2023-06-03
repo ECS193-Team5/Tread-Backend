@@ -15,12 +15,13 @@ async function uploadImage(fileSource, folder, publicID){
 
 }
 
-async function deleteImage(publicID) {
-    await cloudinary.uploader.destroy(publicID, {
+async function deleteImage(publicID , folder) {
+    const path = folder + '/' + publicID
+    const result = await cloudinary.uploader.destroy(path, {
         resource_type: 'image',
         type: 'upload',
         invalidate: false
-    })
+    });
 }
 
 module.exports.uploadImage = uploadImage;

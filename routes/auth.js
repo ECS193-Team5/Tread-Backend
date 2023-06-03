@@ -4,7 +4,6 @@ const { registerDeviceToken, removeDeviceToken } = require("./notifications.js")
 const { OAuth2Client } = require('google-auth-library');
 const crypto = require("crypto");
 const appleSignin = require("apple-signin-auth");
-const { userInfo } = require("os");
 const CLIENT_ID = process.env.CLIENT_ID;
 const client = new OAuth2Client(CLIENT_ID);
 const APPLE_SERVICE_ID = 'run.tread.applesignin';
@@ -34,11 +33,18 @@ async function appleVerify(token, nonce){
   return userInfoFromAuth;
 }
 
-function hasUsernameFromDoc(userDoc) {
-  if (userDoc === null || userDoc.username === null) {
-    return false;
+async function verify(authenticationSource, IDToken, nonce) {
+  if(authenticationSource === 'google') {
+    return await googleVerify(IDToken);
+  } else if (authenticationSource === 'apple') {
+    return await appleVerify(IDToken, nonce);
   }
-  return true;
+}
+
+async function getUserDocFromAuthSub(authenticationSource, authenticationSub) {
+  return await User.findOne(
+    { authenticationSource: authenticationSource, authenticationID: authenticationSub },
+    'username').lean();
 }
 
 function isNewUser(userDoc) {
@@ -63,11 +69,11 @@ async function createAppleUser(userInfoFromAuth, fullName) {
 
   if(fullName && fullName.givenName){
     userInfo.displayName =  fullName.givenName
-    userInfo.given_name =  fullName.givenName
+    userInfo.givenName =  fullName.givenName
   }
 
-  if(fullName && fullName.family_name){
-    userInfo.family_name = fullName.familyName
+  if(fullName && fullName.familyName){
+    userInfo.familyName = fullName.familyName
   }
 
   await createUser(userInfo);
@@ -78,42 +84,13 @@ async function createGoogleUser(userInfoFromAuth) {
     authenticationSource: 'google',
     authenticationID: userInfoFromAuth.sub,
     displayName: userInfoFromAuth.given_name,
-    given_name: userInfoFromAuth.given_name,
-    family_name: userInfoFromAuth.family_name,
+    givenName: userInfoFromAuth.given_name,
+    familyName: userInfoFromAuth.family_name,
     email: userInfoFromAuth.email,
     picture: userInfoFromAuth.picture,
   }
 
   await createUser(userInfo);
-}
-
-async function verify(authenticationSource, IDToken, nonce) {
-  if(authenticationSource === 'google') {
-    return await googleVerify(IDToken);
-  } else if (authenticationSource === 'apple') {
-    return await appleVerify(IDToken, nonce);
-  }
-}
-
-async function getUserDocFromAuthSub(authenticationSource, authenticationSub) {
-  return await User.findOne(
-    { authenticationSource: authenticationSource, authenticationID: authenticationSub },
-    'username').lean();
-}
-
-async function login(authenticationSource, IDToken, nonce, fullName) {
-
-  const userInfoFromAuth = await verify(authenticationSource, IDToken, nonce);
-  const userDoc = await getUserDocFromAuthSub(authenticationSource, userInfoFromAuth.sub);
-  await createNewUserIfNecessary(authenticationSource, userInfoFromAuth, userDoc, fullName);
-
-  const sessionNeededInfo = {
-    sub: userInfoFromAuth.sub,
-    userDoc: userDoc,
-    authenticationSource: authenticationSource
-  }
-
-  return sessionNeededInfo;
 }
 
 async function createNewUserIfNecessary(authenticationSource, userInfoFromAuth, userDoc, fullName) {
@@ -128,16 +105,29 @@ async function createNewUserIfNecessary(authenticationSource, userInfoFromAuth, 
   }
 }
 
+async function login(authenticationSource, IDToken, nonce, fullName) {
+  const userInfoFromAuth = await verify(authenticationSource, IDToken, nonce);
+  const userDoc = await getUserDocFromAuthSub(authenticationSource, userInfoFromAuth.sub);
+  await createNewUserIfNecessary(authenticationSource, userInfoFromAuth, userDoc, fullName);
+
+  const infoNeededForSession = {
+    sub: userInfoFromAuth.sub,
+    userDoc: userDoc,
+    authenticationSource: authenticationSource
+  }
+
+  return infoNeededForSession;
+}
+
 async function appleLogin(req, res, next) {
 
   const IDToken = req.headers.authorization;
   const nonce = req.body.nonce;
   const fullName = req.body.fullName;
 
-  // need to add csrf preventions
   try {
-    const createSessionInfo = await login('apple', IDToken, nonce, fullName);
-    res.locals.sessionNeededInfo = createSessionInfo;
+    const infoNeededForSession = await login('apple', IDToken, nonce, fullName);
+    res.locals.infoNeededForSession = infoNeededForSession;
     return next();
   } catch (err) {
     console.log(err);
@@ -148,11 +138,10 @@ async function appleLogin(req, res, next) {
 
 async function googleLogin(req, res, next) {
   const IDToken = req.headers.authorization;
-  // need to add csrf preventions
 
   try {
-    const createSessionInfo = await login('google', IDToken);
-    res.locals.sessionNeededInfo = createSessionInfo;
+    const infoNeededForSession = await login('google', IDToken);
+    res.locals.infoNeededForSession = infoNeededForSession;
     return next()
   } catch (err) {
     console.log(err);
@@ -160,13 +149,19 @@ async function googleLogin(req, res, next) {
   }
 }
 
+function hasUsernameFromDoc(userDoc) {
+  if (userDoc === null || userDoc.username === null) {
+    return false;
+  }
+  return true;
+}
 
 async function generateLoggedInSession(req, res, next) {
 
-  const userDoc = res.locals.sessionNeededInfo.userDoc;
+  const userDoc = res.locals.infoNeededForSession.userDoc;
   const hasUsername = hasUsernameFromDoc(userDoc);
-  const authSub = res.locals.sessionNeededInfo.sub;
-  const authenticationSource = res.locals.sessionNeededInfo.authenticationSource;
+  const authSub = res.locals.infoNeededForSession.sub;
+  const authenticationSource = res.locals.infoNeededForSession.authenticationSource;
   const deviceToken = req.body.deviceToken;
 
   req.session.regenerate(async function (err) {
@@ -175,7 +170,7 @@ async function generateLoggedInSession(req, res, next) {
     req.session.authenticationSource = authenticationSource;
     req.session.authenticationID = authSub;
     if (hasUsername) {
-      req.session.username = res.locals.sessionNeededInfo.userDoc.username;
+      req.session.username = res.locals.infoNeededForSession.userDoc.username;
       await registerDeviceToken(req.session.username, deviceToken);
     } else {
       req.session.username = null;

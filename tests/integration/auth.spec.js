@@ -50,7 +50,7 @@ describe('Testing authentication routes', () => {
                 given_name: user1.given_name,
                 family_name: user1.family_name,
                 email: "testemail" + user1.sub + "@gmail.com",
-                picture: "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png"
+                picture: "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_6380.png"
             }
             let payloadStub = sandbox.stub().returns(userVal)
             sandbox.stub(googleauth.OAuth2Client.prototype, "verifyIdToken").resolves({ getPayload: payloadStub });
@@ -103,7 +103,7 @@ describe('Testing authentication routes', () => {
                 given_name: user1.given_name,
                 family_name: user1.family_name,
                 email: "testemail" + user1.sub + "@gmail.com",
-                picture: "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_9320.png"
+                picture: "https://res.cloudinary.com/dtsw9d8om/image/upload/profilePictures/batman_6380.png"
             }
             let payloadStub = sandbox.stub().returns(userVal)
             sandbox.stub(googleauth.OAuth2Client.prototype, "verifyIdToken").resolves({ getPayload: payloadStub });
