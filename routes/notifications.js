@@ -57,6 +57,16 @@ async function sendPushNotificationToUsers(usernames, messageBody, page) {
         },
         data: {
             page: page
+        },
+        webpush: {
+            fcm_options: {
+              link: "/" + page
+            },
+            notification:{
+                title: "Tread",
+                body: messageBody,
+                icon: '../favicon.ico'
+            }
         }
     }
     await sendMessageToDevices(message);
