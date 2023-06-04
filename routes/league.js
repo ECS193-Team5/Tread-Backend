@@ -94,9 +94,10 @@ router.route("/add_admin").post(
     async (req, res, next) => {
         const recipient = req.body.recipient;
         const leagueName = req.body.leagueName;
+        const leagueID = req.body.leagueID;
 
         res.locals.filter = {
-            _id: ObjectId(req.body.leagueID),
+            _id: ObjectId(leagueID),
             admin: req.session.username,
             members: recipient,
         }
@@ -106,7 +107,8 @@ router.route("/add_admin").post(
 
         await notifyMember(
             recipient,
-            "You have been elevated to the admin team in " + leagueName
+            "You have been elevated to the admin team in " + leagueName,
+            leagueID
         );
         next();
     }, updateLeague);
@@ -116,9 +118,10 @@ router.route("/remove_admin").post(
     async (req, res, next) => {
         const recipient = req.body.recipient;
         const leagueName = req.body.leagueName;
+        const leagueID = req.body.leagueID;
 
         res.locals.filter = {
-            _id: ObjectId(req.body.leagueID),
+            _id: ObjectId(leagueID),
             admin: req.session.username,
             owner: { $ne: recipient }
         }
@@ -129,7 +132,8 @@ router.route("/remove_admin").post(
 
         await notifyMember(
             recipient,
-            "You have been removed from the admin team in " + leagueName
+            "You have been removed from the admin team in " + leagueName,
+            leagueID
         );
         next();
     }, updateLeague);
@@ -164,9 +168,10 @@ router.post("/kick_member", checkLeagueID,
     async (req, res, next) => {
         const recipient = req.body.recipient;
         const leagueName = req.body.leagueName;
+        const leagueID = req.body.leagueID;
 
         res.locals.filter = {
-            _id: ObjectId(req.body.leagueID),
+            _id: ObjectId(leagueID),
             admin: req.session.username,
             members: recipient,
             owner: { $ne: recipient }
@@ -178,7 +183,8 @@ router.post("/kick_member", checkLeagueID,
 
         await notifyMember(
             recipient,
-            "You have been kicked out of " + leagueName
+            "You have been kicked out of " + leagueName,
+            leagueID
         );
         next();
     }, updateLeague);
@@ -199,8 +205,8 @@ router.post("/leave_league", checkLeagueID,
         next();
     }, updateLeague);
 
-async function notifyMember(memberName, actionMessage) {
-    sendNotificationToUsers([memberName], actionMessage, "leagueMemberPage");
+async function notifyMember(memberName, actionMessage, leagueID) {
+    sendNotificationToUsers([memberName], actionMessage, "leagueMemberPage?=" + leagueID);
 }
 
 router.route("/invite_to_join").post(
@@ -224,7 +230,7 @@ router.route("/invite_to_join").post(
         )
 
         if (updateLog.matchedCount == 1) {
-            await notifyMember(recipient, username + " accepted your league join request.");
+            await notifyMember(recipient, username + " accepted your league join request.", leagueID);
             return res.sendStatus(200);
         }
 
@@ -238,7 +244,7 @@ router.route("/invite_to_join").post(
                 $pull: { bannedUsers: recipient }
             }
 
-        await notifyMember(recipient, username + " invited you to a league.");
+        await notifyMember(recipient, username + " invited you to a league.", leagueID);
         next();
     }, updateLeague);
 
@@ -351,9 +357,10 @@ router.route("/accept_join_request").post(
     async (req, res, next) => {
         const username = req.session.username;
         const recipient = req.body.recipient;
+        const leagueID = req.body.leagueID;
 
         res.locals.filter = {
-            _id: ObjectId(req.body.leagueID),
+            _id: ObjectId(leagueID),
             admin: username,
             pendingRequests: recipient
         }
@@ -362,7 +369,11 @@ router.route("/accept_join_request").post(
             $addToSet: { members: recipient },
             $pull: { pendingRequests: recipient },
         }
-        await notifyMember(recipient, username + " accepted your league join request.");
+        await notifyMember(
+            recipient, username + " accepted your league join request.",
+            leagueID
+
+        );
 
         next();
     }, updateLeague);
@@ -409,9 +420,10 @@ router.route("/ban_user").post(
     async (req, res, next) => {
         const recipient = req.body.recipient;
         const leagueName = req.body.leagueName;
+        const leagueID = req.body.leagueID;
 
         res.locals.filter = {
-            _id: ObjectId(req.body.leagueID),
+            _id: ObjectId(leagueID),
             admin: req.session.username,
             owner: { $ne: recipient }
         }
@@ -428,7 +440,8 @@ router.route("/ban_user").post(
 
         await notifyMember(
             recipient,
-            "You have been banned from " + leagueName
+            "You have been banned from " + leagueName,
+            leagueID
         );
         next();
     }, updateLeague);

@@ -11,8 +11,6 @@ require('dotenv').config();
 
 const app = express();
 
-// We should make a explicit whitelist for cors request
-// change origin for frontend
 app.use(cors({
   credentials: true,
   //methods: ['POST'],
@@ -91,7 +89,6 @@ app.use("/stats", isAuthenticated, hasUsername, statisticsRouter);
 app.use("/delete_user", isAuthenticated, hasUsername, deleteUserRouter);
 app.use("/data_origin", isAuthenticated,  hasUsername, dataOriginRouter);
 app.use("/notifications", isAuthenticated,  hasUsername, notificationsRouter);
-// Should be in some kind of protected route
 app.use("/global_challenge", isAuthenticated, hasUsername, globalChallengeRouter);
 
 const port = parseInt(process.env.PORT) || 8080;

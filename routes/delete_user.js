@@ -45,7 +45,7 @@ async function deleteUserFriendList(username) {
     return Promise.all([
         User_inbox.bulkWrite(userInboxQueries, {ordered: false}),
         Friend_connection.bulkWrite(friendConnectionQueries, {ordered: false}),
-        User_inbox.findOneAndDelete({ username: username }),
+        User_inbox.deleteOne({ username: username }),
     ]);
 }
 
@@ -74,11 +74,11 @@ async function removeUserFromLeagues(username) {
     return League.bulkWrite(leagueQueries, {ordered: false});
 }
 
-router.delete('/', async (req, res, next) => {
+async function deleteUserFromDatabase(req, res, next) {
     const username = req.session.username;
     try {
         await Promise.all([
-            User.findOneAndDelete({ username: username }),
+            User.deleteOne({ username: username }),
             deleteUserFriendList(username),
             deleteUserChallenges(username),
             Global_challenge_progress.deleteMany({ username: username }),
@@ -95,6 +95,8 @@ router.delete('/', async (req, res, next) => {
         return res.status(500).json("Could not finish deleting profile.");
     }
     next();
-}, logout);
+};
+
+router.delete('/', deleteUserFromDatabase, logout);
 
 module.exports = router;
