@@ -2,8 +2,8 @@ const router = require("express").Router();
 const Global_challenge_progress = require("../models/global_challenge_progress.model");
 const Global_challenge = require("../models/global_challenge.model");
 
-// Move to protected route
-router.route('/add_challenge').post(async (req, res) => {
+// protect this route
+async function addChallenge(req, res) {
     // To access theses fields in query: " 'exercise.unit': 5 "
     const exercise = {
         unit : req.body.unit,
@@ -23,8 +23,9 @@ router.route('/add_challenge').post(async (req, res) => {
     }
 
     return res.sendStatus(200);
-});
+}
 
+router.route('/add_challenge').post(addChallenge);
 
 function getListOfIDsFromChallenges(challenges) {
     let challengeIDs = [];
@@ -35,8 +36,8 @@ function getListOfIDsFromChallenges(challenges) {
     return challengeIDs;
 }
 
-// incomplete
 async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
+    const username = req.session.username;
     const currentGlobalChallenges = await Global_challenge.find({
         issueDate: {
             $lte: Date.now(),
@@ -44,14 +45,14 @@ async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
         dueDate: {
             $gte: Date.now(),
         }
-    });
+    }).lean();
 
     const globalChallengeIDs = getListOfIDsFromChallenges(currentGlobalChallenges)
 
     const userGlobalChallengeProgress = await Global_challenge_progress.find({
         globalChallengeID: {$in : globalChallengeIDs},
-        username: req.session.username,
-    }).distinct("challengeID");
+        username: username,
+    }).distinct("challengeID").lean();
 
     let newlyInsertedChallenges = [];
     if (currentGlobalChallenges.length != userGlobalChallengeProgress.length) {
@@ -61,7 +62,7 @@ async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
         missingChallenges.forEach((missingChallenge) => {
             let newGlobalChallenge = {
                 challengeID: missingChallenge._id,
-                username: req.session.username,
+                username: username,
                 exercise: missingChallenge.exercise,
                 dueDate: missingChallenge.dueDate,
                 issueDate: missingChallenge.issueDate
@@ -74,7 +75,7 @@ async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
 
     const allCurrentUserGlobalChallenge = await Global_challenge_progress.find({
         globalChallengeID: {$in : globalChallengeIDs},
-        username: req.session.username,
+        username: username,
     }).lean();
 
 
