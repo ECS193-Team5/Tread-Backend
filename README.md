@@ -33,8 +33,8 @@ In the project directory, you can run:
 
 ### `npm run start-dev`
 
-Runs the app in the development mode.\
-The server will reload when you make changes.\
+Runs the app in the development mode.
+The server will reload when you make changes.
 
 
 ## Testing
