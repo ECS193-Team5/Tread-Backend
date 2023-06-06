@@ -1,29 +1,4 @@
-<!-----
-
-Yay, no errors, warnings, or alerts!
-
-Conversion time: 0.395 seconds.
-
-
-Using this Markdown file:
-
-1. Paste this output into your source file.
-2. See the notes and action items below regarding this conversion run.
-3. Check the rendered output (headings, lists, code blocks, tables) for proper
-   formatting and use a linkchecker before you publish this page.
-
-Conversion notes:
-
-* Docs to Markdown version 1.0β34
-* Mon Jun 05 2023 21:47:53 GMT-0700 (PDT)
-* Source doc: Tread Developer Guide
-* This is a partial selection. Check to make sure intra-doc links work.
-* Tables are currently converted to HTML tables.
------>
-
-
-
-# Backend
+# Tread-Backend
 
 
 ## Requirements
@@ -52,6 +27,14 @@ Navigate to the project folder and install the required dependencies;
 npm install
 ```
 
+## Available Scripts
+
+In the project directory, you can run:
+
+### `npm run start-dev`
+
+Runs the app in the development mode.\
+The server will reload when you make changes.\
 
 
 ## Testing
