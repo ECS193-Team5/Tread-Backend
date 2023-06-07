@@ -11,72 +11,81 @@ async function getPropertyOfFriendList(username, property) {
     return User_inbox.findOne({username: username }, property).lean();
 }
 
-router.route('/pending_requests').post(async (req, res) => {
+async function getPendingRequests (req, res) {
     const username = req.session.username;
 
     const pendingRequests = await User_inbox.findOne({username: username },
         'sentRequests receivedRequests').lean();
 
     return res.json(pendingRequests);
-});
+}
 
-async function getfriendList(username) {
+router.route('/pending_requests').post(getPendingRequests);
+
+async function getFriendList(username) {
     return Friend_connection.find({username: username}).distinct('friendName');
 }
 
-
-router.route('/friend_list').post(async (req, res) => {
+async function getOnlyUsernamesFriendList(req, res) {
     const username = req.session.username;
 
-    const friendList = await getfriendList(username);
+    const friendList = await getFriendList(username);
 
     return res.json(friendList);
-});
+}
+
+router.route('/friend_list').post(getOnlyUsernamesFriendList);
 
 async function getUsernameDisplayName(usernameArray){
     return User.find({username: {$in: usernameArray}}, 'username displayName');
 }
 
-router.route('/get_all_friends_info').post(async (req, res) => {
+async function getAllFriendsInfo (req, res) {
     const username = req.session.username;
 
-    const friendList = await getfriendList(username);
+    const friendList = await getFriendList(username);
 
     const friendInfo = await getUsernameDisplayName(friendList);
 
     return res.json(friendInfo);
-});
+}
 
-async function getUsernameDislayNameFromInboxNames(username, inboxField) {
+router.route('/get_all_friends_info').post(getAllFriendsInfo);
+
+async function getUsernameDisplayNameFromInboxNames(username, inboxField) {
     const usernameList = await getPropertyOfFriendList(username, inboxField);
 
     return await getUsernameDisplayName(usernameList[inboxField]);
-
 }
 
-router.route('/sent_request_list').post(async (req, res) => {
+async function getSentRequestList(req, res) {
     const username = req.session.username;
 
-    const requestInfoArray = await getUsernameDislayNameFromInboxNames(username, 'sentRequests');
+    const requestInfoArray = await getUsernameDisplayNameFromInboxNames(username, 'sentRequests');
 
     return res.json(requestInfoArray);
-});
+}
 
-router.route('/received_request_list').post(async (req, res) => {
+router.route('/sent_request_list').post(getSentRequestList);
+
+async function getReceivedRequestList(req, res)  {
     const username = req.session.username;
 
-    const requestList = await getUsernameDislayNameFromInboxNames(username, 'receivedRequests');
+    const requestList = await getUsernameDisplayNameFromInboxNames(username, 'receivedRequests');
 
     return res.json(requestList);
-});
+}
+router.route('/received_request_list').post(getReceivedRequestList);
 
-router.route('/blocked_list').post(async (req, res) => {
+async function getBlockedList(req, res) {
     const username = req.session.username;
 
-    const blockedList = await getUsernameDislayNameFromInboxNames(username, 'blocked');
+    const blockedList = await getUsernameDisplayNameFromInboxNames(username, 'blocked');
 
     return res.json(blockedList);
-});
+}
+
+router.route('/blocked_list').post(getBlockedList);
 
 async function removeFriend(username, friendName) {
     await Friend_connection.bulkWrite([
@@ -97,19 +106,21 @@ async function removeFriend(username, friendName) {
             }
         }
     ], {ordered: false});
-
 }
 
-router.route('/remove_friend').post(
-    verifyFriendExists,
-    async (req, res) => {
+async function setUpRemoveFriend (req, res) {
     const username = req.session.username;
     const friendName = req.body.friendName;
 
     removeFriend(username, friendName);
 
     return res.sendStatus(200);
-});
+}
+
+router.route('/remove_friend').post(
+    verifyFriendExists,
+    setUpRemoveFriend
+);
 
 async function getUserFriendDocument(username) {
     return User_inbox.findOne({username: username}).lean();
@@ -132,7 +143,6 @@ async function unblock(blocker, blocked) {
     ]);
 }
 
-
 function isBlockedBy(userFriendDocument, friendName) {
     return userFriendDocument["blockedBy"].includes(friendName);
 }
@@ -144,7 +154,6 @@ async function isFriend(username, friendName) {
 function isRequestReceived(userFriendDocument, friendName) {
     return userFriendDocument["receivedRequests"].includes(friendName);
 }
-
 
 async function createFriendConnection(username, friendName) {
     await Friend_connection.bulkWrite([
@@ -206,10 +215,8 @@ async function notifyFriend(username, friendName, actionMessage) {
     sendNotificationToUsers([friendName], username + actionMessage , "socialFriendPage");
 }
 
-router.route('/send_friend_request').post(
-    verifyFriendNameNotUsername,
-    verifyFriendExists,
-    async (req, res) => {
+
+async function sendFriendRequest (req, res) {
     const username = req.session.username
     const friendName = req.body.friendName
 
@@ -244,11 +251,14 @@ router.route('/send_friend_request').post(
 
     return res.status(200).json("Successfully sent "
         + friendName + " a friend request.");
-});
+}
 
-router.route('/accept_received_request').post(
+router.route('/send_friend_request').post(
+    verifyFriendNameNotUsername,
     verifyFriendExists,
-    async (req, res) => {
+    sendFriendRequest);
+
+async function acceptReceivedRequest(req, res) {
     const username = req.session.username
     const friendName = req.body.friendName
 
@@ -256,7 +266,11 @@ router.route('/accept_received_request').post(
     await notifyFriend(username, friendName, " accepted your friend request.")
 
     return res.sendStatus(200);
-});
+}
+
+router.route('/accept_received_request').post(
+    verifyFriendExists,
+    acceptReceivedRequest);
 
 
 async function removeRequest(sender, receiver) {
@@ -288,38 +302,44 @@ async function removeReceivedRequest(username, sender) {
     removeRequest(sender, username);
 }
 
-router.route('/remove_sent_request').post(
-    verifyFriendExists,
-    async (req, res) => {
+async function callRemoveSentRequest(req, res) {
     const username= req.session.username;
     const friendName = req.body.friendName;
 
     removeSentRequest(username, friendName);
 
     return res.sendStatus(200);
-});
+}
 
-router.route('/remove_received_request').post(
+router.route('/remove_sent_request').post(
     verifyFriendExists,
-    async (req, res) => {
+    callRemoveSentRequest);
+
+async function callRemoveReceivedRequest(req, res)  {
     const username= req.session.username;
     const friendName = req.body.friendName;
 
     removeReceivedRequest(username, friendName);
 
     return res.sendStatus(200);
-});
+}
 
-router.route('/unblock_user').post(
+router.route('/remove_received_request').post(
     verifyFriendExists,
-    async (req, res) => {
-    const username= req.session.username;
+    callRemoveReceivedRequest);
+
+async function callUnblockUser(req, res) {
+    const username = req.session.username;
     const friendName = req.body.friendName;
 
     unblock(username, friendName);
 
     return res.sendStatus(200);
-});
+}
+
+router.route('/unblock_user').post(
+    verifyFriendExists,
+    callUnblockUser);
 
 async function blockUser(username, target) {
     Promise.all([
@@ -352,23 +372,20 @@ async function blockUser(username, target) {
     ]);
 }
 
+async function setUpBlockUser(req, res) {
+    const username = req.session.username;
+    const friendName = req.body.friendName;
+    await blockUser(username, friendName);
+    return res.sendStatus(200);
+}
+
 router.route('/block_user').post(
     verifyFriendNameNotUsername,
     verifyFriendExists,
-    async (req, res) => {
-    const username = req.session.username;
-    const friendName = req.body.friendName;
+    setUpBlockUser
+);
 
-
-    await blockUser(username, friendName);
-
-
-
-    return res.sendStatus(200);
-});
-
-
-router.route('/get_recommended').post(async (req, res, next) => {
+async function getRecommended(req, res, next) {
     const username = req.session.username;
     const MUTUAL_FRIEND_QUERY_LIMIT = 6000;
 
@@ -385,10 +402,11 @@ router.route('/get_recommended').post(async (req, res, next) => {
     const mutualFriendsFrequency = await getSortedFieldFrequency("friendName", mutualFriends);
 
     return res.status(200).json(mutualFriendsFrequency.slice(0,5));
-});
+}
 
+router.route('/get_recommended').post(getRecommended);
 
-router.route('/get_recent_activity').post(async (req, res, next) => {
+async function getRecentActivity (req, res, next) {
 
     const username = req.session.username;
 
@@ -403,9 +421,9 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
     }).sort({loggedDate: -1}).limit(5).lean();
 
     return res.status(200).json(recentFriendActivity);
-});
+}
 
-
+router.route('/get_recent_activity').post(getRecentActivity);
 
 module.exports = router;
 module.exports.isFriend = isFriend;

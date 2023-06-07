@@ -51,7 +51,7 @@ async function updateGlobalChallenges(username, exerciseLog) {
     const incrementObj = {
         progress : exerciseLog.exercise.convertedAmount
     }
-  
+
     const needUpdatingGlobalChallenge = await Global_challenge.findOne({
         'exercise.exerciseName' : exerciseLog.exercise.exerciseName,
         'exercise.unitType' : exerciseLog.exercise.unitType,
@@ -115,8 +115,6 @@ async function updateMedalsWithExercise(username, exercise) {
 // and number of database calls.
 async function addExerciseToLog(req, res, next) {
     const username = req.session.username;
-    const dataOrigin = req.body.dataOrigin;
-    const anchor = req.body.anchor;
     const exercise = {
         exerciseName: req.body.exerciseName,
         unit: req.body.unit,
@@ -129,7 +127,6 @@ async function addExerciseToLog(req, res, next) {
     }
 
     const newExerciseLog = new Exercise_log(exerciseLog);
-
     try {
         await Promise.all([
             newExerciseLog.save(),
@@ -145,7 +142,6 @@ async function addExerciseToLog(req, res, next) {
 }
 
 router.route('/add').post(addExerciseToLog);
-
 
 // Expects an array of exerciseLogs without the username field.
 async function addExerciseListToExerciseLog(username, exerciseList) {
@@ -219,7 +215,6 @@ function getQueryForGlobalChallengesMatchingExercises(username, uniqueExercises)
     );
 }
 
-
 function getQueryForInsertingGlobalChallengesIfMissing(username, missingGlobalChallenges) {
     let insertGlobalChallengeQuery = [];
     missingGlobalChallenges.forEach(challenge => {
@@ -257,6 +252,7 @@ async function updateManyGlobalChallengesAndCompletion(username, uniqueExercises
     if (insertGlobalChallengeQuery.length === 0) {
         return;
     }
+
     await Global_challenge_progress.bulkWrite(insertGlobalChallengeQuery, {ordered: false});
     await Global_challenge_progress.bulkWrite(updateGlobalChallengeQuery, {ordered: false});
     await Global_challenge_progress.bulkWrite(challengeCompletionQuery, {ordered: false});

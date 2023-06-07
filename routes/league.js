@@ -82,78 +82,88 @@ async function updateLeague(req, res, next) {
     return res.sendStatus(200);
 }
 
-function checkLeagueID(req, res, next) {
+async function checkLeagueID(req, res, next) {
     if (!req.body.leagueID) {
         return res.sendStatus(400);
     }
     next();
 }
 
+async function setUpAddUserToAdmin(req, res, next) {
+    const recipient = req.body.recipient;
+    const leagueName = req.body.leagueName;
+    const leagueID = req.body.leagueID;
+
+    res.locals.filter = {
+        _id: ObjectId(leagueID),
+        admin: req.session.username,
+        members: recipient,
+    }
+    res.locals.updates = {
+        $addToSet: { admin: recipient },
+    }
+
+    await notifyMember(
+        recipient,
+        "You have been elevated to the admin team in " + leagueName,
+        leagueID
+    );
+
+    next();
+}
+
 router.route("/add_admin").post(
     checkLeagueID,
-    async (req, res, next) => {
-        const recipient = req.body.recipient;
-        const leagueName = req.body.leagueName;
-        const leagueID = req.body.leagueID;
+    setUpAddUserToAdmin,
+    updateLeague);
 
-        res.locals.filter = {
-            _id: ObjectId(leagueID),
-            admin: req.session.username,
-            members: recipient,
-        }
-        res.locals.updates = {
-            $addToSet: { admin: recipient },
-        }
+async function setUpRemoveUserFromAdmin (req, res, next) {
+    const recipient = req.body.recipient;
+    const leagueName = req.body.leagueName;
+    const leagueID = req.body.leagueID;
 
-        await notifyMember(
-            recipient,
-            "You have been elevated to the admin team in " + leagueName,
-            leagueID
-        );
-        next();
-    }, updateLeague);
+    res.locals.filter = {
+        _id: ObjectId(leagueID),
+        admin: req.session.username,
+        owner: { $ne: recipient }
+    }
+
+    res.locals.updates = {
+        $pull: { admin: recipient },
+    }
+
+    await notifyMember(
+        recipient,
+        "You have been removed from the admin team in " + leagueName,
+        leagueID
+    );
+    next();
+}
 
 router.route("/remove_admin").post(
     checkLeagueID,
-    async (req, res, next) => {
-        const recipient = req.body.recipient;
-        const leagueName = req.body.leagueName;
-        const leagueID = req.body.leagueID;
+    setUpRemoveUserFromAdmin,
+    updateLeague);
 
-        res.locals.filter = {
-            _id: ObjectId(leagueID),
-            admin: req.session.username,
-            owner: { $ne: recipient }
-        }
+async function setUpRemoveSelfFromAdmin(req, res, next){
+    const username = req.session.username;
 
-        res.locals.updates = {
-            $pull: { admin: recipient },
-        }
+    res.locals.filter = {
+        _id: ObjectId(req.body.leagueID),
+        admin: req.session.username,
+        owner: { $ne: username }
+    }
 
-        await notifyMember(
-            recipient,
-            "You have been removed from the admin team in " + leagueName,
-            leagueID
-        );
-        next();
-    }, updateLeague);
+    res.locals.updates = {
+        $pull: { admin: username },
+    }
+    next();
+}
 
 router.route("/user_remove_admin").post(
     checkLeagueID,
-    async (req, res, next) => {
-        const username = req.session.username;
-
-        res.locals.filter = {
-            _id: ObjectId(req.body.leagueID),
-            admin: req.session.username,
-            owner: { $ne: username }
-        }
-
-        res.locals.updates = {
-            $pull: { admin: username },
-        }
-        next();
-    }, updateLeague);
+    setUpRemoveSelfFromAdmin,
+    updateLeague);
 
 
 async function verifyRecipientUserExists(req, res, next) {
@@ -164,8 +174,7 @@ async function verifyRecipientUserExists(req, res, next) {
     }
 }
 
-router.post("/kick_member", checkLeagueID,
-    async (req, res, next) => {
+async function setUpKickMember(req, res, next){
         const recipient = req.body.recipient;
         const leagueName = req.body.leagueName;
         const leagueID = req.body.leagueID;
@@ -187,283 +196,304 @@ router.post("/kick_member", checkLeagueID,
             leagueID
         );
         next();
-    }, updateLeague);
+}
 
+router.post("/kick_member", checkLeagueID,
+    setUpKickMember,
+    updateLeague);
+
+async function setUpLeaveLeague(req, res, next){
+    const username = req.session.username;
+    res.locals.filter = {
+        _id: ObjectId(req.body.leagueID),
+        members: username,
+        owner: { $ne: username }
+    }
+
+    res.locals.updates = {
+        $pull: { members: username, admin: username },
+    }
+    next();
+}
 
 router.post("/leave_league", checkLeagueID,
-    async (req, res, next) => {
-        const username = req.session.username;
-        res.locals.filter = {
-            _id: ObjectId(req.body.leagueID),
-            members: username,
-            owner: { $ne: username }
-        }
-
-        res.locals.updates = {
-            $pull: { members: username, admin: username },
-        }
-        next();
-    }, updateLeague);
+    setUpLeaveLeague, updateLeague);
 
 async function notifyMember(memberName, actionMessage, leagueID) {
     sendNotificationToUsers([memberName], actionMessage, "leagueMemberPage?=" + leagueID);
 }
 
+async function setUpInviteUserToLeague(req, res, next){
+    const username = req.session.username;
+    const recipient = req.body.recipient;
+    const leagueID = req.body.leagueID;
+
+    const updateLog = await League.updateOne(
+        {
+            _id: ObjectId(leagueID),
+            admin: username,
+            pendingRequests: recipient
+        },
+        {
+            $addToSet: { members: recipient },
+            $pull: { pendingRequests: recipient },
+        }
+    )
+
+    if (updateLog.matchedCount == 1) {
+        await notifyMember(recipient, username + " accepted your league join request.", leagueID);
+        return res.sendStatus(200);
+    }
+
+    res.locals.filter = {
+        _id: ObjectId(leagueID),
+        admin: username,
+        members: { $ne: recipient }
+    }
+    res.locals.updates = {
+        $addToSet: { sentRequests: recipient },
+        $pull: { bannedUsers: recipient }
+    }
+
+    await notifyMember(recipient, username + " invited you to a league.", leagueID);
+    next();
+}
+
 router.route("/invite_to_join").post(
-    checkLeagueID, verifyRecipientUserExists,
-    async (req, res, next) => {
+    checkLeagueID,
+    verifyRecipientUserExists,
+    setUpInviteUserToLeague,
+    updateLeague);
 
-        const username = req.session.username;
-        const recipient = req.body.recipient;
-        const leagueID = req.body.leagueID;
+async function setUpUserRequestToJoin(req, res, next){
+    const username = req.session.username;
+    const leagueID = req.body.leagueID;
 
+    try {
         const updateLog = await League.updateOne(
             {
                 _id: ObjectId(leagueID),
-                admin: username,
-                pendingRequests: recipient
+                sentRequests: username
             },
             {
-                $addToSet: { members: recipient },
-                $pull: { pendingRequests: recipient },
+                $addToSet: { members: username },
+                $pull: { sentRequests: username },
             }
         )
 
         if (updateLog.matchedCount == 1) {
-            await notifyMember(recipient, username + " accepted your league join request.", leagueID);
             return res.sendStatus(200);
         }
 
-        res.locals.filter = {
-            _id: ObjectId(leagueID),
-            admin: username,
-            members: { $ne: recipient }
-        },
-            res.locals.updates = {
-                $addToSet: { sentRequests: recipient },
-                $pull: { bannedUsers: recipient }
-            }
+        const leagueType = await League.findOne(
+            {
+                _id: ObjectId(leagueID),
+            }, { "_id": 0, "leagueType": 1 }
+        )
 
-        await notifyMember(recipient, username + " invited you to a league.", leagueID);
-        next();
-    }, updateLeague);
+        if (leagueType.leagueType === "public") {
+            res.locals.updates = {
+                $addToSet: { members: username }
+            }
+        } else {
+            res.locals.updates = {
+                $addToSet: { pendingRequests: username },
+            }
+        }
+    }
+    catch (err) {
+        console.log(err);
+        return res.sendStatus(500);
+    }
+    res.locals.filter = {
+        _id: ObjectId(leagueID),
+        members: { $ne: username },
+        bannedUsers: { $ne: username }
+    },
+
+    next();
+}
 
 router.route("/user_request_to_join").post(
     checkLeagueID,
-    async (req, res, next) => {
-        const username = req.session.username;
-        const leagueID = req.body.leagueID;
+    setUpUserRequestToJoin,
+    updateLeague);
 
-        try {
-            const updateLog = await League.updateOne(
-                {
-                    _id: ObjectId(leagueID),
-                    sentRequests: username
-                },
-                {
-                    $addToSet: { members: username },
-                    $pull: { sentRequests: username },
-                }
-            )
+async function setUpUserAcceptInvite(req, res, next){
+    const username = req.session.username;
 
-            if (updateLog.matchedCount == 1) {
-                return res.sendStatus(200);
-            }
+    res.locals.filter = {
+        _id: ObjectId(req.body.leagueID),
+        sentRequests: username
+    }
 
-            const leagueType = await League.findOne(
-                {
-                    _id: ObjectId(leagueID),
-                }, { "_id": 0, "leagueType": 1 }
-            )
-
-            if (leagueType.leagueType === "public") {
-                res.locals.updates = {
-                    $addToSet: { members: username }
-                }
-            } else {
-                res.locals.updates = {
-                    $addToSet: { pendingRequests: username },
-                }
-            }
-        }
-        catch (err) {
-            console.log(err);
-            return res.sendStatus(500);
-        }
-        res.locals.filter = {
-            _id: ObjectId(leagueID),
-            members: { $ne: username },
-            bannedUsers: { $ne: username }
-        },
-
-            next();
-    }, updateLeague);
+    res.locals.updates = {
+        $addToSet: { members: username },
+        $pull: { sentRequests: username },
+    }
+    next();
+}
 
 router.route("/user_accept_invite").post(
-    checkLeagueID,
-    async (req, res, next) => {
-        const username = req.session.username;
+    checkLeagueID,setUpUserAcceptInvite, updateLeague);
 
-        res.locals.filter = {
-            _id: ObjectId(req.body.leagueID),
-            sentRequests: username
-        }
+async function setUpUserDeclineInvite(req, res, next){
+    const username = req.session.username;
 
-        res.locals.updates = {
-            $addToSet: { members: username },
-            $pull: { sentRequests: username },
-        }
-        next();
-    }, updateLeague);
+    res.locals.filter = {
+        _id: ObjectId(req.body.leagueID),
+        sentRequests: username
+    }
 
+    res.locals.updates = {
+        $pull: { sentRequests: username },
+    }
+    next();
+}
 
 router.route("/user_decline_invite").post(
-    checkLeagueID,
-    async (req, res, next) => {
-        const username = req.session.username;
+    checkLeagueID, setUpUserDeclineInvite, updateLeague);
 
-        res.locals.filter = {
-            _id: ObjectId(req.body.leagueID),
-            sentRequests: username
-        }
+async function setUpUserUndoRequest(req, res, next) {
+    const username = req.session.username;
 
-        res.locals.updates = {
-            $pull: { sentRequests: username },
-        }
-        next();
-    }, updateLeague);
+    res.locals.filter = {
+        _id: ObjectId(req.body.leagueID),
+        pendingRequests: username
+    }
 
+    res.locals.updates = {
+        $pull: { pendingRequests: username },
+    }
+    next();
+}
 
 router.route("/user_undo_request").post(
     checkLeagueID,
-    async (req, res, next) => {
-        const username = req.session.username;
+    setUpUserUndoRequest,
+    updateLeague);
 
-        res.locals.filter = {
-            _id: ObjectId(req.body.leagueID),
-            pendingRequests: username
-        }
+async function setUpAcceptJoinRequest(req, res, next) {
+    const username = req.session.username;
+    const recipient = req.body.recipient;
+    const leagueID = req.body.leagueID;
 
-        res.locals.updates = {
-            $pull: { pendingRequests: username },
-        }
-        next();
-    }, updateLeague);
+    res.locals.filter = {
+        _id: ObjectId(leagueID),
+        admin: username,
+        pendingRequests: recipient
+    }
 
+    res.locals.updates = {
+        $addToSet: { members: recipient },
+        $pull: { pendingRequests: recipient },
+    }
+    await notifyMember(
+        recipient, username + " accepted your league join request.",
+        leagueID
 
+    );
+
+    next();
+}
 
 router.route("/accept_join_request").post(
     checkLeagueID,
-    async (req, res, next) => {
-        const username = req.session.username;
-        const recipient = req.body.recipient;
-        const leagueID = req.body.leagueID;
+    setUpAcceptJoinRequest,
+    updateLeague);
 
-        res.locals.filter = {
-            _id: ObjectId(leagueID),
-            admin: username,
-            pendingRequests: recipient
-        }
+async function setUpDeclineRequest(req, res, next) {
+    const recipient = req.body.recipient;
 
-        res.locals.updates = {
-            $addToSet: { members: recipient },
-            $pull: { pendingRequests: recipient },
-        }
-        await notifyMember(
-            recipient, username + " accepted your league join request.",
-            leagueID
+    res.locals.filter = {
+        _id: ObjectId(req.body.leagueID),
+        admin: req.session.username,
+        pendingRequests: recipient
+    }
 
-        );
-
-        next();
-    }, updateLeague);
-
+    res.locals.updates = {
+        $pull: { pendingRequests: recipient },
+    }
+    next();
+}
 
 router.route("/decline_request").post(
     checkLeagueID,
-    async (req, res, next) => {
-        const recipient = req.body.recipient;
+    setUpDeclineRequest,
+    updateLeague);
 
-        res.locals.filter = {
-            _id: ObjectId(req.body.leagueID),
-            admin: req.session.username,
-            pendingRequests: recipient
-        }
+async function setUpUndoInvite (req, res, next) {
+    const recipient = req.body.recipient;
 
-        res.locals.updates = {
-            $pull: { pendingRequests: recipient },
-        }
-        next();
-    }, updateLeague);
+    res.locals.filter = {
+        _id: ObjectId(req.body.leagueID),
+        admin: req.session.username,
+        sentRequests: recipient
+    }
 
+    res.locals.updates = {
+        $pull: { sentRequests: recipient },
+    }
+    next();
+}
 
 router.route("/undo_invite").post(
     checkLeagueID,
-    async (req, res, next) => {
-        const recipient = req.body.recipient;
+    setUpUndoInvite,
+    updateLeague);
 
-        res.locals.filter = {
-            _id: ObjectId(req.body.leagueID),
-            admin: req.session.username,
-            sentRequests: recipient
-        }
+async function setUpBanUser(req, res, next) {
+    const recipient = req.body.recipient;
+    const leagueName = req.body.leagueName;
+    const leagueID = req.body.leagueID;
 
-        res.locals.updates = {
-            $pull: { sentRequests: recipient },
-        }
-        next();
-    }, updateLeague);
+    res.locals.filter = {
+        _id: ObjectId(leagueID),
+        admin: req.session.username,
+        owner: { $ne: recipient }
+    }
 
+    res.locals.updates = {
+        $addToSet: { bannedUsers: recipient },
+        $pull: {
+            admin: recipient,
+            pendingRequests: recipient,
+            members: recipient
+        },
+    }
+
+    await notifyMember(
+        recipient,
+        "You have been banned from " + leagueName,
+        leagueID
+    );
+    next();
+}
 
 router.route("/ban_user").post(
     checkLeagueID, verifyRecipientUserExists,
-    async (req, res, next) => {
-        const recipient = req.body.recipient;
-        const leagueName = req.body.leagueName;
-        const leagueID = req.body.leagueID;
-
-        res.locals.filter = {
-            _id: ObjectId(leagueID),
-            admin: req.session.username,
-            owner: { $ne: recipient }
-        }
-
-        res.locals.updates = {
-            $addToSet: { bannedUsers: recipient },
-            $pull: {
-                admin: recipient,
-                pendingRequests: recipient,
-                members: recipient
-            },
-        }
+    setUpBanUser, updateLeague);
 
 
-        await notifyMember(
-            recipient,
-            "You have been banned from " + leagueName,
-            leagueID
-        );
-        next();
-    }, updateLeague);
+async function setUpUnbanUser(req, res, next) {
+    const recipient = req.body.recipient;
 
+    res.locals.filter = {
+        _id: ObjectId(req.body.leagueID),
+        admin: req.session.username,
+    }
+
+    res.locals.updates = {
+        $pull: {
+            bannedUsers: recipient
+        },
+    }
+    next();
+}
 
 router.route("/unban_user").post(
     checkLeagueID, verifyRecipientUserExists,
-    async (req, res, next) => {
-        const recipient = req.body.recipient;
-
-        res.locals.filter = {
-            _id: ObjectId(req.body.leagueID),
-            admin: req.session.username,
-        }
-
-        res.locals.updates = {
-            $pull: {
-                bannedUsers: recipient
-            },
-        }
-        next();
-    }, updateLeague);
+    setUpUnbanUser, updateLeague);
 
 async function findLeaguesWhere(filter) {
     return League.find(filter).lean();
@@ -499,45 +529,56 @@ async function getAllLeaguesWithChallengeCount(req, res, next) {
     return res.status(200).json(zippedCountAndInfo);
 }
 
+async function filterAllLeagues(req, res, next) {
+    res.locals.filter = { members: req.session.username }
+    next()
+}
+
 router.route("/get_leagues").post(
-    async (req, res, next) => {
-        res.locals.filter = { members: req.session.username }
-        next()
-    }, getAllLeaguesWithChallengeCount);
+    filterAllLeagues, getAllLeaguesWithChallengeCount);
+
+async function filterAdminLeagues(req, res, next) {
+    res.locals.filter = { admin: req.session.username }
+    next()
+}
 
 router.route("/get_admin_leagues_with_challenge_count").post(
-    async (req, res, next) => {
-        res.locals.filter = { admin: req.session.username }
-        next()
-    }, getAllLeaguesWithChallengeCount);
+    filterAdminLeagues, getAllLeaguesWithChallengeCount);
+
+async function filterRequestLeagues(req, res, next) {
+    res.locals.filter = { pendingRequests: req.session.username }
+    next()
+}
 
 router.route("/get_requested_leagues").post(
-    async (req, res, next) => {
-        res.locals.filter = { pendingRequests: req.session.username }
-        next()
-    }, getAllLeaguesWithChallengeCount);
+    filterRequestLeagues, getAllLeaguesWithChallengeCount);
+
+async function filterInviteLeagues(req, res, next) {
+    res.locals.filter = { sentRequests: req.session.username }
+    next()
+}
 
 router.route("/get_invited_leagues").post(
-    async (req, res, next) => {
-        res.locals.filter = { sentRequests: req.session.username }
-        next()
-    }, getAllLeaguesWithChallengeCount);
+    filterInviteLeagues, getAllLeaguesWithChallengeCount);
+
+async function filterOwnedLeagues(req, res, next) {
+    res.locals.filter = { owner: req.session.username }
+    next()
+}
 
 router.route("/get_owned_leagues").post(
-    async (req, res, next) => {
-        res.locals.filter = { owner: req.session.username }
-        next()
-    }, getAllLeaguesWithChallengeCount);
+    filterOwnedLeagues, getAllLeaguesWithChallengeCount);
 
+async function getAdminLeagues(req, res, next) {
+    const leagues = await findLeaguesWhere(
+        { admin: req.session.username },
+        '_id leagueName'
+    );
+
+    return res.status(200).json(leagues);
+}
 router.route("/get_admin_leagues").post(
-    async (req, res, next) => {
-        const leagues = await findLeaguesWhere(
-            { admin: req.session.username },
-            '_id leagueName'
-        );
-
-        return res.status(200).json(leagues);
-    });
+    getAdminLeagues);
 
 async function getLeagueNameDescriptionType(req, res, next) {
     const leagueID = req.body.leagueID;
@@ -547,6 +588,7 @@ async function getLeagueNameDescriptionType(req, res, next) {
 
     return res.status(200).json(leagueDescription);
 };
+
 router.route("/get_league_name_description_type").post(checkLeagueID, getLeagueNameDescriptionType);
 
 async function getLeagueActiveChallengeCount(req, res, next) {
@@ -599,8 +641,6 @@ async function getMyRole(req, res, next) {
 
 router.route('/get_role').post(checkLeagueID, getMyRole);
 
-
-
 /// This below should be able to be refactored into 2 functions
 async function getMemberList(req, res, next) {
     const username = req.session.username;
@@ -630,94 +670,96 @@ async function getMemberList(req, res, next) {
 
 router.route('/get_member_list').post(checkLeagueID, getMemberList);
 
+async function getBannedList(req, res, next) {
+    const username = req.session.username;
+    const leagueID = req.body.leagueID;
+    const league = await League.findOne({
+        _id: leagueID,
+        members: username
+    }, { bannedUsers: 1, _id: 0 }).lean();
+
+
+    if (league === null) {
+        return res.sendStatus(404);
+    }
+
+    const leagueBanned = league.bannedUsers;
+    const bannedInfo = await User.find({
+        username: { $in: leagueBanned }
+    }, { displayName: 1, username: 1, _id: 0 }).lean();
+
+
+    return res.status(200).json(bannedInfo);
+}
 
 router.route('/get_banned_list').post(
-    checkLeagueID,
-    async (req, res, next) => {
-        const username = req.session.username;
-        const leagueID = req.body.leagueID;
-        const league = await League.findOne({
-            _id: leagueID,
-            members: username
-        }, { bannedUsers: 1, _id: 0 }).lean();
+    checkLeagueID, getBannedList);
+
+async function getPendingRequestList(req, res, next) {
+    const username = req.session.username;
+    const leagueID = req.body.leagueID;
+    const league = await League.findOne({
+        _id: leagueID,
+        admin: username
+    }, { pendingRequests: 1, _id: 0 }).lean();
 
 
-        if (league === null) {
-            return res.sendStatus(404);
-        }
+    if (league === null) {
+        return res.sendStatus(404);
+    }
 
-        const leagueBanned = league.bannedUsers;
-        const bannedInfo = await User.find({
-            username: { $in: leagueBanned }
-        }, { displayName: 1, username: 1, _id: 0 }).lean();
+    const leaguePending = league.pendingRequests;
+    const memberInfo = await User.find({
+        username: { $in: leaguePending }
+    }, { displayName: 1, username: 1, _id: 0 }).lean();
 
-
-        return res.status(200).json(bannedInfo);
-    });
-
+    return res.status(200).json(memberInfo);
+}
 
 router.route('/get_pending_request_list').post(
     checkLeagueID,
-    async (req, res, next) => {
-        const username = req.session.username;
-        const leagueID = req.body.leagueID;
-        const league = await League.findOne({
-            _id: leagueID,
-            admin: username
-        }, { pendingRequests: 1, _id: 0 }).lean();
+    getPendingRequestList);
+
+async function getSentInviteList (req, res, next) {
+    const username = req.session.username;
+    const leagueID = req.body.leagueID;
+    const league = await League.findOne({
+        _id: leagueID,
+        admin: username
+    }, { sentRequests: 1, _id: 0 }).lean();
 
 
-        if (league === null) {
-            return res.sendStatus(404);
-        }
+    if (league === null) {
+        return res.sendStatus(404);
+    }
+    const leagueSent = league.sentRequests;
+    const memberInfo = await User.find({
+        username: { $in: leagueSent }
+    }, { displayName: 1, username: 1, _id: 0 }).lean();
 
-        const leaguePending = league.pendingRequests;
-        const memberInfo = await User.find({
-            username: { $in: leaguePending }
-        }, { displayName: 1, username: 1, _id: 0 }).lean();
-
-        return res.status(200).json(memberInfo);
-    });
+    return res.status(200).json(memberInfo);
+}
 
 router.route('/get_sent_invite_list').post(
-    checkLeagueID,
-    async (req, res, next) => {
-        const username = req.session.username;
-        const leagueID = req.body.leagueID;
-        const league = await League.findOne({
-            _id: leagueID,
-            admin: username
-        }, { sentRequests: 1, _id: 0 }).lean();
+    checkLeagueID, getSentInviteList);
 
+async function getLeaderboard(req, res, next) {
+    const leagueChallenges = await Challenge.find({ receivedUser: req.body.leagueID }).distinct("_id");
+    const completedChallenges = await Challenge_progress.find({
+        challengeID: { $in: leagueChallenges },
+        completed: true,
+    }, {
+        _id: 0, username: 1
+    }).lean()
+    const sortedResult = await getSortedFieldFrequency("username", completedChallenges);
 
-        if (league === null) {
-            return res.sendStatus(404);
-        }
-        const leagueSent = league.sentRequests;
-        const memberInfo = await User.find({
-            username: { $in: leagueSent }
-        }, { displayName: 1, username: 1, _id: 0 }).lean();
-
-        return res.status(200).json(memberInfo);
-    });
-
+    return res.status(200).send(sortedResult);
+}
 
 router.route('/get_leaderboard').post(checkLeagueID,
-    async (req, res, next) => {
-        const leagueChallenges = await Challenge.find({ receivedUser: req.body.leagueID }).distinct("_id");
-        const completedChallenges = await Challenge_progress.find({
-            challengeID: { $in: leagueChallenges },
-            completed: true,
-        }, {
-            _id: 0, username: 1
-        }).lean()
-        const sortedResult = await getSortedFieldFrequency("username", completedChallenges);
+    getLeaderboard);
 
-        return res.status(200).send(sortedResult);
-
-    });
-
-router.route('/get_recommended').post(async (req, res, next) => {
+async function getRecommended (req, res, next) {
     // find 10 recent exercises logged
     // find all league challenges in the last x time with recent exercises
     // find at most 6 leagues that are public from that list
@@ -749,9 +791,11 @@ router.route('/get_recommended').post(async (req, res, next) => {
     }, { "leagueName": 1 }).limit(LIMIT_NUMBER_LEAGUES_RETURNED).lean();
 
     return res.status(200).json(publicRelatedLeagues);
-});
+}
 
-router.route('/get_recent_activity').post(async (req, res, next) => {
+router.route('/get_recommended').post(getRecommended);
+
+async function getRecentActivity(req, res, next){
     // Get league participants from all leagues
     // Get active league challenges and find their exerciseName/unitType
     // Find exercise_logs that match exerciseName and type that are logged by participants
@@ -774,7 +818,9 @@ router.route('/get_recent_activity').post(async (req, res, next) => {
     }).sort({ "loggedDate": -1 }).limit(NUMBER_OF_EXERCISES_TO_RETURN).lean();
 
     return res.status(200).json(recentExercises);
-});
+}
+
+router.route('/get_recent_activity').post(getRecentActivity);
 
 async function checkUserLeagueAdmin(req, res, next) {
     const leagueID = req.body.leagueID;
@@ -788,6 +834,7 @@ async function checkUserLeagueAdmin(req, res, next) {
     }
     return next();
 }
+
 async function updatePicture(req, res) {
     const leaguePicture = req.body.leaguePicture;
     const leagueID = req.body.leagueID;
@@ -800,6 +847,7 @@ async function updatePicture(req, res) {
     }
     return res.sendStatus(200);
 }
+
 router.route('/update_picture').post(multer().array(), checkLeagueID, checkUserLeagueAdmin, updatePicture);
 
 async function updateName(req, res) {
@@ -822,6 +870,7 @@ async function updateName(req, res) {
 
     return res.sendStatus(200);
 }
+
 router.route('/update_name').post(checkLeagueID, updateName);
 
 async function updateDescription(req, res) {
@@ -838,6 +887,7 @@ async function updateDescription(req, res) {
 
     return res.sendStatus(200);
 }
+
 router.route('/update_description').post(checkLeagueID, updateDescription);
 
 async function updateType(req, res) {
