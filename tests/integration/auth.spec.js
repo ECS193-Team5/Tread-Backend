@@ -204,5 +204,21 @@ describe('Testing authentication routes', () => {
         })
     })
 
+    describe("Test failures", () =>{
+        beforeEach(async () => {
+            cookieUser1 =  await createGoogleUser(user1, sandbox);
+            username1 = await getUsername(cookieUser1);
+            cookieUser2 =  await createGoogleUser(user2, sandbox);
+            username2 = await getUsername(cookieUser2);
+        });
 
+        afterEach(async () => {
+            await deleteUser(cookieUser1);
+            await deleteUser(cookieUser2);
+        });
+
+        it("Authentication source is neither", () =>{
+            
+        })
+    })
 });

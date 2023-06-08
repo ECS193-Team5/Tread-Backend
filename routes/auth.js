@@ -36,7 +36,7 @@ async function appleVerify(token, nonce){
 async function verify(authenticationSource, IDToken, nonce) {
   if(authenticationSource === 'google') {
     return await googleVerify(IDToken);
-  } else if (authenticationSource === 'apple') {
+  } else  {
     return await appleVerify(IDToken, nonce);
   }
 }
@@ -100,7 +100,7 @@ async function createNewUserIfNecessary(authenticationSource, userInfoFromAuth, 
 
   if (authenticationSource === 'google') {
     await createGoogleUser(userInfoFromAuth);
-  } else if (authenticationSource === 'apple') {
+  } else {
     await createAppleUser(userInfoFromAuth, fullName)
   }
 }
