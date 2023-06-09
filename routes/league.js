@@ -807,7 +807,7 @@ async function getRecentActivity(req, res, next){
         members: username
     }, { "_id": 0, "members": 1 }).distinct("members").lean();
 
-    if (allMembersFromAllLeagues.length === 0) {
+    if (allMembersFromAllLeagues && allMembersFromAllLeagues.length === 0) {
         return res.status(200).json([]);
     }
 

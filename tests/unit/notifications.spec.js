@@ -122,29 +122,25 @@ describe("Testing notifications", () => {
     describe("Testing getDeviceTokens()", () => {
         let getDeviceTokens;
         let findStub;
-        let distinctStub;
         const usernames = ['user#2222', 'user#1111'];
         beforeEach(() => {
             getDeviceTokens = notifications.__get__("getDeviceTokens");
-            distinctStub = sandbox.stub();
-            findStub = sandbox.stub(mongoose.Model, "find").returns({distinct: distinctStub});
+            findStub = sandbox.stub(mongoose.Model, "find");
         });
 
         it("calls find()", async function() {
             await getDeviceTokens(usernames);
             expect(findStub).to.have.been.calledWith({username: {$in: usernames}});
-            expect(distinctStub).to.have.been.calledWith('deviceToken');
         });
 
         it("throws when find() rejects", async function() {
-            distinctStub.rejects();
+            findStub.rejects()
             let getDeviceTokensSpy = sandbox.spy(getDeviceTokens);
             try {
                 await getDeviceTokens(usernames);
             } catch {
             }
             expect(getDeviceTokensSpy).to.have.been.thrown;
-            expect(distinctStub).to.have.been.calledWith('deviceToken');
             expect(findStub).to.have.been.calledWith({username: {$in: usernames}});
         });
     });

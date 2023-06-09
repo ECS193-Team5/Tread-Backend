@@ -392,6 +392,8 @@ describe("Testing challenges", () =>{
     describe("Testing acceptFriendChallenge", async () => {
         let acceptFriendChallenge;
         let updatePendingChallengeStatusByIDStub;
+        let notifyAcceptedChallengeStub;
+        
 
         beforeEach(()=>{
             acceptFriendChallenge = challenges.__get__("acceptFriendChallenge")
@@ -400,7 +402,7 @@ describe("Testing challenges", () =>{
             updatePendingChallengeStatusByIDStub = sandbox.stub();
             challenges.__set__("updatePendingChallengeStatusByID", updatePendingChallengeStatusByIDStub);
             notifyAcceptedChallengeStub = sandbox.stub();
-            challenges.__set__("updatePendingChallengeStatusByID", updatePendingChallengeStatusByIDStub);
+            challenges.__set__("notifyAcceptedChallenge", notifyAcceptedChallengeStub);
         })
 
         it("Test acceptFriendChallenge, but challenge does not exist", async () =>{
@@ -419,13 +421,14 @@ describe("Testing challenges", () =>{
     describe("Testing declineFriendChallenge", async () => {
         let declineFriendChallenge;
         let updatePendingChallengeStatusByIDStub;
-
+        let notifyAcceptedChallengeStub;
         beforeEach(()=>{
             declineFriendChallenge = challenges.__get__("declineFriendChallenge")
             req.session.username = "user#0000";
             req.body.challengeID = "id";
             updatePendingChallengeStatusByIDStub = sandbox.stub();
             challenges.__set__("updatePendingChallengeStatusByID", updatePendingChallengeStatusByIDStub);
+            
         })
 
         it("Test declineFriendChallenge, but challenge does not exist", async () =>{

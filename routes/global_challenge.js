@@ -55,7 +55,7 @@ async function getGlobalChallengesAndInsertIfDoesntExist(req, res, next) {
     }).distinct("challengeID").lean();
 
     let newlyInsertedChallenges = [];
-    if (currentGlobalChallenges.length != userGlobalChallengeProgress.length) {
+    if (currentGlobalChallenges && userGlobalChallengeProgress && currentGlobalChallenges.length !== userGlobalChallengeProgress.length) {
         const missingChallenges = currentGlobalChallenges.filter(
             (objectID1) => !userGlobalChallengeProgress.some((objectID2) => objectID1["_id"].equals(objectID2)));
 
