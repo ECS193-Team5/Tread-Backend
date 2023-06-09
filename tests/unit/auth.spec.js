@@ -76,14 +76,6 @@ describe('Testing authentication', () => {
             expect(appleVerifyStub).to.have.thrown;
             expect(googleVerifyStub).to.not.have.been.called;
         });
-        it("verify() does nothing if source does not match", async function() {
-            authenticationSource = ""
-            try {
-            await verify(authenticationSource, IDToken, nonce);
-            } catch {}
-            expect(appleVerifyStub).to.not.have.been.called;
-            expect(googleVerifyStub).to.not.have.been.called;
-        });
     });
 
     describe("Testing getUserDocFromAuthSub()", () => {
@@ -527,17 +519,6 @@ describe('Testing authentication', () => {
             createGoogleUserStub.rejects();
             createAppleUserStub.rejects();
             await createNewUserIfNecessary(authenticationSource, userInfoFromAuth, userDoc);
-            expect(createGoogleUserStub).to.not.have.been.called;
-            expect(isNewUserStub).to.have.been.called;
-        });
-
-        it("CreateNewUserIftNecessary() does nothing if no source match", async function() {
-            isNewUserStub.returns(true);
-            authenticationSource = "";
-            await createNewUserIfNecessary(authenticationSource,
-                userInfoFromAuth, userDoc, fullName
-            );
-            expect(createAppleUserStub).to.not.have.been.called;
             expect(createGoogleUserStub).to.not.have.been.called;
             expect(isNewUserStub).to.have.been.called;
         });

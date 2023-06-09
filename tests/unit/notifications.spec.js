@@ -294,6 +294,14 @@ describe("Testing notifications", () => {
                 },
                 data: {
                     page: 'page'
+                },
+                webpush: {
+                    fcm_options: { link: '/page' },
+                    notification: {
+                      title: 'Tread',
+                      body: 'notification body',
+                      icon: '../favicon.ico'
+                    }
                 }
             });
         });

@@ -244,7 +244,7 @@ describe('Testing /league routes', () => {
         afterEach(async() => {
             await helpers.deleteLeague(usersInfo[1].cookie, leagueInfo.leagueID);
         })
-
+        
         it("Test /user_request_to_join", async function(){
             // User requests to join
             await request.post("/league/user_request_to_join")
@@ -326,7 +326,7 @@ describe('Testing /league routes', () => {
             expect(leagues.length).to.equal(0);
         });
 
-        it("Test /user_request_to_join after /invite_to_joing", async function(){
+        it("Test /user_request_to_join after /invite_to_join", async function(){
             let newLeague = await helpers.createLeague(usersInfo[2].cookie, "n", "public", "d");
             await request
             .post("/league/invite_to_join")
@@ -342,6 +342,26 @@ describe('Testing /league routes', () => {
             .send({leagueID: newLeague.leagueID})
             .expect(200);
 
+            await helpers.deleteLeague(usersInfo[2].cookie, newLeague.leagueID)
+        });
+
+        it("Test /invite_to_join after /user_request_to_join", async function(){
+            let newLeague = await helpers.createLeague(usersInfo[2].cookie, "n", "private", "d");
+
+            await request
+            .post("/league/user_request_to_join")
+            .set("Cookie", usersInfo[1].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: newLeague.leagueID})
+            .expect(200);
+
+            await request
+            .post("/league/invite_to_join")
+            .set("Cookie", usersInfo[2].cookie)
+            .set('Accept', 'application/json')
+            .send({leagueID: newLeague.leagueID, recipient: usersInfo[1].username})
+            .expect(200);
+            
             await helpers.deleteLeague(usersInfo[2].cookie, newLeague.leagueID)
         });
     });
@@ -1544,7 +1564,7 @@ describe('Testing /league routes', () => {
             let results = await helpers.getRecentActivityLeague(usersFailInfo[2].cookie);
             expect(results.length).to.equal(0);
         })
-    })
-
+    
+});
 });
 

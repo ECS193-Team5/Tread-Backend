@@ -26,12 +26,10 @@ function getUnitType(unit) {
     if (TIME_UNITS.includes(unit)) {
         return "time";
     }
-    if (DISTANCE_UNITS.includes(unit)) {
+    else if (DISTANCE_UNITS.includes(unit)) {
         return "distance";
     }
-    if (COUNT_UNITS.includes(unit)) {
-        return "count";
-    }
+    return "count";
 }
 
 const exercise = new Schema(
