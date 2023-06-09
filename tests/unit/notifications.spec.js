@@ -122,10 +122,12 @@ describe("Testing notifications", () => {
     describe("Testing getDeviceTokens()", () => {
         let getDeviceTokens;
         let findStub;
+        let distinctStub;
         const usernames = ['user#2222', 'user#1111'];
         beforeEach(() => {
             getDeviceTokens = notifications.__get__("getDeviceTokens");
-            findStub = sandbox.stub(mongoose.Model, "find");
+            distinctStub = sandbox.stub();
+            findStub = sandbox.stub(mongoose.Model, "find").returns({distinct:distinctStub});
         });
 
         it("calls find()", async function() {
@@ -134,7 +136,7 @@ describe("Testing notifications", () => {
         });
 
         it("throws when find() rejects", async function() {
-            findStub.rejects()
+            distinctStub.rejects()
             let getDeviceTokensSpy = sandbox.spy(getDeviceTokens);
             try {
                 await getDeviceTokens(usernames);

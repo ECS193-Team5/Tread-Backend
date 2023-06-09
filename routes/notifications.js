@@ -24,7 +24,7 @@ async function removeMultipleDeviceTokens(deviceTokens) {
 }
 
 async function getDeviceTokens(usernames) {
-    return await User_devices.find({username: {$in: usernames}});
+    const userDeviceTokens = await User_devices.find({username: {$in: usernames}}).distinct('deviceToken');
 }
 
 async function sendMessageToDevices(message) {
