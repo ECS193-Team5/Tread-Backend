@@ -504,11 +504,20 @@ describe("Testing exercise_log", () =>{
         })
 
         it("Test updateDatabaseWithExerciseList that succeeds", async function() {
+            req.body.exerciseList = [{}]
+            await updateDatabaseWithExerciseList(req, res, next);
+            expect(res.status).to.equal(200);
+        });
+
+        it("Test updateDatabaseWithExerciseList with empty list", async function() {
+            req.body.exerciseList = []
+            addExerciseListToExerciseLogStub.throws();
             await updateDatabaseWithExerciseList(req, res, next);
             expect(res.status).to.equal(200);
         });
 
         it("Test updateDatabaseWithExerciseList that fails", async function() {
+            req.body.exerciseList = [{}]
             addExerciseListToExerciseLogStub.throws();
             await updateDatabaseWithExerciseList(req, res, next);
             expect(res.status).to.equal(500);

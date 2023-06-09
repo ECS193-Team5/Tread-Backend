@@ -316,6 +316,9 @@ async function updateDatabaseWithExerciseList(req, res, next) {
     const anchor = req.body.anchor;
     const username = req.session.username;
 
+    if(exerciseList && exerciseList.length === 0){
+        return res.sendStatus(200);
+    }
     try {
         await Promise.all([
             addExerciseListToExerciseLog(username, exerciseList),
