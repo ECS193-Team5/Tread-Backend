@@ -23,7 +23,7 @@ const LeagueSchema = new Schema(
         default: '',
         validate: {
             validator: function(description) {
-                return (description.length < 140);
+                return (description && description.length < 140);
             },
             message: () => 'Size must be less than 140'
         }

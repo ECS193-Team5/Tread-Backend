@@ -24,7 +24,7 @@ async function removeMultipleDeviceTokens(deviceTokens) {
 }
 
 async function getDeviceTokens(usernames) {
-    return await User_devices.find({username: {$in: usernames}}).distinct('deviceToken');
+    return await User_devices.find({username: {$in: usernames}});
 }
 
 async function sendMessageToDevices(message) {
@@ -46,7 +46,7 @@ async function sendMessageToDevices(message) {
 async function sendPushNotificationToUsers(usernames, messageBody, page) {
     const deviceTokens = await getDeviceTokens(usernames);
 
-    if (deviceTokens.length === 0) {
+    if (!deviceTokens || deviceTokens.length === 0) {
         return;
     }
     const message = {

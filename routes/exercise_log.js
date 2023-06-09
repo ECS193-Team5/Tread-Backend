@@ -249,7 +249,7 @@ async function updateManyGlobalChallengesAndCompletion(username, uniqueExercises
     const globalChallengesThatMatchExercises = await Promise.all(needUpdatingGlobalChallengePromises);
     const insertGlobalChallengeQuery = getQueryForInsertingGlobalChallengesIfMissing(username, globalChallengesThatMatchExercises);
 
-    if (insertGlobalChallengeQuery.length === 0) {
+    if (insertGlobalChallengeQuery && insertGlobalChallengeQuery.length === 0) {
         return;
     }
 

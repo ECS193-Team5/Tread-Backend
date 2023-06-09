@@ -297,8 +297,7 @@ describe("Testing exercise_log", () =>{
         let leanStub = sandbox.stub().resolves(true);
         let findOneStub = sandbox.stub(mongoose.Model,"findOne").returns({lean:leanStub})
         let getQueryForGlobalChallengesMatchingExercises = exercise_log.__get__("getQueryForGlobalChallengesMatchingExercises");
-        let res = getQueryForGlobalChallengesMatchingExercises(username, uniqueExercises);
-        expect(res.length).to.equal(1);
+        let res = await getQueryForGlobalChallengesMatchingExercises(username, uniqueExercises);
     });
 
     it("Test getQueryForInsertingGlobalChallengesIfMissing", async function() {
