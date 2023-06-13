@@ -505,6 +505,7 @@ async function getChallengeCount(filter) {
 
 async function getAllLeaguesWithChallengeCount(req, res, next) {
     const filter = res.locals.filter;
+    const username = req.session.username;
 
     const leaguesInfo = await League.find(filter, "_id leagueName members").lean();
 
@@ -512,6 +513,7 @@ async function getAllLeaguesWithChallengeCount(req, res, next) {
     leaguesInfo.forEach((league) => {
         challengeCount.push(
             getChallengeCount({
+                participants: username,
                 receivedUser: league._id.toString(),
                 issueDate: {
                     $lte: Date.now(),
